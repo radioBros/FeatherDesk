@@ -55,7 +55,7 @@ WORK=$(mktemp -d)
 KUBECONFIG=$WORK/kubeconfig
 export KUBECONFIG
 
-PIDS=() CONTAINERS=() VOLUMES=() NETWORKS=() PROJECTS=() CLUSTER="" GHCR_OLD=""
+PIDS=() CONTAINERS=() VOLUMES=() NETWORKS=() PROJECTS=() CLUSTER="" GHCR_OLD="" GHCR_OLD_V="" APPVER=""
 cleanup() {
   set +e
   for p in ${PIDS[@]+"${PIDS[@]}"}; do kill "$p" 2>/dev/null; done
@@ -72,6 +72,10 @@ cleanup() {
   if [ -n "$CLUSTER" ]; then
     if [ -n "$GHCR_OLD" ]; then docker tag "$GHCR_OLD" ghcr.io/radiobros/simpletickets:latest >/dev/null 2>&1
     else docker rmi ghcr.io/radiobros/simpletickets:latest >/dev/null 2>&1; fi
+    if [ -n "$APPVER" ]; then
+      if [ -n "$GHCR_OLD_V" ]; then docker tag "$GHCR_OLD_V" "ghcr.io/radiobros/simpletickets:$APPVER" >/dev/null 2>&1
+      else docker rmi "ghcr.io/radiobros/simpletickets:$APPVER" >/dev/null 2>&1; fi
+    fi
   fi
   rm -rf "$WORK"
 }
@@ -291,9 +295,14 @@ if want 4; then
   GHCR_OLD=$(docker image inspect -f '{{.Id}}' ghcr.io/radiobros/simpletickets:latest 2>/dev/null || true)
   CLUSTER=$ID
   kind create cluster --name "$CLUSTER" --wait 120s >/dev/null 2>&1 || fail "kind create cluster"
-  # The manifests and the chart (appVersion latest, IfNotPresent) name this image.
+  # The manifests name :latest and the chart its appVersion (IfNotPresent): load
+  # the image under both tags, since no release tag exists on GHCR before the release.
+  APPVER=$(awk -F'"' '/^appVersion:/ {print $2}' "$ROOT/deploy/helm/simpletickets/Chart.yaml")
+  [ -n "$APPVER" ] || fail "no appVersion in Chart.yaml"
+  GHCR_OLD_V=$(docker image inspect -f '{{.Id}}' "ghcr.io/radiobros/simpletickets:$APPVER" 2>/dev/null || true)
   docker tag "$IMAGE" ghcr.io/radiobros/simpletickets:latest
-  kind load docker-image --name "$CLUSTER" ghcr.io/radiobros/simpletickets:latest >/dev/null
+  docker tag "$IMAGE" "ghcr.io/radiobros/simpletickets:$APPVER"
+  kind load docker-image --name "$CLUSTER" ghcr.io/radiobros/simpletickets:latest "ghcr.io/radiobros/simpletickets:$APPVER" >/dev/null
   pf() { # resource port → background port-forward
     kubectl -n simpletickets port-forward "$1" "$2:8080" >"$WORK/pf-$2.log" 2>&1 &
     PIDS+=($!); disown "$!" 2>/dev/null || true
@@ -320,7 +329,11 @@ if want 4; then
   kubectl -n simpletickets create secret generic "$ex" --from-literal=ST_SECRET_KEY="$(openssl rand -base64 32)" >/dev/null
   t0=$(date +%s)
   run_block helm-install "$WORK/helm"
-  run_block helm-token "$WORK/helm"
+  if ! (cd "$WORK/helm" && bash -euo pipefail "$(block helm-token)") >"$WORK/helm-token.out" 2>&1; then
+    cat "$WORK/helm-token.out" >&2
+    kubectl -n simpletickets describe pod | tail -40 >&2
+    fail "doc block 'helm-token' failed"
+  fi
   ready_s=$(( $(date +%s) - t0 ))
   grep -q "setup token" "$WORK/helm-token.out" || fail "helm: no setup token line"
   pf deploy/simpletickets 18405

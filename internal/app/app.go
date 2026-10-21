@@ -300,7 +300,9 @@ func (a *App) Run(ctx context.Context, ln net.Listener) error {
 	d := a.Deps
 	a.started = time.Now()
 	if err := d.Queue.Start(ctx); err != nil {
-		return err
+		// A shutdown that arrives while the queue is still loading its
+		// cursor aborts the start; release the listener, lock and DB either way.
+		return errors.Join(err, ln.Close(), a.Close())
 	}
 	bg, cancelBG := context.WithCancel(ctx)
 	defer cancelBG()

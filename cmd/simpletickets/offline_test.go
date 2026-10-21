@@ -286,6 +286,25 @@ func TestServeBootWiring(t *testing.T) {
 	}
 }
 
+// TestServeStopsCleanlyWhileBooting: a shutdown that arrives before serve is
+// listening (during migrations or the queue start) exits 0 and releases the
+// instance lock, like a shutdown after boot. CI hit this window under -race.
+func TestServeStopsCleanlyWhileBooting(t *testing.T) {
+	dir := cliEnv(t)
+	dbPath := filepath.Join(dir, "simpletickets.db")
+	mustRun(t, "seed", "--tickets", "3")
+	sctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if code := run(sctx, []string{"serve"}); code != 0 {
+		t.Fatalf("serve exit %d when stopped while booting", code)
+	}
+	r, err := store.LockSQLiteFile(dbPath)
+	if err != nil {
+		t.Fatalf("lock not released: %v", err)
+	}
+	r()
+}
+
 // TestBootRefusesCorruptDB (DB-017): serve runs quick_check before migrating
 // and exits non-zero with a clear message on a corrupted SQLite file, without
 // writing to it.

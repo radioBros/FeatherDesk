@@ -65,13 +65,24 @@ func cmdServe(ctx context.Context, args []string) error {
 	a, err := app.Build(ctx, cfg, app.BuildOptions{Logger: log, Version: version, Commit: commit,
 		LockInstance: true, BackupDir: filepath.Join(cfg.DataDir, "backups")})
 	if err != nil {
-		return err
+		return stoppedWhileBooting(ctx, err)
 	}
 	ln, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {
 		return errors.Join(err, a.Close())
 	}
-	return a.Run(ctx, ln)
+	return stoppedWhileBooting(ctx, a.Run(ctx, ln))
+}
+
+// stoppedWhileBooting maps an error caused by a shutdown request (SIGTERM
+// while migrating or starting the queue) to a clean exit: the migration
+// transaction rolled back and nothing was served, so there is nothing to
+// report. Any other error is returned unchanged.
+func stoppedWhileBooting(ctx context.Context, err error) error {
+	if err != nil && ctx.Err() != nil && errors.Is(err, context.Canceled) {
+		return nil
+	}
+	return err
 }
 
 func cmdMigrate(ctx context.Context, args []string) (err error) {

@@ -53,7 +53,7 @@ Add `--scope user` to make it available in every project. `claude mcp list` show
 ### Claude Desktop
 
 Claude Desktop starts local MCP servers listed in its `claude_desktop_config.json` (opened from the app's developer settings);
-the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge connects it to the HTTP endpoint and adds the token. It needs
+the [`mcp-remote`](https://github.com/punkpeye/mcp-remote) bridge connects it to the HTTP endpoint and adds the token. It needs
 Node.js.
 
 ```json
