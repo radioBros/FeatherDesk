@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+import { BIG } from "./proofBig"
+console.debug(BIG.length)
 
 import { createApp, watch } from 'vue'
 import { createPinia } from 'pinia'
