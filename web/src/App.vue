@@ -1,13 +1,39 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
-import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import AppSnackbar from '@/components/AppSnackbar.vue'
+/**
+ * The confirm dialog and the snackbar are lazy chunks (FE-031): each loads when
+ * it is first needed (or once the browser is idle) and then stays mounted, so
+ * VDialog and VSnackbar are not part of any area's initial JS.
+ */
+import { defineAsyncComponent, onMounted, ref, watchEffect } from 'vue'
+import { confirmState } from '@/composables/useConfirm'
+import { useUiStore } from '@/stores/ui'
+
+const loadConfirm = () => import('@/components/ConfirmDialog.vue')
+const loadSnackbar = () => import('@/components/AppSnackbar.vue')
+const ConfirmDialog = defineAsyncComponent(loadConfirm)
+const AppSnackbar = defineAsyncComponent(loadSnackbar)
+
+const confirm = confirmState()
+const ui = useUiStore()
+const needConfirm = ref(false)
+const needSnackbar = ref(false)
+watchEffect(() => {
+  if (confirm.open) needConfirm.value = true
+  if (ui.toasts.length) needSnackbar.value = true
+})
+
+// Warm both chunks after the first paint so the first confirm or toast shows at once.
+onMounted(() => {
+  const idle = (cb: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(cb, { timeout: 3000 }) : setTimeout(cb, 1500))
+  idle(() => void Promise.all([loadConfirm(), loadSnackbar()]).catch(() => undefined))
+})
 </script>
 
 <template>
   <router-view />
-  <ConfirmDialog />
-  <AppSnackbar />
+  <ConfirmDialog v-if="needConfirm" />
+  <AppSnackbar v-if="needSnackbar" />
 </template>
 
 <style>

@@ -89,7 +89,7 @@ function keepDir(): Plugin {
 const CORE_COMPOSABLES =
   'autocomplete|autofocus|border|color|component|date|defaults|delay|density|dimensions|display|elevation|focus|focusTrap|form|forwardRefs|goto|group|hydration|iconSizes|icons|layout|lazy|list-items|loader|locale|location|nested|position|proxiedModel|reveal|rounded|router|rules|scopeId|selectLink|size|ssrBoot|stack|tag|teleport|theme|toggleScope|transition|validation|variant'
 const CORE_COMPONENTS =
-  'VAlert|VApp|VAvatar|VBadge|VBtn|VBtnGroup|VBtnToggle|VCard|VCounter|VDefaultsProvider|VDialog|VDivider|VField|VGrid|VIcon|VImg|VInput|VLabel|VList|VMain|VMenu|VMessages|VOverlay|VProgressCircular|VProgressLinear|VResponsive|VSnackbar|VSnackbarQueue|VTextField|VThemeProvider|transitions'
+  'VAlert|VApp|VAvatar|VBadge|VBtn|VBtnGroup|VBtnToggle|VCard|VCounter|VDefaultsProvider|VDivider|VField|VGrid|VIcon|VImg|VInput|VLabel|VList|VMain|VMenu|VMessages|VOverlay|VProgressCircular|VProgressLinear|VResponsive|VTextField|VThemeProvider|transitions'
 const CORE = new RegExp(
   '[\\\\/]node_modules[\\\\/](?:.*[\\\\/])?(?:' +
     [
@@ -112,7 +112,12 @@ const isCoreModule = (id: string) => CORE.test(id)
 const backend = process.env.ST_DEV_BACKEND ?? 'http://localhost:8080'
 
 export default defineConfig({
-  plugins: [mdiInline(), vue(), vuetify({ autoImport: { ignore: ['VBtn'] } }), precompress(), keepDir()],
+  plugins: [mdiInline(), vue({ features: { optionsAPI: false } }), vuetify({ autoImport: { ignore: ['VBtn'] } }), precompress(), keepDir()],
+  define: {
+    __VUE_I18N_LEGACY_API__: 'false',
+    __VUE_I18N_FULL_INSTALL__: 'false',
+    __INTLIFY_PROD_DEVTOOLS__: 'false',
+  },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: {
     port: 5173,
