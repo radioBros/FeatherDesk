@@ -306,6 +306,23 @@ func (a *App) Run(ctx context.Context, ln net.Listener) error {
 	}
 	bg, cancelBG := context.WithCancel(ctx)
 	defer cancelBG()
+	// Deliberate CI proof (DEP-012): a 500 ms polling ticker with a real query
+	// must make the idle-CPU gate fail. Never merged.
+	go func() {
+		t := time.NewTicker(500 * time.Millisecond)
+		defer t.Stop()
+		for {
+			select {
+			case <-bg.Done():
+				return
+			case <-t.C:
+				for i := 0; i < 20; i++ {
+					var n int
+					_ = d.DB.Read().QueryRowContext(bg, `SELECT COUNT(*) FROM tickets t JOIN ticket_messages m ON m.ticket_id = t.id WHERE t.status <> 'closed' AND m.body LIKE '%zz%'`).Scan(&n)
+				}
+			}
+		}
+	}()
 	for _, m := range a.Modules {
 		if s, ok := m.(Starter); ok {
 			go func(s Starter, name string) {
