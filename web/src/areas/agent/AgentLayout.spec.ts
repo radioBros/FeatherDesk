@@ -65,6 +65,8 @@ describe('AgentLayout (FE-019)', () => {
     const view = h.wrapper.find('[data-testid="nav-view"]')
     expect(view.text()).toContain('Hot printers')
     expect(view.attributes('href')).toBe('/agent/tickets?view_id=v-1')
+    // The help dialog is a lazy chunk (FE-031): load the module first so it renders on the next ticks.
+    await import('./shared/ShortcutsHelp.vue')
     window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }))
     await h.flush()
     expect(document.body.querySelector('[data-testid="shortcuts-help"]')).not.toBeNull()

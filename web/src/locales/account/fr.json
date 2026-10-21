@@ -1,0 +1,114 @@
+{
+  "mfa": {
+    "code": "Code à 6 chiffres",
+    "recoveryCode": "Code de récupération",
+    "verify": "Vérifier",
+    "validation": {
+      "otpCode": "Saisissez le code à 6 chiffres",
+      "recoveryCode": "Saisissez un code de récupération comme abcd-efgh-jkmn"
+    },
+    "method": {
+      "totp": "Application d'authentification",
+      "email": "Code par e-mail",
+      "recovery": "Code de récupération"
+    },
+    "step": {
+      "title": "Validation en deux étapes",
+      "enrollTitle": "Configurer la validation en deux étapes",
+      "enrollIntro": "Ce site exige une deuxième étape à la connexion. Configurez-la maintenant pour continuer.",
+      "hint": {
+        "totp": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+        "email": "Nous envoyons un code à 6 chiffres à votre adresse e-mail.",
+        "recovery": "Saisissez l'un des codes de récupération que vous avez conservés. Chaque code ne fonctionne qu'une fois."
+      },
+      "expired": "Cette tentative de connexion a expiré. Veuillez vous reconnecter.",
+      "restart": "Se reconnecter",
+      "tooMany": "Trop de tentatives. Patientez un instant puis réessayez.",
+      "noMethod": "Aucune méthode de validation n'est disponible pour ce compte. Demandez à un administrateur de réinitialiser la validation en deux étapes.",
+      "methodLabel": "Méthode de validation",
+      "emailSent": "Nous avons envoyé un code à votre adresse e-mail. Il est valable 10 minutes.",
+      "resendIn": "Renvoyer dans {s} s",
+      "resend": "Envoyer un nouveau code",
+      "sendEmail": "M'envoyer un code par e-mail",
+      "cancel": "Annuler et revenir"
+    },
+    "setup": {
+      "title": "Configurer une application d'authentification",
+      "start": "Afficher le code QR",
+      "scan": "Scannez ce code QR avec votre application d'authentification.",
+      "qrLabel": "Code QR pour votre application d'authentification",
+      "manual": "Ou saisissez cette clé manuellement :",
+      "confirm": "Confirmer et activer"
+    },
+    "codes": {
+      "title": "Vos codes de récupération",
+      "warning": "Conservez ces codes en lieu sûr. Chacun vous connecte une fois si vous perdez votre appareil. Ils ne sont affichés que maintenant.",
+      "copy": "Copier",
+      "copied": "Copiés",
+      "download": "Télécharger",
+      "continue": "Je les ai conservés, continuer",
+      "saved": "Je les ai conservés"
+    },
+    "reauth": {
+      "title": "Confirmez votre mot de passe",
+      "intro": "Par sécurité, saisissez votre mot de passe pour modifier la validation en deux étapes."
+    },
+    "profile": {
+      "title": "Validation en deux étapes",
+      "loadFailed": "Impossible de charger les réglages de la validation en deux étapes.",
+      "unavailable": "Votre compte se connecte via le fournisseur d'identité de votre organisation, qui gère la validation en deux étapes.",
+      "intro": "Protégez votre compte avec une deuxième étape après le mot de passe.",
+      "required": "Ce site exige la validation en deux étapes. Configurez au moins une méthode.",
+      "on": "Activée",
+      "off": "Désactivée",
+      "setUp": "Configurer",
+      "replace": "Remplacer",
+      "turnOff": "Désactiver",
+      "turnOn": "Activer",
+      "emailUnavailable": "Indisponible : l'e-mail n'est pas configuré sur ce site",
+      "remaining": "{n} codes inutilisés restants",
+      "regenerate": "Nouveaux codes",
+      "totpEnabled": "Application d'authentification activée",
+      "emailEnabled": "Codes par e-mail activés",
+      "disabled": "Méthode désactivée",
+      "disableConfirm": {
+        "totp": "Désactiver l'application d'authentification ?",
+        "email": "Désactiver les codes par e-mail ?"
+      },
+      "regenerateConfirm": "Créer de nouveaux codes de récupération ? Les anciens ne fonctionneront plus."
+    },
+    "admin": {
+      "label": "Validation en deux étapes",
+      "sso": "gérée par le fournisseur d'identité",
+      "reset": "Réinitialiser la validation en deux étapes",
+      "resetTitle": "Réinitialiser la validation en deux étapes ?",
+      "resetConfirm": "Supprime l'application d'authentification, les codes par e-mail et les codes de récupération de l'utilisateur. Il pourra se connecter avec son seul mot de passe (ou la configurer à nouveau si le site l'exige). L'opération est consignée dans le journal d'audit.",
+      "resetDone": "La validation en deux étapes a été réinitialisée"
+    },
+    "policy": {
+      "title": "Sécurité",
+      "label": "Exiger la validation en deux étapes",
+      "hint": "S'applique aux comptes avec mot de passe local. Les comptes à authentification unique utilisent leur fournisseur d'identité.",
+      "none": "Personne (facultatif)",
+      "staff": "Tous les comptes du personnel",
+      "all": "Tout le monde",
+      "saved": "Réglages de sécurité enregistrés"
+    }
+  },
+  "mcp": {
+    "title": "Connecter un assistant IA",
+    "intro": "Les assistants IA compatibles avec le Model Context Protocol (MCP), comme Claude Code, Claude Desktop ou Cursor, peuvent travailler sur vos tickets avec l'un de vos jetons d'API. L'assistant agit en votre nom et ne peut jamais faire plus que ce que permettent les portées du jeton. Créez un jeton ci-dessous, puis collez l'une de ces configurations dans votre assistant.",
+    "endpoint": "Point de terminaison MCP",
+    "scopes": "Portées de jeton recommandées",
+    "readWrite": "Pour lire et traiter les tickets :",
+    "readOnly": "Lecture seule :",
+    "copy": "Copier",
+    "copied": "Copié",
+    "replaceToken": "Remplacez {placeholder} par votre jeton. Protégez cette configuration comme un mot de passe.",
+    "hint": {
+      "claudeCode": "Exécutez cette commande dans un terminal.",
+      "claudeDesktop": "Ajoutez ceci à claude_desktop_config.json (accessible depuis les réglages développeur de l'application) puis redémarrez l'application. Node.js est requis : mcp-remote relie l'application au point de terminaison.",
+      "cursor": "Ajoutez ceci à ~/.cursor/mcp.json (ou à .cursor/mcp.json dans un projet)."
+    }
+  }
+}

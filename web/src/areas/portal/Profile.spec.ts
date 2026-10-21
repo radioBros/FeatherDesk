@@ -1,9 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
+import { nextTick } from 'vue'
+import { enableAutoUnmount } from '@vue/test-utils'
 import ProfilePage from './pages/ProfilePage.vue'
 import { mockFetch, json } from '@/test/mount'
 import { i18n, setLocale } from '@/i18n'
 import { mountPage, requests, settle, CUSTOMER } from './testing'
+
+// The real setLocale, observed: the locale test awaits the very switch the form starts.
+vi.mock('@/i18n', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/i18n')>()
+  return { ...mod, setLocale: vi.fn(mod.setLocale) }
+})
+
+// Every page is mounted on document.body: unmount it after its test, so no page of an
+// earlier test keeps rendering (and reacting to locale switches) in the next one.
+enableAutoUnmount(afterEach)
 
 afterEach(async () => {
   vi.unstubAllGlobals()
@@ -26,10 +38,13 @@ describe('portal profile (FE-018)', () => {
     const { wrapper } = await mountPage(ProfilePage, { path: '/profile' })
     ;(wrapper.findComponent({ name: 'ProfileForm' }).vm as unknown as { $: { setupState: { model: { locale: string } } } }).$.setupState.model.locale = 'it'
     await settle()
+    vi.mocked(setLocale).mockClear()
     await wrapper.find('[data-testid="profile-form"]').trigger('submit')
-    // The locale switch lazy-loads it.json and the area packs (real dynamic imports): wait for it
-    // instead of counting ticks, which is too short when the worker is busy.
-    await vi.waitFor(() => expect(i18n.global.locale.value).toBe('it'), { timeout: 5000 })
+    // The save switches the locale, which lazy-loads it.json and the area packs (real dynamic
+    // imports): await that switch itself, however long the imports take, then the re-render.
+    await vi.waitFor(() => expect(setLocale).toHaveBeenCalledWith('it'))
+    await vi.mocked(setLocale).mock.results[0]!.value
+    await nextTick()
     const [patch] = await requests(fn)
     // Email opt-outs moved to the notification matrix (FE-095): this form sends name and locale only.
     expect(patch).toMatchObject({ method: 'PATCH', path: '/me', body: { name: 'Carla Customer', locale: 'it' } })

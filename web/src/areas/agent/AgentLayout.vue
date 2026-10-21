@@ -7,7 +7,7 @@
  * global search (`#1042` jumps to the ticket) and the `?` shortcut help.
  * Kept light: it is part of the agent area's initial JS (FE-031).
  */
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import type { RouteLocationNormalized } from 'vue-router'
 import { useRouter } from 'vue-router'
 import {
@@ -46,7 +46,6 @@ import NavHeader from '@/components/NavHeader.vue'
 import ConnectionBanner from '@/components/ConnectionBanner.vue'
 import { useCountsStore } from './counts'
 import { useProjectsStore } from '@/stores/projects'
-import ProjectSwitcher from './ProjectSwitcher.vue'
 import { useViewsStore } from './tickets/list/views'
 import { useShortcuts } from './shared/useShortcuts'
 import { useBarCollapsed } from '@/composables/useAppPrefs'
@@ -57,6 +56,10 @@ const AvailabilityToggle = defineAsyncComponent(() => import('./automation/Avail
 // The admin entries (about 25 section icons) load when the drawer renders them, not with the shell.
 const AdminNavItems = defineAsyncComponent(() => import('./AdminNavItems.vue'))
 const NotificationBell = defineAsyncComponent(() => import('@/notifications/NotificationBell.vue'))
+// The project switcher (and VChip with it) loads only once the user has more than one active project.
+const ProjectSwitcher = defineAsyncComponent(() => import('./ProjectSwitcher.vue'))
+// The `?` shortcut help (and VDialog with it) loads on first open.
+const ShortcutsHelp = defineAsyncComponent(() => import('./shared/ShortcutsHelp.vue'))
 
 const session = useSessionStore()
 const config = useConfigStore()
@@ -69,6 +72,10 @@ const barCollapsed = useBarCollapsed()
 const drawer = ref(mdAndUp.value)
 const search = ref('')
 const help = ref(false)
+const helpLoaded = ref(false)
+watch(help, (open) => {
+  if (open) helpLoaded.value = true
+})
 
 useRealtime(['counts'], { onCounts: counts.apply, onResync: () => void counts.load() })
 useRealtime(['me'], { essential: true })
@@ -114,10 +121,6 @@ function onSearch() {
 }
 
 useShortcuts({ '?': () => (help.value = true) })
-const SHORTCUTS = [
-  { section: 'list', keys: [['j', 'next'], ['k', 'prev'], ['Enter', 'open'], ['x', 'select']] },
-  { section: 'ticket', keys: [['r', 'reply'], ['n', 'note'], ['e', 'escalate'], ['?', 'help']] },
-] as const
 </script>
 
 <template>
@@ -146,7 +149,7 @@ const SHORTCUTS = [
         @keydown.enter="onSearch"
       />
       <template #append>
-        <ProjectSwitcher />
+        <ProjectSwitcher v-if="projects.showSwitcher" />
         <v-btn v-if="mdAndUp" :icon="mdiKeyboardOutline" variant="text" color="nav-system" :aria-label="$t('agent.nav.shortcuts')" data-testid="shortcuts-open" @click="help = true" />
         <template v-if="!barCollapsed">
           <LocaleSwitcher />
@@ -228,24 +231,7 @@ const SHORTCUTS = [
       <router-view />
     </v-main>
 
-    <v-dialog v-model="help" max-width="480">
-      <v-card :title="$t('agent.shortcuts.title')" data-testid="shortcuts-help">
-        <v-card-text>
-          <div v-for="s in SHORTCUTS" :key="s.section" class="mb-3">
-            <div class="text-subtitle-2 mb-1">{{ $t(`agent.shortcuts.${s.section}`) }}</div>
-            <div v-for="[key, label] in s.keys" :key="key" class="d-flex align-center ga-3 py-1">
-              <kbd class="st-kbd">{{ key }}</kbd>
-              <span class="text-body-2">{{ $t(`agent.shortcuts.${label}`) }}</span>
-            </div>
-          </div>
-          <div class="text-caption text-medium-emphasis">{{ $t('agent.shortcuts.hint') }}</div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn @click="help = false">{{ $t('app.close') }}</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ShortcutsHelp v-if="helpLoaded" v-model="help" />
   </v-app>
 </template>
 
@@ -253,8 +239,4 @@ const SHORTCUTS = [
 .st-skip { position: absolute; left: -9999px; }
 .st-skip:focus { left: 8px; top: 8px; z-index: 10000; background: rgb(var(--v-theme-surface)); padding: 8px; }
 .st-search { flex: 1 1 0; min-width: 0; max-width: 420px; margin-inline: 8px; }
-.st-kbd {
-  min-width: 2em; text-align: center; padding: 2px 6px; border-radius: 4px; font-family: ui-monospace, Menlo, monospace;
-  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)); background: rgb(var(--v-theme-surface-variant)); color: rgb(var(--v-theme-on-surface-variant));
-}
 </style>

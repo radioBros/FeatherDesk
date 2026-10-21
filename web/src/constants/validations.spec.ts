@@ -2,6 +2,10 @@
 
 import { validations, errorCodes, ruleCodes, isEmail } from './validations'
 import { i18n } from '@/i18n'
+import enAccount from '@/locales/account/en.json'
+
+// The MFA code messages (`otp_code`, `recovery_code`) live in the lazy `account` pack (FE-031).
+beforeAll(() => i18n.global.mergeLocaleMessage('en', enAccount as never))
 
 const en = (key: string, named?: Record<string, unknown>) => i18n.global.t(key, named ?? {})
 
