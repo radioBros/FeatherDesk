@@ -12,6 +12,8 @@
 # Browsers resolve *.localhost to 127.0.0.1, and inside the compose network
 # authentik.localhost is an alias of the server container, so the OIDC issuer
 # URL is identical for the browser and the app (go-oidc checks it verbatim).
+# The other direction (Authentik worker → app, back-channel logout) goes to the
+# compose service http://app:8080 (ST_BACKCHANNEL_BASE_URL in .env.dev).
 #
 # Options:
 #   ST_DEV_SMTP_HOST= (empty) …up        leave SMTP unset: configure it in Admin → Email

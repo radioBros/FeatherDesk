@@ -38,6 +38,15 @@ reversible, slow on large databases, or needs operator action. CI enforces this
   global), and rebuilds `sla_policies` with a surrogate `id` and `project_id` (existing
   rows become the global defaults). Fast; no operator action.
 
+### Fixed
+- **Authentik blueprint, back-channel logout:** the providers' back-channel logout URL
+  can now point somewhere other than `ST_PUBLIC_URL` through the optional Authentik
+  environment variable `ST_BACKCHANNEL_BASE_URL`, for an Authentik worker that cannot
+  reach the public URL (unset = `ST_PUBLIC_URL`, as before). The development stack sets
+  it to `http://app:8080`: with `ST_PUBLIC_URL=http://localhost:8080` the worker was
+  posting logout tokens to itself, so signing out at Authentik never ended the
+  SimpleTickets session there.
+
 ## [1.0.0] - 2026-10-21
 
 First stable release of SimpleTickets, developed by [RadioBros](https://radiobros.com/). Everything below is new.

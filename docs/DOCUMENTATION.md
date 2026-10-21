@@ -840,6 +840,7 @@ The blueprint reads everything environment-specific from the **Authentik** serve
 | Authentik environment variable | Value |
 |---|---|
 | `ST_PUBLIC_URL` | Your help desk URL, e.g. `https://help.example.com` |
+| `ST_BACKCHANNEL_BASE_URL` | Optional. The base URL the Authentik **worker** sends back-channel logout requests to, when it cannot reach `ST_PUBLIC_URL` itself, e.g. `http://app:8080` when both run in one compose network. Empty or unset means `ST_PUBLIC_URL`. The development stack sets `http://app:8080` in `deploy/.env.dev` |
 | `ST_OIDC_STAFF_CLIENT_ID` / `ST_OIDC_STAFF_CLIENT_SECRET` | Random values of your choice. The client id defaults to `simpletickets-staff` |
 | `ST_OIDC_CUSTOMER_CLIENT_ID` / `ST_OIDC_CUSTOMER_CLIENT_SECRET` | The same for the customer client. The client id defaults to `simpletickets-customer` |
 
