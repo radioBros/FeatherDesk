@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+//
+// Global custom styles. Imported in src/main.ts after Vuetify's base styles,
+// so rules here win over Vuetify defaults.
+//
+// Tips:
+// - Use theme variables so rules follow branding and dark mode, e.g.
+//     color: rgb(var(--v-theme-primary));
+//     background: rgba(var(--v-theme-on-surface), 0.04);
+// - Target Vuetify components by class (.v-btn, .v-field, .v-data-table, …).
+// - Component-specific styles still belong in that component's <style scoped>.
+

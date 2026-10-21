@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# pnpm settings (pnpm 11 reads them from here, also for a single package).
+# @parcel/watcher is an optional dependency of sass-embedded; its native build
+# is only for file watching in dev and is not needed for builds or CI.
+allowBuilds:
+  '@parcel/watcher': false

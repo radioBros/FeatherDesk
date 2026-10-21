@@ -31,3 +31,5 @@ node_modules
 
 # Load test and measurement tooling are not part of the image.
 tools/loadtest
+
+.claude

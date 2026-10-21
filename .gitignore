@@ -26,3 +26,6 @@ coverage.out
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Claude Code agent worktrees (local only)
+.claude/worktrees/

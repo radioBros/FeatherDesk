@@ -65,4 +65,9 @@ body {
 .v-breadcrumbs-item--disabled {
   opacity: var(--v-medium-emphasis-opacity);
 }
+
+html .v-dialog>.v-overlay__content>.v-card>.v-card-item+.v-card-text, 
+html .v-dialog>.v-overlay__content>form>.v-card>.v-card-item+.v-card-text {
+ padding-top: 12px;
+}
 </style>
