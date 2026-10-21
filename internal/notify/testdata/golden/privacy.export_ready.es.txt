@@ -1,0 +1,12 @@
+Subject: Su exportación de datos está lista
+
+Hola Ada Lovelace,
+
+la exportación de datos personales que solicitó a SimpleTickets está lista.
+
+[Descargar la exportación](https://help.example.test/auth/token/abc123)
+
+El archivo se elimina después de 7 días. Si no ha solicitado esta exportación, contáctenos.
+
+-- 
+Este es un mensaje automático de SimpleTickets.

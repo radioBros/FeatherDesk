@@ -1,0 +1,16 @@
+subject: Facture € 100 – “urgent”
+from: "René €uro" <rene@example.fr>
+message_id: <w1252@example.fr>
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 2026-10-20T10:00:00Z
+from_html: false
+has_html: false
+unknown_charset: false
+attachments:
+--- text ---
+Price: € 10 “quoted” – naïve café
+--- stripped (false) ---
+Price: € 10 “quoted” – naïve café

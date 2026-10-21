@@ -1,0 +1,12 @@
+Subject: Ihr Anmeldecode
+
+Hallo Ada Lovelace,
+
+mit diesem Code schließen Sie die Anmeldung bei SimpleTickets ab:
+
+**482913**
+
+Der Code ist 60 Minuten gültig und kann nur einmal verwendet werden. Falls Sie sich nicht anmelden wollten, ändern Sie Ihr Passwort: Jemand anderes kennt es.
+
+-- 
+Dies ist eine automatische Nachricht von SimpleTickets.

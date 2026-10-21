@@ -1,0 +1,143 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<script setup lang="ts">
+/** /agent/admin/staff (FE-027, admin): staff list, create local staff, edit role/tier/teams/status. */
+import { onMounted, ref } from 'vue'
+import { mdiMagnify, mdiPencil, mdiPlus } from '@mdi/js'
+import PageHeader from '@/components/PageHeader.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import TierChip from '@/components/TierChip.vue'
+import RelativeTime from '@/components/RelativeTime.vue'
+import StaffForm from './StaffForm.vue'
+import PrivacyActions from '../../privacy/PrivacyActions.vue'
+import UserMfaCard from './UserMfaCard.vue'
+import { api, unwrap } from '@/api/client'
+import { useCursorList } from '../../shared/useCursorList'
+import { useLookupsStore } from '../../shared/lookups'
+import type { components } from '@/api/schema'
+import UserAvatar from '@/components/UserAvatar.vue'
+
+type S = components['schemas']
+const lookups = useLookupsStore()
+const q = ref('')
+const role = ref<S['StaffRole'] | null>(null)
+const dialog = ref(false)
+const editing = ref<S['User'] | null>(null)
+const ROLES: S['StaffRole'][] = ['agent', 'supervisor', 'admin']
+const list = useCursorList((cursor) =>
+  unwrap(
+    api.GET('/admin/staff', {
+      params: { query: { q: q.value.trim() || undefined, role: role.value ?? undefined, cursor: cursor ?? undefined, limit: 50 } },
+    }),
+  ),
+)
+let timer: ReturnType<typeof setTimeout> | undefined
+function onSearch() {
+  clearTimeout(timer)
+  timer = setTimeout(() => void list.reload(), 300)
+}
+onMounted(() => {
+  void list.reload()
+  void lookups.ensure('teams')
+})
+function openForm(u: S['User'] | null) {
+  editing.value = u
+  dialog.value = true
+}
+function onSaved() {
+  dialog.value = false
+  lookups.invalidate('staff')
+  void list.reload()
+}
+const teamNames = (ids?: string[]) => (ids ?? []).map((id) => lookups.teamName(id)).filter(Boolean).join(', ')
+</script>
+
+<template>
+  <v-container fluid class="pa-4">
+    <PageHeader :title="$t('agent.admin.nav.staff')" :subtitle="$t('agent.staff.subtitle')">
+      <template #actions>
+        <v-btn color="primary" :prepend-icon="mdiPlus" data-testid="staff-new" @click="openForm(null)">{{ $t('agent.staff.new') }}</v-btn>
+      </template>
+    </PageHeader>
+    <div class="d-flex flex-wrap ga-3 mb-4">
+      <v-text-field
+        v-model="q"
+        :prepend-inner-icon="mdiMagnify"
+        :label="$t('agent.common.search')"
+        clearable
+        hide-details
+        density="compact"
+        style="max-width: 360px"
+        @update:model-value="onSearch"
+      />
+      <v-select
+        v-model="role"
+        :items="ROLES.map((r) => ({ value: r, title: $t(`agent.staff.roles.${r}`) }))"
+        :label="$t('agent.staff.role')"
+        clearable
+        hide-details
+        density="compact"
+        style="max-width: 220px"
+        @update:model-value="list.reload()"
+      />
+    </div>
+    <v-alert v-if="list.error.value" type="error" variant="tonal" class="mb-4">{{ $t('agent.common.loadFailed') }}</v-alert>
+    <v-card border flat>
+      <v-progress-linear v-if="list.loading.value" indeterminate />
+      <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.staff.empty')" body="" />
+      <v-table v-else density="comfortable" data-testid="staff-table">
+        <thead>
+          <tr>
+            <th>{{ $t('agent.common.name') }}</th>
+            <th>{{ $t('agent.staff.role') }}</th>
+            <th>{{ $t('tier.label') }}</th>
+            <th>{{ $t('agent.staff.teams') }}</th>
+            <th>{{ $t('agent.common.status') }}</th>
+            <th>{{ $t('agent.staff.lastLogin') }}</th>
+            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="u in list.items.value" :key="u.id" data-testid="staff-row">
+            <td>
+              <div class="d-flex align-center ga-2">
+                <UserAvatar :name="u.name" :size="32" />
+                <div>
+                  <div>{{ u.name }}</div>
+                  <div class="text-caption text-medium-emphasis">{{ u.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td>{{ $t(`agent.staff.roles.${u.role}`) }}</td>
+            <td><TierChip v-if="u.tier" :tier="u.tier" /></td>
+            <td>{{ teamNames(u.team_ids) || '—' }}</td>
+            <td>
+              <v-chip size="small" label :color="u.status === 'active' ? 'success' : 'error'">
+                {{ u.status === 'active' ? $t('agent.common.active') : $t('agent.common.disabled') }}
+              </v-chip>
+              <v-chip size="small" label variant="outlined" class="ml-1" data-testid="staff-source">
+                {{ u.idp_managed ? $t('agent.staff.sso') : $t('agent.staff.local') }}
+              </v-chip>
+              <v-chip v-if="u.break_glass" size="small" label color="warning" class="ml-1">{{ $t('agent.staff.breakGlassShort') }}</v-chip>
+            </td>
+            <td><RelativeTime v-if="u.last_login_at" :value="u.last_login_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+            <td class="text-right">
+              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="staff-edit" @click="openForm(u)" />
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+      <div v-if="list.next.value" class="pa-2 text-center">
+        <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
+      </div>
+    </v-card>
+    <v-dialog v-model="dialog" max-width="600">
+      <v-card :title="editing ? $t('agent.staff.edit') : $t('agent.staff.new')">
+        <v-card-text>
+          <StaffForm v-if="dialog" :staff="editing" :teams="lookups.teams" @saved="onSaved" @cancel="dialog = false" />
+          <PrivacyActions v-if="dialog && editing" :user="editing" @erased="onSaved" />
+          <UserMfaCard v-if="dialog && editing" :user-id="editing.id" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+  </v-container>
+</template>

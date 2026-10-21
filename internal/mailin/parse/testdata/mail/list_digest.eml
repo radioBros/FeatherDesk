@@ -1,0 +1,39 @@
+From: devs-request@lists.example.org
+To: support@help.example.com
+Subject: devs Digest, Vol 12, Issue 3
+List-Id: Developers <devs.lists.example.org>
+Precedence: list
+Message-ID: <digest.12.3@lists.example.org>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="===digest-outer=="
+
+--===digest-outer==
+Content-Type: text/plain; charset="us-ascii"
+
+Today's Topics:
+
+   1. Topic one
+   2. Topic two
+
+--===digest-outer==
+Content-Type: multipart/digest; boundary="===digest-inner=="
+
+--===digest-inner==
+
+From: alice@lists.example.org
+Subject: Topic one
+Date: Mon, 19 Oct 2026 10:00:00 +0000
+
+First digest message.
+
+--===digest-inner==
+
+From: bob@lists.example.org
+Subject: Topic two
+Date: Mon, 19 Oct 2026 11:00:00 +0000
+
+Second digest message.
+
+--===digest-inner==--
+
+--===digest-outer==--

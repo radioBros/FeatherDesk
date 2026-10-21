@@ -1,0 +1,156 @@
+{
+  "portal": {
+    "account": {
+      "name": "Nom",
+      "confirmPassword": "Confirmez le mot de passe",
+      "newPassword": "Nouveau mot de passe",
+      "passwordHint": "Au moins 10 caractères",
+      "registerTitle": "Créez votre compte",
+      "checkInbox": "Nous avons envoyé un lien de confirmation à {email}. Ouvrez-le pour activer votre compte.",
+      "backToLogin": "Retour à la connexion",
+      "haveAccount": "Vous avez déjà un compte ?",
+      "verifyTitle": "Confirmez votre adresse e-mail",
+      "verified": "Votre adresse e-mail est confirmée.",
+      "linkInvalid": "Ce lien est invalide ou a expiré.",
+      "registerAgain": "S'inscrire à nouveau",
+      "forgotTitle": "Réinitialisez votre mot de passe",
+      "forgotIntro": "Saisissez votre adresse e-mail et nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+      "sendResetLink": "Envoyer le lien de réinitialisation",
+      "resetSent": "Si un compte existe pour cette adresse, nous avons envoyé un lien pour réinitialiser le mot de passe. Vérifiez votre boîte de réception.",
+      "resetTitle": "Choisissez un nouveau mot de passe",
+      "setPassword": "Définir le mot de passe",
+      "passwordChanged": "Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter.",
+      "requestNewLink": "Demander un nouveau lien",
+      "magicTitle": "Connexion en cours",
+      "sendMagicLink": "M'envoyer un lien de connexion",
+      "emailMeLink": "Se connecter avec un lien reçu par e-mail",
+      "magicSent": "Si un compte existe pour cette adresse, un lien de connexion vous a été envoyé. Vérifiez votre boîte de réception.",
+      "usePassword": "Se connecter plutôt avec un mot de passe",
+      "inviteTitle": "Rejoindre votre équipe",
+      "inviteIntro": "Choisissez votre nom et un mot de passe pour activer l'invitation.",
+      "acceptInvite": "Accepter l'invitation"
+    },
+    "tickets": {
+      "subject": "Objet",
+      "status": "Statut",
+      "priority": "Priorité",
+      "requester": "Demandeur",
+      "updated": "Mis à jour",
+      "allStatuses": "Tous les statuts",
+      "mine": "Les miens",
+      "organization": "Organisation",
+      "empty": "Vous n'avez encore aucun ticket",
+      "emptyHint": "Ouvrez un ticket et notre équipe vous répondra.",
+      "noMatch": "Aucun ticket ne correspond à ces filtres",
+      "loadMore": "Charger plus"
+    },
+    "newTicket": {
+      "category": "Catégorie",
+      "description": "Décrivez le problème",
+      "submit": "Ouvrir le ticket",
+      "onBehalfOf": "Au nom de",
+      "onBehalfOfHint": "Laissez vide pour ouvrir le ticket pour vous-même",
+      "suggestions": "Ces articles répondent peut-être déjà à votre question :",
+      "backToTicket": "Retour à mon ticket"
+    },
+    "detail": {
+      "notFound": "Ce ticket n'existe pas ou vous n'y avez plus accès.",
+      "openedBy": "Ouvert par {name}",
+      "followUpOf": "Suite d'un ticket précédent",
+      "resolve": "Mon problème est résolu",
+      "reopen": "Rouvrir",
+      "resolveConfirmTitle": "Marquer comme résolu ?",
+      "resolveConfirmBody": "Le ticket sera marqué comme résolu. Vous pourrez le rouvrir pendant quelques jours si le problème revient.",
+      "resolved": "Ticket marqué comme résolu",
+      "reopened": "Ticket rouvert",
+      "closedNotice": "Ce ticket est fermé. Répondre ouvrira un ticket de suivi.",
+      "yourReply": "Votre réponse",
+      "send": "Envoyer la réponse",
+      "sendFollowUp": "Envoyer et ouvrir un suivi",
+      "followUpCreated": "Votre réponse a ouvert un ticket de suivi",
+      "followUpExists": "Un ticket de suivi a été ouvert pour cette conversation.",
+      "openFollowUp": "Ouvrir le suivi"
+    },
+    "fields": {
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "csat": {
+      "title": "Évaluez notre assistance",
+      "question": "Dans quelle mesure êtes-vous satisfait de l'aide reçue ?",
+      "score1": "1 · Très insatisfait",
+      "score2": "2 · Insatisfait",
+      "score3": "3 · Correct",
+      "score4": "4 · Satisfait",
+      "score5": "5 · Très satisfait",
+      "comment": "Souhaitez-vous ajouter quelque chose ? (facultatif)",
+      "submit": "Envoyer l'évaluation",
+      "thanks": "Merci pour votre retour !",
+      "recorded": "Votre évaluation a été enregistrée. Vous pouvez ajouter un commentaire ci-dessous.",
+      "already": "Ce ticket a déjà été évalué.",
+      "viewTicket": "Voir le ticket"
+    },
+    "profile": {
+      "saved": "Profil enregistré",
+      "notifications": "Notifications par e-mail",
+      "notify": {
+        "ticket_received": "Confirmation à l'ouverture d'un ticket",
+        "reply": "Une nouvelle réponse de l'équipe d'assistance",
+        "resolved": "Mon ticket est résolu"
+      },
+      "changePassword": "Changer le mot de passe",
+      "currentPassword": "Mot de passe actuel",
+      "passwordChanged": "Mot de passe modifié"
+    },
+    "tokens": {
+      "intro": "Les jetons personnels permettent à vos scripts de lire et d'ouvrir des tickets en votre nom.",
+      "new": "Nouveau jeton",
+      "name": "Nom du jeton",
+      "scopes": "Autorisations",
+      "scope": {
+        "tickets_read": "Lire mes tickets",
+        "tickets_write": "Ouvrir des tickets et y répondre"
+      },
+      "expires": "Expire le (facultatif)",
+      "expiresHint": "Laissez vide pour un jeton sans expiration",
+      "create": "Créer le jeton",
+      "copyNow": "Copiez ce jeton maintenant : il ne sera plus affiché.",
+      "copy": "Copier le jeton",
+      "copied": "Jeton copié",
+      "empty": "Vous n'avez aucun jeton d'API",
+      "lastUsed": "dernière utilisation",
+      "neverUsed": "jamais utilisé",
+      "revoke": "Révoquer",
+      "revokeTitle": "Révoquer le jeton ?",
+      "revokeBody": "Les scripts utilisant « {name} » cesseront immédiatement de fonctionner."
+    },
+    "sessions": {
+      "title": "Sessions actives",
+      "intro": "Appareils sur lesquels vous êtes connecté. Révoquez ceux que vous ne reconnaissez pas.",
+      "empty": "Aucune session active",
+      "current": "Cet appareil",
+      "unknownDevice": "Appareil inconnu",
+      "lastSeen": "dernière activité",
+      "revoke": "Déconnecter",
+      "revokeTitle": "Mettre fin à cette session ?",
+      "revokeBody": "Cet appareil sera déconnecté.",
+      "revokeCurrent": "C'est la session que vous utilisez : vous serez déconnecté."
+    },
+    "members": {
+      "title": "Membres de l'organisation",
+      "invite": "Inviter un collègue",
+      "inviteTitle": "Inviter un collègue",
+      "invited": "Invitation envoyée à {email}",
+      "empty": "Aucun membre pour l'instant",
+      "roleLabel": "Rôle",
+      "role": {
+        "requester": "Membre",
+        "org_manager": "Gestionnaire de l'organisation"
+      },
+      "disable": "Désactiver",
+      "enable": "Activer",
+      "disabled": "Désactivé",
+      "pending": "Invitation en attente"
+    }
+  }
+}

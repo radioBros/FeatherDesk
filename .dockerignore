@@ -1,0 +1,33 @@
+# Keep the build context small (DEP-002: < 5 MB) and free of secrets.
+.git
+.github
+.vscode
+.idea
+development
+deploy
+docs
+scripts
+bin
+dist
+data
+coverage.out
+*.test
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+**/.DS_Store
+
+# Frontend: dependencies and build output are produced inside the image.
+web/node_modules
+web/dist
+web/test-results
+web/playwright-report
+web/coverage
+web/e2e
+node_modules
+
+# Load test and measurement tooling are not part of the image.
+tools/loadtest

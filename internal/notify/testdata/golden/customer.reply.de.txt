@@ -1,0 +1,20 @@
+Subject: [#1042] Neue Antwort auf Ihre Anfrage: Printer on floor 3 is offline
+
+##- Bitte oberhalb dieser Zeile antworten -##
+
+Hallo Ada Lovelace,
+
+Grace Hopper hat auf Ihre Anfrage **Printer on floor 3 is offline** geantwortet:
+
+We restarted the print server. Could you try again?
+
+- step one
+- step two
+
+Grace Hopper  
+Support Team
+
+[Unterhaltung ansehen](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Dies ist eine automatische Nachricht von SimpleTickets.

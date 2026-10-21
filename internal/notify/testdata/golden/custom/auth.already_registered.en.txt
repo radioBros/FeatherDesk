@@ -1,0 +1,16 @@
+Subject: You already have an account
+
+Hello Ada Lovelace,
+
+someone tried to register at Acme Desk with this email address, but an account already exists.
+
+[Sign in or reset your password](https://help.example.test/auth/token/abc123)
+
+If this was not you, you can ignore this email.
+
+-- 
+Acme Inc. · 1 Main St · **Springfield**
+This is an automated message from Acme Desk.
+Privacy policy: https://acme.test/privacy
+Terms: https://acme.test/terms
+Imprint: https://acme.test/imprint

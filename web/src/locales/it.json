@@ -1,0 +1,340 @@
+{
+  "app": {
+    "name": "SimpleTickets",
+    "poweredBy": "Realizzato con {name} · di {author}",
+    "loading": "Caricamento…",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "close": "Chiudi",
+    "delete": "Elimina",
+    "retry": "Riprova",
+    "back": "Indietro",
+    "search": "Cerca",
+    "notFound": "Pagina non trovata",
+    "notFoundHint": "La pagina che cerchi non esiste oppure non hai i permessi per vederla.",
+    "goHome": "Vai alla home",
+    "comingSoon": "Questa pagina è in costruzione.",
+    "offline": "Connessione persa — riconnessione in corso…",
+    "reconnected": "Di nuovo connesso",
+    "language": "Lingua",
+    "theme": "Tema",
+    "themeLight": "Chiaro",
+    "themeDark": "Scuro",
+    "themeSystem": "Sistema",
+    "yes": "Sì",
+    "no": "No"
+  },
+  "validation": {
+    "required": "Campo obbligatorio",
+    "email": "Inserisci un indirizzo email valido",
+    "url": "Inserisci un URL valido (https://…)",
+    "hostname": "Inserisci un nome host valido",
+    "port": "Inserisci una porta tra 1 e 65535",
+    "hexColor": "Inserisci un colore come #1A73E8",
+    "minLength": "Inserisci almeno {n} caratteri",
+    "maxLength": "Inserisci al massimo {n} caratteri",
+    "password": "Usa da 10 a 128 caratteri",
+    "number": "Inserisci un numero",
+    "range": "Inserisci un valore tra {min} e {max}",
+    "date": "Inserisci una data valida (AAAA-MM-GG)",
+    "fileType": "Questo tipo di file non è consentito",
+    "fileSize": "Il file supera {max}",
+    "emailList": "Inserisci uno o più indirizzi email validi, separati da virgole",
+    "domain": "Inserisci un dominio valido (esempio.it)",
+    "slug": "Usa solo lettere minuscole, numeri e trattini",
+    "fieldKey": "Inizia con una lettera minuscola; poi usa solo lettere minuscole, numeri e trattini bassi (max. 63)",
+    "setupToken": "Incolla il token di configurazione dai log del container",
+    "select": "Scegli un'opzione",
+    "invalid": "Valore non valido",
+    "integer": "Inserisci un numero intero",
+    "httpsUrl": "Inserisci un URL https://",
+    "timeOfDay": "Inserisci un orario come 09:30",
+    "timeRangeOrder": "La fine deve essere dopo l'inizio e gli intervalli non devono sovrapporsi",
+    "timeZone": "Scegli un fuso orario valido (es. Europe/Rome)",
+    "unique": "Questo valore è usato più di una volta",
+    "dateOrder": "La data di fine non può precedere la data di inizio",
+    "internalLink": "Una risposta pubblica non può contenere link ad articoli interni della knowledge base",
+    "mismatch": "I valori non coincidono",
+    "unresolvable": "Questo nome host non può essere risolto",
+    "adminOnly": "Solo gli amministratori possono avere questa opzione",
+    "boolean": "Scegli sì o no",
+    "contrast": "Il contrasto è troppo basso (WCAG AA richiede 4,5:1)",
+    "customer": "Scegli un cliente",
+    "dateTime": "Inserisci una data e un'ora valide",
+    "defaultMissing": "Includi la lingua predefinita",
+    "filter": "Questo valore di filtro non è valido",
+    "immutable": "Questo valore non può essere modificato",
+    "inactive": "Non è attivo",
+    "invalidImage": "Impossibile leggere l'immagine",
+    "invalidJson": "Impossibile leggere la richiesta. Ricarica la pagina e riprova",
+    "invalidSvg": "Impossibile leggere il file SVG",
+    "kbTranslationRequired": "Aggiungi prima la traduzione nella lingua predefinita",
+    "kbVisibilityWider": "Un articolo non può essere più visibile della sua categoria",
+    "length": "La lunghezza di questo valore non è consentita",
+    "locale": "Scegli una lingua supportata",
+    "lockedByEnv": "Questo valore è impostato dall'ambiente e non può essere modificato qui",
+    "maxDepth": "Annidamento troppo profondo",
+    "maxItems": "Ci sono troppe voci",
+    "mentionNotVisible": "Un collega menzionato non può vedere questo ticket",
+    "minProperties": "Non c'è nulla da modificare",
+    "notAllowed": "Questo valore non è consentito",
+    "notApplicable": "Questo campo non si applica qui",
+    "notCustomer": "Questo indirizzo appartiene a un account dello staff, non a un cliente",
+    "notFound": "Questo elemento non esiste (più)",
+    "notOptional": "Non può essere disattivato",
+    "notOwner": "Questo allegato non ti appartiene",
+    "order": "Questo valore non deve superare quello successivo",
+    "orgRequired": "Scegli prima un'organizzazione",
+    "otherOrg": "Questa persona appartiene a un'altra organizzazione",
+    "passwordTooCommon": "Questa password è troppo comune; scegline un'altra",
+    "passwordTooLong": "Questa password è troppo lunga",
+    "passwordTooShort": "Questa password è troppo corta",
+    "past": "Scegli una data futura",
+    "pattern": "Questo valore non ha il formato richiesto",
+    "privateAddress": "Gli indirizzi di rete privati e locali non sono consentiti",
+    "readOnly": "Questo campo non può essere modificato",
+    "requiresVisible": "Rendi prima il campo visibile ai clienti",
+    "self": "Un elemento non può riferirsi a se stesso",
+    "staff": "Scegli un membro dello staff",
+    "svgNotAllowed": "SVG non è consentito qui; carica PNG o JPEG",
+    "team": "Questa persona non fa parte del team",
+    "tier": "Il livello di supporto di questo agente è inferiore a quello del ticket",
+    "tooManyTokens": "Hai troppi token attivi; revocane prima uno",
+    "type": "Questo valore è del tipo sbagliato",
+    "unknown": "Questo campo è sconosciuto",
+    "unknownTeam": "Questo team non esiste",
+    "webmail": "I domini webmail pubblici non possono essere usati"
+  },
+  "errors": {
+    "generic": "Qualcosa è andato storto. Riprova.",
+    "network": "Il server non è raggiungibile.",
+    "forbidden": "Non hai i permessi per questa operazione.",
+    "notFound": "Non trovato.",
+    "conflict": "Qualcun altro ha modificato questo elemento. Ricarica e riprova.",
+    "rateLimited": "Troppe richieste. Attendi un momento.",
+    "unauthenticated": "La sessione è scaduta. Accedi di nuovo.",
+    "validation": "Correggi i campi evidenziati."
+  },
+  "auth": {
+    "signIn": "Accedi",
+    "signOut": "Esci",
+    "email": "Email",
+    "password": "Password",
+    "staffTitle": "Accesso staff",
+    "customerTitle": "Accedi al portale di assistenza",
+    "sso": "Continua con il single sign-on",
+    "or": "oppure",
+    "breakGlass": "Accesso amministratore",
+    "forgot": "Password dimenticata?",
+    "register": "Crea un account",
+    "invalidCredentials": "Email o password non corrette."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "tickets": "Ticket",
+    "myTickets": "I miei ticket",
+    "staffSignIn": "Accesso personale",
+    "newTicket": "Nuovo ticket",
+    "unassigned": "Non assegnati",
+    "triage": "Smistamento",
+    "customers": "Clienti",
+    "organizations": "Organizzazioni",
+    "knowledgeBase": "Knowledge base",
+    "reports": "Report",
+    "admin": "Amministrazione",
+    "profile": "Profilo",
+    "apiTokens": "Token API",
+    "help": "Centro assistenza",
+    "privacy": "Privacy",
+    "terms": "Termini",
+    "imprint": "Note legali",
+    "skipToContent": "Vai al contenuto",
+    "toggleMenu": "Apri/chiudi menu",
+    "userMenu": "Menu account"
+  },
+  "status": {
+    "new": "Nuovo",
+    "open": "Aperto",
+    "pending": "In attesa",
+    "on_hold": "Sospeso",
+    "resolved": "Risolto",
+    "closed": "Chiuso"
+  },
+  "statusCustomer": {
+    "new": "Aperto",
+    "open": "Aperto",
+    "pending": "In attesa della tua risposta",
+    "on_hold": "Aperto",
+    "resolved": "Risolto",
+    "closed": "Chiuso",
+    "awaiting_reply": "In attesa di una tua risposta"
+  },
+  "priority": {
+    "low": "Bassa",
+    "normal": "Normale",
+    "high": "Alta",
+    "urgent": "Urgente"
+  },
+  "tier": {
+    "1": "L1",
+    "2": "L2",
+    "3": "L3",
+    "label": "Livello"
+  },
+  "thread": {
+    "label": "Conversazione",
+    "internalNote": "Nota interna",
+    "system": "Sistema",
+    "empty": "Ancora nessun messaggio.",
+    "attachments": "Allegati"
+  },
+  "editor": {
+    "write": "Scrivi",
+    "preview": "Anteprima",
+    "placeholder": "Scrivi il tuo messaggio… Markdown supportato.",
+    "nothingToPreview": "Niente da visualizzare.",
+    "submitHint": "Ctrl+Invio per inviare"
+  },
+  "upload": {
+    "drop": "Trascina qui i file o fai clic per sceglierli",
+    "remove": "Rimuovi",
+    "uploading": "Caricamento…",
+    "failed": "Caricamento non riuscito",
+    "tooMany": "Puoi allegare al massimo {max} file"
+  },
+  "time": {
+    "justNow": "proprio ora"
+  },
+  "realtime": {
+    "accessLost": "Non hai più accesso a questo ticket.",
+    "sessionRevoked": "La tua sessione è stata chiusa. Accedi di nuovo."
+  },
+  "confirm": {
+    "title": "Sei sicuro?",
+    "body": "Questa azione non può essere annullata."
+  },
+  "empty": {
+    "title": "Ancora niente qui",
+    "body": "Quando ci sarà qualcosa da mostrare, comparirà qui."
+  },
+  "user": {
+    "unknown": "Utente sconosciuto"
+  },
+  "mfa": {
+    "code": "Codice a 6 cifre",
+    "recoveryCode": "Codice di recupero",
+    "verify": "Verifica",
+    "validation": {
+      "otpCode": "Inserisci il codice a 6 cifre",
+      "recoveryCode": "Inserisci un codice di recupero come abcd-efgh-jkmn"
+    },
+    "method": {
+      "totp": "App di autenticazione",
+      "email": "Codice via email",
+      "recovery": "Codice di recupero"
+    },
+    "step": {
+      "title": "Verifica in due passaggi",
+      "enrollTitle": "Configura la verifica in due passaggi",
+      "enrollIntro": "Questo sito richiede un secondo passaggio all'accesso. Configuralo ora per continuare.",
+      "hint": {
+        "totp": "Inserisci il codice a 6 cifre dalla tua app di autenticazione.",
+        "email": "Ti inviamo un codice a 6 cifre al tuo indirizzo email.",
+        "recovery": "Inserisci uno dei codici di recupero che hai salvato. Ogni codice funziona una sola volta."
+      },
+      "expired": "Questo tentativo di accesso è scaduto. Accedi di nuovo.",
+      "restart": "Accedi di nuovo",
+      "tooMany": "Troppi tentativi. Attendi un momento e riprova.",
+      "noMethod": "Nessun metodo di verifica disponibile per questo account. Chiedi a un amministratore di reimpostare la verifica in due passaggi.",
+      "methodLabel": "Metodo di verifica",
+      "emailSent": "Abbiamo inviato un codice al tuo indirizzo email. È valido per 10 minuti.",
+      "resendIn": "Invia di nuovo tra {s} s",
+      "resend": "Invia un nuovo codice",
+      "sendEmail": "Inviami un codice via email",
+      "cancel": "Annulla e torna indietro"
+    },
+    "setup": {
+      "title": "Configura un'app di autenticazione",
+      "start": "Mostra il codice QR",
+      "scan": "Scansiona questo codice QR con la tua app di autenticazione.",
+      "qrLabel": "Codice QR per la tua app di autenticazione",
+      "manual": "Oppure inserisci questa chiave manualmente:",
+      "confirm": "Conferma e attiva"
+    },
+    "codes": {
+      "title": "I tuoi codici di recupero",
+      "warning": "Conserva questi codici in un luogo sicuro. Ognuno ti fa accedere una volta se perdi il dispositivo. Vengono mostrati solo ora.",
+      "copy": "Copia",
+      "copied": "Copiati",
+      "download": "Scarica",
+      "continue": "Li ho salvati, continua",
+      "saved": "Li ho salvati"
+    },
+    "reauth": {
+      "title": "Conferma la password",
+      "intro": "Per sicurezza, inserisci la password per modificare la verifica in due passaggi."
+    },
+    "profile": {
+      "title": "Verifica in due passaggi",
+      "loadFailed": "Impossibile caricare le impostazioni della verifica in due passaggi.",
+      "unavailable": "Il tuo account accede tramite il provider di identità della tua organizzazione, che gestisce la verifica in due passaggi.",
+      "intro": "Proteggi il tuo account con un secondo passaggio dopo la password.",
+      "required": "Questo sito richiede la verifica in due passaggi. Configura almeno un metodo.",
+      "on": "Attiva",
+      "off": "Disattiva",
+      "setUp": "Configura",
+      "replace": "Sostituisci",
+      "turnOff": "Disattiva",
+      "turnOn": "Attiva",
+      "emailUnavailable": "Non disponibile: l'email non è configurata su questo sito",
+      "remaining": "{n} codici non usati rimasti",
+      "regenerate": "Nuovi codici",
+      "totpEnabled": "App di autenticazione attivata",
+      "emailEnabled": "Codici via email attivati",
+      "disabled": "Metodo disattivato",
+      "disableConfirm": {
+        "totp": "Disattivare l'app di autenticazione?",
+        "email": "Disattivare i codici via email?"
+      },
+      "regenerateConfirm": "Creare nuovi codici di recupero? Quelli vecchi smetteranno di funzionare."
+    },
+    "admin": {
+      "label": "Verifica in due passaggi",
+      "sso": "gestita dal provider di identità",
+      "reset": "Reimposta la verifica in due passaggi",
+      "resetTitle": "Reimpostare la verifica in due passaggi?",
+      "resetConfirm": "Rimuove l'app di autenticazione, i codici via email e i codici di recupero dell'utente. Potrà accedere solo con la password (o configurarla di nuovo se il sito lo richiede). L'operazione viene registrata nel log di audit.",
+      "resetDone": "La verifica in due passaggi è stata reimpostata"
+    },
+    "policy": {
+      "title": "Sicurezza",
+      "label": "Richiedi la verifica in due passaggi",
+      "hint": "Vale per gli account con password locale. Gli account single sign-on usano il loro provider di identità.",
+      "none": "Nessuno (facoltativa)",
+      "staff": "Tutti gli account dello staff",
+      "all": "Tutti",
+      "saved": "Impostazioni di sicurezza salvate"
+    }
+  },
+  "mcp": {
+    "title": "Collega un assistente IA",
+    "intro": "Gli assistenti IA che supportano il Model Context Protocol (MCP), come Claude Code, Claude Desktop o Cursor, possono lavorare con i tuoi ticket usando uno dei tuoi token API. L'assistente agisce a tuo nome e non può mai fare più di quanto consentono gli ambiti del token. Crea un token qui sotto, poi incolla una di queste configurazioni nel tuo assistente.",
+    "endpoint": "Endpoint MCP",
+    "scopes": "Ambiti del token consigliati",
+    "readWrite": "Per leggere e gestire i ticket:",
+    "readOnly": "Sola lettura:",
+    "copy": "Copia",
+    "copied": "Copiato",
+    "replaceToken": "Sostituisci {placeholder} con il tuo token. Tratta la configurazione come una password.",
+    "hint": {
+      "claudeCode": "Esegui questo comando in un terminale.",
+      "claudeDesktop": "Aggiungi questo a claude_desktop_config.json (lo apri dalle impostazioni sviluppatore dell'app) e riavvia l'app. Serve Node.js: mcp-remote collega l'app all'endpoint.",
+      "cursor": "Aggiungi questo a ~/.cursor/mcp.json (o a .cursor/mcp.json in un progetto)."
+    }
+  },
+  "common": {
+    "showPassword": "Mostra password",
+    "hidePassword": "Nascondi password"
+  }
+}

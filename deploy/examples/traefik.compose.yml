@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Traefik v3 labels for SimpleTickets (DEP-015). Merge with the prod compose:
+#   docker compose -f deploy/compose.yml -f deploy/examples/traefik.compose.yml up -d
+# It assumes an existing Traefik attached to the external network `proxy`, with
+# an entrypoint `websecure` and a certresolver `le`. Traefik forwards WebSocket
+# upgrades natively and sets X-Forwarded-*.
+#
+# In .env: ST_PUBLIC_URL=https://help.example.com and ST_TRUSTED_PROXIES set to
+# the `proxy` network's subnet (docker network inspect proxy).
+services:
+  app:
+    ports: !reset []
+    networks: [proxy]
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: proxy
+      traefik.http.routers.simpletickets.rule: Host(`help.example.com`)
+      traefik.http.routers.simpletickets.entrypoints: websecure
+      traefik.http.routers.simpletickets.tls.certresolver: le
+      traefik.http.routers.simpletickets.middlewares: simpletickets-hsts
+      traefik.http.middlewares.simpletickets-hsts.headers.stsSeconds: "31536000"
+      traefik.http.middlewares.simpletickets-hsts.headers.stsIncludeSubdomains: "true"
+      traefik.http.services.simpletickets.loadbalancer.server.port: "8080"
+
+networks:
+  proxy:
+    external: true

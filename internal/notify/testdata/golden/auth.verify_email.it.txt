@@ -1,0 +1,12 @@
+Subject: Verifica il tuo indirizzo email
+
+Ciao Ada Lovelace,
+
+conferma il tuo indirizzo email per SimpleTickets.
+
+[Verifica indirizzo email](https://help.example.test/auth/token/abc123)
+
+Il link scade tra 60 minuti. Se non hai richiesto tu questa email, puoi ignorarla.
+
+-- 
+Questo è un messaggio automatico di SimpleTickets.

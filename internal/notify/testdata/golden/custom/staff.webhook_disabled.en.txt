@@ -1,0 +1,14 @@
+Subject: Webhook disabled: https://help.example.test/auth/token/abc123
+
+Hello Ada Lovelace,
+
+the webhook **https://help.example.test/auth/token/abc123** was disabled automatically (too many failures) after 20 consecutive failed deliveries.
+
+Fix the receiving endpoint, then re-enable the webhook in the administration settings of Acme Desk.
+
+-- 
+Acme Inc. · 1 Main St · **Springfield**
+This is an automated message from Acme Desk.
+Privacy policy: https://acme.test/privacy
+Terms: https://acme.test/terms
+Imprint: https://acme.test/imprint

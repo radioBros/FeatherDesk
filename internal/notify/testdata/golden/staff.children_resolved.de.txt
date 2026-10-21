@@ -1,0 +1,12 @@
+Subject: [#1042] Alle Unter-Tickets gelöst: Printer on floor 3 is offline
+
+##- Bitte oberhalb dieser Zeile antworten -##
+
+Hallo Grace Hopper,
+
+alle Unter-Tickets von **#1042 Printer on floor 3 is offline** sind jetzt gelöst. Eventuell können Sie auch das übergeordnete Ticket lösen.
+
+[Ticket öffnen](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Dies ist eine automatische Nachricht von SimpleTickets.

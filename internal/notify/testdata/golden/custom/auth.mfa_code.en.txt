@@ -1,0 +1,16 @@
+Subject: Your sign-in code
+
+Hello Ada Lovelace,
+
+use this code to finish signing in to Acme Desk:
+
+**482913**
+
+The code expires in 60 minutes and works only once. If you did not try to sign in, change your password: someone else knows it.
+
+-- 
+Acme Inc. · 1 Main St · **Springfield**
+This is an automated message from Acme Desk.
+Privacy policy: https://acme.test/privacy
+Terms: https://acme.test/terms
+Imprint: https://acme.test/imprint

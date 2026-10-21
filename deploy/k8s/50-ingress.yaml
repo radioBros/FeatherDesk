@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Example for ingress-nginx: WebSockets need long proxy timeouts (> the 60 s
+# ping interval). Traefik and most other controllers upgrade natively.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: simpletickets
+  namespace: simpletickets
+  labels:
+    app.kubernetes.io/name: simpletickets
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-body-size: 30m
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [help.example.com]
+      secretName: simpletickets-tls
+  rules:
+    - host: help.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: simpletickets
+                port:
+                  name: http

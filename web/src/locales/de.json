@@ -1,0 +1,340 @@
+{
+  "app": {
+    "name": "SimpleTickets",
+    "poweredBy": "Betrieben mit {name} · von {author}",
+    "loading": "Wird geladen…",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "close": "Schließen",
+    "delete": "Löschen",
+    "retry": "Erneut versuchen",
+    "back": "Zurück",
+    "search": "Suchen",
+    "notFound": "Seite nicht gefunden",
+    "notFoundHint": "Die gesuchte Seite existiert nicht oder Sie haben keinen Zugriff darauf.",
+    "goHome": "Zur Startseite",
+    "comingSoon": "Diese Seite befindet sich im Aufbau.",
+    "offline": "Verbindung unterbrochen – wird wiederhergestellt…",
+    "reconnected": "Wieder verbunden",
+    "language": "Sprache",
+    "theme": "Design",
+    "themeLight": "Hell",
+    "themeDark": "Dunkel",
+    "themeSystem": "System",
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich",
+    "email": "Geben Sie eine gültige E-Mail-Adresse ein",
+    "url": "Geben Sie eine gültige URL ein (https://…)",
+    "hostname": "Geben Sie einen gültigen Hostnamen ein",
+    "port": "Geben Sie einen Port zwischen 1 und 65535 ein",
+    "hexColor": "Geben Sie eine Farbe wie #1A73E8 ein",
+    "minLength": "Geben Sie mindestens {n} Zeichen ein",
+    "maxLength": "Geben Sie höchstens {n} Zeichen ein",
+    "password": "Verwenden Sie 10 bis 128 Zeichen",
+    "number": "Geben Sie eine Zahl ein",
+    "range": "Geben Sie einen Wert zwischen {min} und {max} ein",
+    "date": "Geben Sie ein gültiges Datum ein (JJJJ-MM-TT)",
+    "fileType": "Dieser Dateityp ist nicht erlaubt",
+    "fileSize": "Die Datei ist größer als {max}",
+    "emailList": "Geben Sie eine oder mehrere gültige E-Mail-Adressen ein, durch Kommas getrennt",
+    "domain": "Geben Sie eine gültige Domain ein (beispiel.de)",
+    "slug": "Verwenden Sie nur Kleinbuchstaben, Zahlen und Bindestriche",
+    "fieldKey": "Beginnen Sie mit einem Kleinbuchstaben; verwenden Sie danach nur Kleinbuchstaben, Zahlen und Unterstriche (max. 63)",
+    "setupToken": "Fügen Sie das Einrichtungstoken aus dem Container-Protokoll ein",
+    "select": "Wählen Sie eine Option",
+    "invalid": "Dieser Wert ist ungültig",
+    "integer": "Geben Sie eine ganze Zahl ein",
+    "httpsUrl": "Geben Sie eine https://-URL ein",
+    "timeOfDay": "Geben Sie eine Uhrzeit wie 09:30 ein",
+    "timeRangeOrder": "Das Ende muss nach dem Beginn liegen und Zeiträume dürfen sich nicht überschneiden",
+    "timeZone": "Wählen Sie eine gültige Zeitzone (z. B. Europe/Berlin)",
+    "unique": "Dieser Wert wird mehrfach verwendet",
+    "dateOrder": "Das Enddatum darf nicht vor dem Startdatum liegen",
+    "internalLink": "Eine öffentliche Antwort darf nicht auf einen internen Wissensdatenbank-Artikel verlinken",
+    "mismatch": "Die Werte stimmen nicht überein",
+    "unresolvable": "Dieser Hostname kann nicht aufgelöst werden",
+    "adminOnly": "Diese Option ist nur für Administratoren verfügbar",
+    "boolean": "Wählen Sie Ja oder Nein",
+    "contrast": "Der Kontrast ist zu gering (WCAG AA verlangt 4,5:1)",
+    "customer": "Wählen Sie einen Kunden",
+    "dateTime": "Geben Sie ein gültiges Datum und eine gültige Uhrzeit ein",
+    "defaultMissing": "Die Standardsprache muss enthalten sein",
+    "filter": "Dieser Filterwert ist ungültig",
+    "immutable": "Dieser Wert kann nicht geändert werden",
+    "inactive": "Dieses Element ist nicht aktiv",
+    "invalidImage": "Das Bild konnte nicht gelesen werden",
+    "invalidJson": "Die Anfrage konnte nicht gelesen werden. Laden Sie die Seite neu und versuchen Sie es erneut",
+    "invalidSvg": "Die SVG-Datei konnte nicht gelesen werden",
+    "kbTranslationRequired": "Fügen Sie zuerst die Übersetzung in der Standardsprache hinzu",
+    "kbVisibilityWider": "Ein Artikel darf nicht sichtbarer sein als seine Kategorie",
+    "length": "Die Länge dieses Werts ist nicht zulässig",
+    "locale": "Wählen Sie eine unterstützte Sprache",
+    "lockedByEnv": "Dieser Wert ist durch die Umgebung gesetzt und kann hier nicht geändert werden",
+    "maxDepth": "Die Verschachtelung ist zu tief",
+    "maxItems": "Es sind zu viele Einträge vorhanden",
+    "mentionNotVisible": "Eine erwähnte Person kann dieses Ticket nicht sehen",
+    "minProperties": "Es gibt nichts zu ändern",
+    "notAllowed": "Dieser Wert ist nicht erlaubt",
+    "notApplicable": "Dieses Feld ist hier nicht anwendbar",
+    "notCustomer": "Diese Adresse gehört zu einem Mitarbeiterkonto, nicht zu einem Kunden",
+    "notFound": "Dieses Element existiert nicht (mehr)",
+    "notOptional": "Dies kann nicht deaktiviert werden",
+    "notOwner": "Dieser Anhang gehört nicht Ihnen",
+    "order": "Dieser Wert darf den folgenden nicht überschreiten",
+    "orgRequired": "Wählen Sie zuerst eine Organisation",
+    "otherOrg": "Diese Person gehört zu einer anderen Organisation",
+    "passwordTooCommon": "Dieses Passwort ist zu gängig; wählen Sie bitte ein anderes",
+    "passwordTooLong": "Dieses Passwort ist zu lang",
+    "passwordTooShort": "Dieses Passwort ist zu kurz",
+    "past": "Wählen Sie ein Datum in der Zukunft",
+    "pattern": "Dieser Wert hat nicht das erforderliche Format",
+    "privateAddress": "Private und lokale Netzwerkadressen sind nicht erlaubt",
+    "readOnly": "Dieses Feld kann nicht bearbeitet werden",
+    "requiresVisible": "Machen Sie das Feld zuerst für Kunden sichtbar",
+    "self": "Ein Element kann nicht auf sich selbst verweisen",
+    "staff": "Wählen Sie eine Person aus dem Support-Team",
+    "svgNotAllowed": "SVG ist hier nicht erlaubt; laden Sie PNG oder JPEG hoch",
+    "team": "Diese Person ist kein Mitglied des Teams",
+    "tier": "Die Support-Stufe dieses Agenten liegt unter der Stufe des Tickets",
+    "tooManyTokens": "Sie haben zu viele aktive Tokens; widerrufen Sie zuerst eines",
+    "type": "Dieser Wert hat den falschen Typ",
+    "unknown": "Dieses Feld ist unbekannt",
+    "unknownTeam": "Dieses Team existiert nicht",
+    "webmail": "Öffentliche Webmail-Domains können nicht verwendet werden"
+  },
+  "errors": {
+    "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+    "network": "Der Server ist nicht erreichbar.",
+    "forbidden": "Dazu sind Sie nicht berechtigt.",
+    "notFound": "Nicht gefunden.",
+    "conflict": "Dies wurde von jemand anderem geändert. Laden Sie die Seite neu und versuchen Sie es erneut.",
+    "rateLimited": "Zu viele Anfragen. Bitte warten Sie einen Moment.",
+    "unauthenticated": "Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.",
+    "validation": "Bitte korrigieren Sie die markierten Felder."
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "staffTitle": "Anmeldung für Mitarbeitende",
+    "customerTitle": "Im Support-Portal anmelden",
+    "sso": "Mit Single Sign-On fortfahren",
+    "or": "oder",
+    "breakGlass": "Administrator-Anmeldung",
+    "forgot": "Passwort vergessen?",
+    "register": "Konto erstellen",
+    "invalidCredentials": "E-Mail oder Passwort ist nicht korrekt."
+  },
+  "nav": {
+    "dashboard": "Übersicht",
+    "tickets": "Tickets",
+    "myTickets": "Meine Tickets",
+    "staffSignIn": "Mitarbeiter-Anmeldung",
+    "newTicket": "Neues Ticket",
+    "unassigned": "Nicht zugewiesen",
+    "triage": "Triage",
+    "customers": "Kunden",
+    "organizations": "Organisationen",
+    "knowledgeBase": "Wissensdatenbank",
+    "reports": "Berichte",
+    "admin": "Verwaltung",
+    "profile": "Profil",
+    "apiTokens": "API-Tokens",
+    "help": "Hilfe-Center",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "imprint": "Impressum",
+    "skipToContent": "Zum Inhalt springen",
+    "toggleMenu": "Menü ein-/ausblenden",
+    "userMenu": "Kontomenü"
+  },
+  "status": {
+    "new": "Neu",
+    "open": "Offen",
+    "pending": "Wartend",
+    "on_hold": "Zurückgestellt",
+    "resolved": "Gelöst",
+    "closed": "Geschlossen"
+  },
+  "statusCustomer": {
+    "new": "Offen",
+    "open": "Offen",
+    "pending": "Wartet auf Ihre Antwort",
+    "on_hold": "Offen",
+    "resolved": "Gelöst",
+    "closed": "Geschlossen",
+    "awaiting_reply": "Wartet auf Ihre Antwort"
+  },
+  "priority": {
+    "low": "Niedrig",
+    "normal": "Normal",
+    "high": "Hoch",
+    "urgent": "Dringend"
+  },
+  "tier": {
+    "1": "L1",
+    "2": "L2",
+    "3": "L3",
+    "label": "Stufe"
+  },
+  "thread": {
+    "label": "Unterhaltung",
+    "internalNote": "Interne Notiz",
+    "system": "System",
+    "empty": "Noch keine Nachrichten.",
+    "attachments": "Anhänge"
+  },
+  "editor": {
+    "write": "Schreiben",
+    "preview": "Vorschau",
+    "placeholder": "Schreiben Sie Ihre Nachricht… Markdown wird unterstützt.",
+    "nothingToPreview": "Keine Inhalte für die Vorschau.",
+    "submitHint": "Strg+Enter zum Senden"
+  },
+  "upload": {
+    "drop": "Dateien hier ablegen oder zum Auswählen klicken",
+    "remove": "Entfernen",
+    "uploading": "Wird hochgeladen…",
+    "failed": "Hochladen fehlgeschlagen",
+    "tooMany": "Sie können höchstens {max} Dateien anhängen"
+  },
+  "time": {
+    "justNow": "gerade eben"
+  },
+  "realtime": {
+    "accessLost": "Sie haben keinen Zugriff mehr auf dieses Ticket.",
+    "sessionRevoked": "Ihre Sitzung wurde beendet. Bitte melden Sie sich erneut an."
+  },
+  "confirm": {
+    "title": "Sind Sie sicher?",
+    "body": "Diese Aktion kann nicht rückgängig gemacht werden."
+  },
+  "empty": {
+    "title": "Hier ist noch nichts",
+    "body": "Sobald es etwas anzuzeigen gibt, erscheint es hier."
+  },
+  "user": {
+    "unknown": "Unbekannter Benutzer"
+  },
+  "mfa": {
+    "code": "6-stelliger Code",
+    "recoveryCode": "Wiederherstellungscode",
+    "verify": "Bestätigen",
+    "validation": {
+      "otpCode": "Geben Sie den 6-stelligen Code ein",
+      "recoveryCode": "Geben Sie einen Wiederherstellungscode wie abcd-efgh-jkmn ein"
+    },
+    "method": {
+      "totp": "Authenticator-App",
+      "email": "Code per E-Mail",
+      "recovery": "Wiederherstellungscode"
+    },
+    "step": {
+      "title": "Bestätigung in zwei Schritten",
+      "enrollTitle": "Bestätigung in zwei Schritten einrichten",
+      "enrollIntro": "Diese Website verlangt bei der Anmeldung einen zweiten Schritt. Richten Sie ihn jetzt ein, um fortzufahren.",
+      "hint": {
+        "totp": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.",
+        "email": "Wir senden einen 6-stelligen Code an Ihre E-Mail-Adresse.",
+        "recovery": "Geben Sie einen Ihrer gespeicherten Wiederherstellungscodes ein. Jeder Code funktioniert nur einmal."
+      },
+      "expired": "Dieser Anmeldeversuch ist abgelaufen. Bitte melden Sie sich erneut an.",
+      "restart": "Erneut anmelden",
+      "tooMany": "Zu viele Versuche. Warten Sie einen Moment und versuchen Sie es erneut.",
+      "noMethod": "Für dieses Konto ist keine Bestätigungsmethode verfügbar. Bitten Sie einen Administrator, die Bestätigung in zwei Schritten zurückzusetzen.",
+      "methodLabel": "Bestätigungsmethode",
+      "emailSent": "Wir haben einen Code an Ihre E-Mail-Adresse gesendet. Er ist 10 Minuten gültig.",
+      "resendIn": "Erneut senden in {s} s",
+      "resend": "Neuen Code senden",
+      "sendEmail": "Code per E-Mail senden",
+      "cancel": "Abbrechen und zurück"
+    },
+    "setup": {
+      "title": "Authenticator-App einrichten",
+      "start": "QR-Code anzeigen",
+      "scan": "Scannen Sie diesen QR-Code mit Ihrer Authenticator-App.",
+      "qrLabel": "QR-Code für Ihre Authenticator-App",
+      "manual": "Oder geben Sie diesen Schlüssel manuell ein:",
+      "confirm": "Bestätigen und einschalten"
+    },
+    "codes": {
+      "title": "Ihre Wiederherstellungscodes",
+      "warning": "Bewahren Sie diese Codes sicher auf. Jeder meldet Sie einmal an, falls Sie Ihr Gerät verlieren. Sie werden nur jetzt angezeigt.",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "download": "Herunterladen",
+      "continue": "Gespeichert, weiter",
+      "saved": "Gespeichert"
+    },
+    "reauth": {
+      "title": "Passwort bestätigen",
+      "intro": "Geben Sie zu Ihrer Sicherheit Ihr Passwort ein, um die Bestätigung in zwei Schritten zu ändern."
+    },
+    "profile": {
+      "title": "Bestätigung in zwei Schritten",
+      "loadFailed": "Die Einstellungen der Bestätigung in zwei Schritten konnten nicht geladen werden.",
+      "unavailable": "Ihr Konto meldet sich über den Identitätsanbieter Ihrer Organisation an, der die Bestätigung in zwei Schritten übernimmt.",
+      "intro": "Schützen Sie Ihr Konto mit einem zweiten Schritt nach dem Passwort.",
+      "required": "Diese Website verlangt die Bestätigung in zwei Schritten. Richten Sie mindestens eine Methode ein.",
+      "on": "Ein",
+      "off": "Aus",
+      "setUp": "Einrichten",
+      "replace": "Ersetzen",
+      "turnOff": "Ausschalten",
+      "turnOn": "Einschalten",
+      "emailUnavailable": "Nicht verfügbar: E-Mail ist auf dieser Website nicht eingerichtet",
+      "remaining": "{n} unbenutzte Codes übrig",
+      "regenerate": "Neue Codes",
+      "totpEnabled": "Authenticator-App eingeschaltet",
+      "emailEnabled": "Codes per E-Mail eingeschaltet",
+      "disabled": "Methode ausgeschaltet",
+      "disableConfirm": {
+        "totp": "Authenticator-App ausschalten?",
+        "email": "Codes per E-Mail ausschalten?"
+      },
+      "regenerateConfirm": "Neue Wiederherstellungscodes erstellen? Die alten funktionieren dann nicht mehr."
+    },
+    "admin": {
+      "label": "Bestätigung in zwei Schritten",
+      "sso": "vom Identitätsanbieter verwaltet",
+      "reset": "Bestätigung in zwei Schritten zurücksetzen",
+      "resetTitle": "Bestätigung in zwei Schritten zurücksetzen?",
+      "resetConfirm": "Entfernt die Authenticator-App, die Codes per E-Mail und die Wiederherstellungscodes des Benutzers. Er kann sich dann nur mit dem Passwort anmelden (oder sie erneut einrichten, falls die Website es verlangt). Der Vorgang wird im Audit-Log festgehalten.",
+      "resetDone": "Bestätigung in zwei Schritten wurde zurückgesetzt"
+    },
+    "policy": {
+      "title": "Sicherheit",
+      "label": "Bestätigung in zwei Schritten verlangen",
+      "hint": "Gilt für Konten mit lokalem Passwort. Single-Sign-on-Konten nutzen ihren Identitätsanbieter.",
+      "none": "Niemand (freiwillig)",
+      "staff": "Alle Mitarbeiterkonten",
+      "all": "Alle",
+      "saved": "Sicherheitseinstellungen gespeichert"
+    }
+  },
+  "mcp": {
+    "title": "KI-Assistenten verbinden",
+    "intro": "KI-Assistenten, die das Model Context Protocol (MCP) unterstützen, etwa Claude Code, Claude Desktop oder Cursor, können mit einem Ihrer API-Tokens mit Ihren Tickets arbeiten. Der Assistent handelt in Ihrem Namen und darf nie mehr, als die Bereiche des Tokens erlauben. Erstellen Sie unten ein Token und fügen Sie dann eine dieser Konfigurationen in Ihren Assistenten ein.",
+    "endpoint": "MCP-Endpunkt",
+    "scopes": "Empfohlene Token-Bereiche",
+    "readWrite": "Zum Lesen und Bearbeiten von Tickets:",
+    "readOnly": "Nur lesen:",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "replaceToken": "Ersetzen Sie {placeholder} durch Ihr Token. Behandeln Sie die Konfiguration wie ein Passwort.",
+    "hint": {
+      "claudeCode": "Führen Sie diesen Befehl in einem Terminal aus.",
+      "claudeDesktop": "Fügen Sie dies in claude_desktop_config.json ein (zu öffnen über die Entwicklereinstellungen der App) und starten Sie die App neu. Dafür wird Node.js benötigt: mcp-remote verbindet die App mit dem Endpunkt.",
+      "cursor": "Fügen Sie dies in ~/.cursor/mcp.json ein (oder in .cursor/mcp.json eines Projekts)."
+    }
+  },
+  "common": {
+    "showPassword": "Passwort anzeigen",
+    "hidePassword": "Passwort verbergen"
+  }
+}

@@ -1,0 +1,16 @@
+Subject: [#1042] Le han mencionado: Printer on floor 3 is offline
+
+##- Responda por encima de esta línea -##
+
+Hola Grace Hopper,
+
+Alan Turing le ha mencionado en una nota interna del ticket **#1042 Printer on floor 3 is offline**:
+
+**Ada Lovelace:**
+
+The printer shows **error 42** since this morning.
+
+[Abrir el ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Este es un mensaje automático de SimpleTickets.

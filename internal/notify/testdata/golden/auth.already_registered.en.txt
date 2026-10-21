@@ -1,0 +1,12 @@
+Subject: You already have an account
+
+Hello Ada Lovelace,
+
+someone tried to register at SimpleTickets with this email address, but an account already exists.
+
+[Sign in or reset your password](https://help.example.test/auth/token/abc123)
+
+If this was not you, you can ignore this email.
+
+-- 
+This is an automated message from SimpleTickets.

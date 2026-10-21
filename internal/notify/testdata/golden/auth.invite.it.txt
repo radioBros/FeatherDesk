@@ -1,0 +1,12 @@
+Subject: Sei stato invitato su SimpleTickets
+
+Ciao Ada Lovelace,
+
+Grace Hopper ti ha invitato su SimpleTickets.
+
+[Accetta l'invito](https://help.example.test/auth/token/abc123)
+
+Il link scade tra 60 minuti. Se non hai richiesto tu questa email, puoi ignorarla.
+
+-- 
+Questo è un messaggio automatico di SimpleTickets.

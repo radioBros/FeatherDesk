@@ -1,0 +1,18 @@
+Subject: [#1042] Your request has been resolved: Printer on floor 3 is offline
+
+##- Reply above this line -##
+
+Hello Ada Lovelace,
+
+your request **Printer on floor 3 is offline** has been marked as resolved. If you still need help, simply reply to this email.
+
+How did we do? [Rate our support](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001?rate=1)
+
+[View your request](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Acme Inc. · 1 Main St · **Springfield**
+This is an automated message from Acme Desk.
+Privacy policy: https://acme.test/privacy
+Terms: https://acme.test/terms
+Imprint: https://acme.test/imprint

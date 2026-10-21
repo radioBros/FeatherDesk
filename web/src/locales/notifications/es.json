@@ -1,0 +1,71 @@
+{
+  "notifications": {
+    "bell": {
+      "label": "Notificaciones",
+      "labelUnread": "Notificaciones, {n} sin leer"
+    },
+    "menu": {
+      "markAllRead": "Marcar todas como leídas",
+      "seeAll": "Ver todas las notificaciones",
+      "empty": "Estás al día",
+      "loadFailed": "No se pudieron cargar las notificaciones"
+    },
+    "page": {
+      "title": "Notificaciones",
+      "subtitle": "Novedades sobre tus tickets",
+      "filter": "Mostrar",
+      "filterAll": "Todas",
+      "filterUnread": "Sin leer",
+      "type": "Tipo",
+      "allTypes": "Todos los tipos",
+      "loadMore": "Cargar más",
+      "empty": "Todavía no hay notificaciones",
+      "emptyUnread": "No hay notificaciones sin leer",
+      "markRead": "Marcar como leída",
+      "delete": "Eliminar notificación",
+      "deleted": "Notificación eliminada",
+      "allRead": "Todas las notificaciones se marcaron como leídas",
+      "unread": "Sin leer",
+      "settings": "Ajustes de notificaciones"
+    },
+    "someone": "Alguien",
+    "noTicket": "un ticket",
+    "types": {
+      "staff_ticket_new": { "label": "Ticket nuevo en mi cola", "title": "Ticket nuevo #{number}" },
+      "staff_customer_replied": { "label": "Respuesta del cliente", "title": "{actor} respondió en #{number}" },
+      "staff_assigned": { "label": "Ticket asignado a mí", "title": "{actor} te asignó #{number}" },
+      "staff_escalated": { "label": "Ticket escalado a mi equipo", "title": "#{number} se escaló a {tier}" },
+      "staff_mentioned": { "label": "Mención en una nota", "title": "{actor} te mencionó en #{number}" },
+      "staff_sla": { "label": "Avisos e incumplimientos de SLA", "title": "Aviso de SLA en #{number}", "breached": "SLA incumplido en #{number}" },
+      "staff_children_resolved": { "label": "Tickets vinculados resueltos", "title": "Todos los tickets vinculados a #{number} están resueltos" },
+      "customer_ticket_received": { "label": "Solicitud recibida", "title": "Hemos recibido tu solicitud #{number}" },
+      "customer_reply": { "label": "Respuesta a mi solicitud", "title": "{actor} respondió a tu solicitud #{number}" },
+      "customer_resolved": { "label": "Solicitud resuelta", "title": "Tu solicitud #{number} se ha resuelto" }
+    },
+    "sla": {
+      "first_response": "Primera respuesta pendiente",
+      "resolution": "Resolución pendiente"
+    },
+    "prefs": {
+      "title": "Notificaciones",
+      "subtitle": "Elige cómo enterarte de cada tipo de novedad.",
+      "type": "Novedad",
+      "inApp": "En la aplicación",
+      "email": "Correo electrónico",
+      "browser": "Ventana del navegador",
+      "emailForced": "Las respuestas a tus solicitudes siempre se envían por correo electrónico.",
+      "save": "Guardar ajustes de notificaciones",
+      "saved": "Ajustes de notificaciones guardados",
+      "browserTitle": "Notificaciones del navegador",
+      "browserHint": "Las ventanas aparecen mientras una pestaña de este centro de ayuda está abierta en segundo plano. Si todas las pestañas están cerradas, no llega nada.",
+      "enable": "Permitir notificaciones del navegador",
+      "granted": "Las notificaciones están permitidas en este navegador.",
+      "denied": "Las notificaciones del navegador están bloqueadas. Permítelas en los ajustes del sitio del navegador y recarga la página.",
+      "unsupported": "Este navegador no puede mostrar notificaciones.",
+      "sound": "Reproducir un sonido con cada ventana (solo en este navegador)"
+    },
+    "validation": {
+      "permission": "Permite primero las notificaciones del navegador"
+    }
+  }
+}

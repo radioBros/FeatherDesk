@@ -1,0 +1,156 @@
+{
+  "portal": {
+    "account": {
+      "name": "Name",
+      "confirmPassword": "Confirm password",
+      "newPassword": "New password",
+      "passwordHint": "At least 10 characters",
+      "registerTitle": "Create your account",
+      "checkInbox": "We sent a confirmation link to {email}. Open it to activate your account.",
+      "backToLogin": "Back to sign in",
+      "haveAccount": "Already have an account?",
+      "verifyTitle": "Confirm your email",
+      "verified": "Your email address is confirmed.",
+      "linkInvalid": "This link is invalid or has expired.",
+      "registerAgain": "Register again",
+      "forgotTitle": "Reset your password",
+      "forgotIntro": "Enter your email address and we will send you a link to choose a new password.",
+      "sendResetLink": "Send reset link",
+      "resetSent": "If an account exists for this address, we have sent a link to reset the password. Check your inbox.",
+      "resetTitle": "Choose a new password",
+      "setPassword": "Set password",
+      "passwordChanged": "Your password has been changed. You can now sign in.",
+      "requestNewLink": "Request a new link",
+      "magicTitle": "Signing you in",
+      "sendMagicLink": "Email me a sign-in link",
+      "emailMeLink": "Sign in with a link sent by email",
+      "magicSent": "If an account exists for this address, a sign-in link is on its way. Check your inbox.",
+      "usePassword": "Sign in with a password instead",
+      "inviteTitle": "Join your team",
+      "inviteIntro": "Choose your name and a password to activate the invitation.",
+      "acceptInvite": "Accept invitation"
+    },
+    "tickets": {
+      "subject": "Subject",
+      "status": "Status",
+      "priority": "Priority",
+      "requester": "Requester",
+      "updated": "Updated",
+      "allStatuses": "All statuses",
+      "mine": "Mine",
+      "organization": "Organization",
+      "empty": "You have no tickets yet",
+      "emptyHint": "Open a ticket and our team will get back to you.",
+      "noMatch": "No tickets match these filters",
+      "loadMore": "Load more"
+    },
+    "newTicket": {
+      "category": "Category",
+      "description": "Describe the problem",
+      "submit": "Open ticket",
+      "onBehalfOf": "On behalf of",
+      "onBehalfOfHint": "Leave empty to open the ticket for yourself",
+      "suggestions": "These articles might already answer your question:",
+      "backToTicket": "Back to my ticket"
+    },
+    "detail": {
+      "notFound": "This ticket does not exist or you no longer have access to it.",
+      "openedBy": "Opened by {name}",
+      "followUpOf": "Follow-up of an earlier ticket",
+      "resolve": "My issue is solved",
+      "reopen": "Reopen",
+      "resolveConfirmTitle": "Mark as solved?",
+      "resolveConfirmBody": "The ticket will be marked as resolved. You can reopen it for a few days if the problem comes back.",
+      "resolved": "Ticket marked as resolved",
+      "reopened": "Ticket reopened",
+      "closedNotice": "This ticket is closed. Replying will open a follow-up ticket.",
+      "yourReply": "Your reply",
+      "send": "Send reply",
+      "sendFollowUp": "Send and open follow-up",
+      "followUpCreated": "Your reply opened a follow-up ticket",
+      "followUpExists": "A follow-up ticket was opened for this conversation.",
+      "openFollowUp": "Open follow-up"
+    },
+    "fields": {
+      "yes": "Yes",
+      "no": "No"
+    },
+    "csat": {
+      "title": "Rate our support",
+      "question": "How satisfied are you with the help you received?",
+      "score1": "1 · Very unhappy",
+      "score2": "2 · Unhappy",
+      "score3": "3 · Okay",
+      "score4": "4 · Happy",
+      "score5": "5 · Very happy",
+      "comment": "Anything you would like to add? (optional)",
+      "submit": "Send rating",
+      "thanks": "Thank you for your feedback!",
+      "recorded": "Your rating has been recorded. You can add a comment below.",
+      "already": "This ticket has already been rated.",
+      "viewTicket": "View the ticket"
+    },
+    "profile": {
+      "saved": "Profile saved",
+      "notifications": "Email notifications",
+      "notify": {
+        "ticket_received": "Confirmation when I open a ticket",
+        "reply": "A new reply from the support team",
+        "resolved": "My ticket is resolved"
+      },
+      "changePassword": "Change password",
+      "currentPassword": "Current password",
+      "passwordChanged": "Password changed"
+    },
+    "tokens": {
+      "intro": "Personal tokens let your own scripts read and open tickets on your behalf.",
+      "new": "New token",
+      "name": "Token name",
+      "scopes": "Permissions",
+      "scope": {
+        "tickets_read": "Read my tickets",
+        "tickets_write": "Open and reply to tickets"
+      },
+      "expires": "Expires on (optional)",
+      "expiresHint": "Leave empty for a token that does not expire",
+      "create": "Create token",
+      "copyNow": "Copy this token now: it will not be shown again.",
+      "copy": "Copy token",
+      "copied": "Token copied",
+      "empty": "You have no API tokens",
+      "lastUsed": "last used",
+      "neverUsed": "never used",
+      "revoke": "Revoke",
+      "revokeTitle": "Revoke token?",
+      "revokeBody": "Scripts using \"{name}\" will stop working immediately."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "intro": "Devices where you are signed in. Revoke any you do not recognise.",
+      "empty": "No active sessions",
+      "current": "This device",
+      "unknownDevice": "Unknown device",
+      "lastSeen": "last active",
+      "revoke": "Sign out",
+      "revokeTitle": "End this session?",
+      "revokeBody": "That device will be signed out.",
+      "revokeCurrent": "This is the session you are using now: you will be signed out."
+    },
+    "members": {
+      "title": "Organization members",
+      "invite": "Invite colleague",
+      "inviteTitle": "Invite a colleague",
+      "invited": "Invitation sent to {email}",
+      "empty": "No members yet",
+      "roleLabel": "Role",
+      "role": {
+        "requester": "Member",
+        "org_manager": "Organization manager"
+      },
+      "disable": "Disable",
+      "enable": "Enable",
+      "disabled": "Disabled",
+      "pending": "Invitation pending"
+    }
+  }
+}

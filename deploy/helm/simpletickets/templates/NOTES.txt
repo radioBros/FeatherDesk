@@ -1,0 +1,7 @@
+SimpleTickets {{ .Values.image.tag | default .Chart.AppVersion }} is starting (1 replica, strategy Recreate).
+
+First run: open {{ index .Values.env "ST_PUBLIC_URL" }}/setup and paste the setup token from
+  kubectl -n {{ .Release.Namespace }} logs deploy/{{ include "simpletickets.fullname" . }} | grep "setup token"
+
+Engine: {{ if .Values.database.existingSecret }}Postgres (secret {{ .Values.database.existingSecret }}){{ else }}SQLite on the PVC{{ end }}
+Attachments: {{ if .Values.blob.url }}S3 ({{ .Values.blob.url }}){{ else }}PVC{{ end }}

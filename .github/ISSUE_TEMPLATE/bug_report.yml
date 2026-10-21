@@ -1,0 +1,52 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems must NOT be reported here: see SECURITY.md (private reporting).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `docker compose exec app /simpletickets version`
+      placeholder: simpletickets v1.0.0 abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: Database engine
+      options: [SQLite (default), Postgres]
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options: [docker compose, Kubernetes / Helm, binary, other]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Log in as an L1 agent
+        2. Open ticket #42
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant lines from `docker compose logs app` (remove secrets and personal data)
+      render: text

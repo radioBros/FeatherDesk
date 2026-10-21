@@ -1,0 +1,25 @@
+subject: Contract attached
+from: "Tim Apple" <tim@example.com>
+message_id: <5A1B2C3D-0000-1111-2222-333344445555@example.com>
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 2026-10-20T01:22:10Z
+from_html: false
+has_html: false
+unknown_charset: false
+attachments:
+- contract.pdf (application/pdf, 36 bytes, cid="", inline=false)
+--- text ---
+Here is the signed contract, as discussed in our call this morning with your team.
+Second line.
+
+
+Sent from my Mac
+--- stripped (false) ---
+Here is the signed contract, as discussed in our call this morning with your team.
+Second line.
+
+
+Sent from my Mac

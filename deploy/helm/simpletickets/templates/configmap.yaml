@@ -1,0 +1,17 @@
+{{- include "simpletickets.validate" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "simpletickets.fullname" . }}
+  labels:
+    {{- include "simpletickets.labels" . | nindent 4 }}
+data:
+  {{- range $k, $v := .Values.env }}
+  {{ $k }}: {{ $v | toString | quote }}
+  {{- end }}
+  {{- with .Values.blob.url }}
+  ST_BLOB_URL: {{ . | quote }}
+  {{- end }}
+  {{- range $k, $v := .Values.imap }}
+  {{ $k }}: {{ $v | toString | quote }}
+  {{- end }}

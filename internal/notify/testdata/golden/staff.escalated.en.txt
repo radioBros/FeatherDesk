@@ -1,0 +1,19 @@
+Subject: [#1042] Escalated: Printer on floor 3 is offline
+
+##- Reply above this line -##
+
+Hello Grace Hopper,
+
+Alan Turing escalated the ticket **#1042 Printer on floor 3 is offline** from L1 to L2.
+
+**Reason:** Needs network access
+
+- **Subject:** Printer on floor 3 is offline
+- **Priority:** high
+- **Team:** IT
+- **Tier:** L2
+
+[Open the ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+This is an automated message from SimpleTickets.

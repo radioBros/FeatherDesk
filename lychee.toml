@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Link check for the shipped docs (DEP-016, DEP-027, DEP-032), run by the CI
+# job `docs`:  lychee --config lychee.toml README.md CONTRIBUTING.md … 'docs/**/*.md'
+# Relative links and #anchors are always checked. The CI job adds --offline on
+# pull requests (no flaky outside hosts) and checks external URLs nightly.
+
+include_fragments = "anchor-only"
+max_concurrency = 8
+timeout = 20
+max_retries = 3
+accept = ["200..=299", "429"]
+no_progress = true
+
+exclude = [
+  # Addresses of a local instance / dev stack used in examples.
+  '^https?://(localhost|127\.0\.0\.1|[a-z0-9.-]+\.localhost)([:/]|$)',
+  # Placeholder hosts in examples.
+  '^https?://([a-z0-9-]+\.)*example\.(com|org|net)([:/]|$)',
+  '^https?://(help|support|sso|auth|minio|s3|imap|smtp)\.[a-z0-9-]+\.(test|internal|lan)([:/]|$)',
+  # Release links in CHANGELOG.md resolve once the tag is pushed (DEP-018/019).
+  '^https://github\.com/radioBros/SimpleTickets/(compare|releases/tag)/',
+]
+exclude_path = ["web/node_modules", "(^|/)development/"]

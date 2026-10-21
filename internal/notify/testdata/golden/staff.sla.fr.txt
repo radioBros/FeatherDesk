@@ -1,0 +1,17 @@
+Subject: [#1042] SLA dépassé: Printer on floor 3 is offline
+
+##- Répondez au-dessus de cette ligne -##
+
+Bonjour Grace Hopper,
+
+L'objectif de première réponse du ticket **#1042 Printer on floor 3 is offline** a été dépassé à 2026-10-20 10:00 (UTC).
+
+- **Objet:** Printer on floor 3 is offline
+- **Priorité:** high
+- **Équipe:** IT
+- **Niveau:** L2
+
+[Ouvrir le ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Ceci est un message automatique de SimpleTickets.

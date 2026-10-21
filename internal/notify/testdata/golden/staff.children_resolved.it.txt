@@ -1,0 +1,12 @@
+Subject: [#1042] Tutti i ticket figli risolti: Printer on floor 3 is offline
+
+##- Rispondi sopra questa riga -##
+
+Ciao Grace Hopper,
+
+tutti i ticket figli di **#1042 Printer on floor 3 is offline** sono stati risolti. Potresti voler risolvere anche il ticket principale.
+
+[Apri il ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Questo è un messaggio automatico di SimpleTickets.

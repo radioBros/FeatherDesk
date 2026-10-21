@@ -1,0 +1,340 @@
+{
+  "app": {
+    "name": "SimpleTickets",
+    "poweredBy": "Con la tecnología de {name} · por {author}",
+    "loading": "Cargando…",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "delete": "Eliminar",
+    "retry": "Reintentar",
+    "back": "Volver",
+    "search": "Buscar",
+    "notFound": "Página no encontrada",
+    "notFoundHint": "La página que buscas no existe o no tienes acceso a ella.",
+    "goHome": "Ir al inicio",
+    "comingSoon": "Esta página está en construcción.",
+    "offline": "Conexión perdida — reconectando…",
+    "reconnected": "Conectado de nuevo",
+    "language": "Idioma",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro",
+    "themeSystem": "Sistema",
+    "yes": "Sí",
+    "no": "No"
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "email": "Introduce un correo electrónico válido",
+    "url": "Introduce una URL válida (https://…)",
+    "hostname": "Introduce un nombre de host válido",
+    "port": "Introduce un puerto entre 1 y 65535",
+    "hexColor": "Introduce un color como #1A73E8",
+    "minLength": "Introduce al menos {n} caracteres",
+    "maxLength": "Introduce como máximo {n} caracteres",
+    "password": "Usa entre 10 y 128 caracteres",
+    "number": "Introduce un número",
+    "range": "Introduce un valor entre {min} y {max}",
+    "date": "Introduce una fecha válida (AAAA-MM-DD)",
+    "fileType": "Este tipo de archivo no está permitido",
+    "fileSize": "El archivo supera {max}",
+    "emailList": "Introduce una o más direcciones de correo válidas, separadas por comas",
+    "domain": "Introduce un dominio válido (ejemplo.com)",
+    "slug": "Usa solo minúsculas, números y guiones",
+    "fieldKey": "Empieza con una letra minúscula; después usa solo minúsculas, números y guiones bajos (máx. 63)",
+    "setupToken": "Pega el token de configuración de los registros del contenedor",
+    "select": "Elige una opción",
+    "invalid": "Este valor no es válido",
+    "integer": "Introduce un número entero",
+    "httpsUrl": "Introduce una URL https://",
+    "timeOfDay": "Introduce una hora como 09:30",
+    "timeRangeOrder": "El final debe ser posterior al inicio y los intervalos no deben solaparse",
+    "timeZone": "Elige una zona horaria válida (p. ej. Europe/Rome)",
+    "unique": "Este valor se usa más de una vez",
+    "dateOrder": "La fecha de fin no puede ser anterior a la de inicio",
+    "internalLink": "Una respuesta pública no puede enlazar un artículo interno de la base de conocimiento",
+    "mismatch": "Los valores no coinciden",
+    "unresolvable": "Este nombre de host no se puede resolver",
+    "adminOnly": "Solo los administradores pueden tener esta opción",
+    "boolean": "Elige sí o no",
+    "contrast": "El contraste es demasiado bajo (WCAG AA exige 4,5:1)",
+    "customer": "Elige un cliente",
+    "dateTime": "Introduce una fecha y hora válidas",
+    "defaultMissing": "Incluye el idioma predeterminado",
+    "filter": "Este valor de filtro no es válido",
+    "immutable": "Este valor no se puede cambiar",
+    "inactive": "Este elemento no está activo",
+    "invalidImage": "No se pudo leer la imagen",
+    "invalidJson": "No se pudo leer la solicitud. Recarga la página e inténtalo de nuevo",
+    "invalidSvg": "No se pudo leer el archivo SVG",
+    "kbTranslationRequired": "Añade primero la traducción en el idioma predeterminado",
+    "kbVisibilityWider": "Un artículo no puede ser más visible que su categoría",
+    "length": "La longitud de este valor no está permitida",
+    "locale": "Elige un idioma compatible",
+    "lockedByEnv": "Este valor lo define el entorno y no se puede cambiar aquí",
+    "maxDepth": "Hay demasiados niveles de anidamiento",
+    "maxItems": "Hay demasiadas entradas",
+    "mentionNotVisible": "Un compañero mencionado no puede ver este ticket",
+    "minProperties": "No hay nada que cambiar",
+    "notAllowed": "Este valor no está permitido",
+    "notApplicable": "Este campo no se aplica aquí",
+    "notCustomer": "Esta dirección pertenece a una cuenta del personal, no a un cliente",
+    "notFound": "Este elemento no existe o ya no está disponible",
+    "notOptional": "Esto no se puede desactivar",
+    "notOwner": "Este adjunto no te pertenece",
+    "order": "Este valor no debe superar al siguiente",
+    "orgRequired": "Elige primero una organización",
+    "otherOrg": "Esta persona pertenece a otra organización",
+    "passwordTooCommon": "Esta contraseña es demasiado común; elige otra",
+    "passwordTooLong": "Esta contraseña es demasiado larga",
+    "passwordTooShort": "Esta contraseña es demasiado corta",
+    "past": "Elige una fecha futura",
+    "pattern": "Este valor no tiene el formato requerido",
+    "privateAddress": "No se permiten direcciones de red privadas o locales",
+    "readOnly": "Este campo no se puede editar",
+    "requiresVisible": "Primero haz que el campo sea visible para los clientes",
+    "self": "Un elemento no puede referirse a sí mismo",
+    "staff": "Elige a un miembro del personal",
+    "svgNotAllowed": "Aquí no se admite SVG; sube un PNG o JPEG",
+    "team": "Esta persona no es miembro del equipo",
+    "tier": "El nivel de soporte de este agente es inferior al del ticket",
+    "tooManyTokens": "Tienes demasiados tokens activos; revoca uno primero",
+    "type": "Este valor no es del tipo correcto",
+    "unknown": "Este campo no se reconoce",
+    "unknownTeam": "Este equipo no existe",
+    "webmail": "No se pueden usar dominios de webmail públicos"
+  },
+  "errors": {
+    "generic": "Ocurrió un error. Inténtalo de nuevo.",
+    "network": "No se puede contactar con el servidor.",
+    "forbidden": "No tienes permiso para hacer esto.",
+    "notFound": "No encontrado.",
+    "conflict": "Otra persona ha modificado esto. Recarga e inténtalo de nuevo.",
+    "rateLimited": "Demasiadas solicitudes. Espera un momento.",
+    "unauthenticated": "Tu sesión ha caducado. Inicia sesión de nuevo.",
+    "validation": "Corrige los campos marcados."
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signOut": "Cerrar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "staffTitle": "Acceso del personal",
+    "customerTitle": "Inicia sesión en tu portal de soporte",
+    "sso": "Continuar con inicio de sesión único",
+    "or": "o",
+    "breakGlass": "Acceso de administrador",
+    "forgot": "¿Olvidaste tu contraseña?",
+    "register": "Crear una cuenta",
+    "invalidCredentials": "El correo o la contraseña no son correctos."
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "tickets": "Tickets",
+    "myTickets": "Mis tickets",
+    "staffSignIn": "Acceso del personal",
+    "newTicket": "Nuevo ticket",
+    "unassigned": "Sin asignar",
+    "triage": "Clasificación",
+    "customers": "Clientes",
+    "organizations": "Organizaciones",
+    "knowledgeBase": "Base de conocimiento",
+    "reports": "Informes",
+    "admin": "Administración",
+    "profile": "Perfil",
+    "apiTokens": "Tokens de API",
+    "help": "Centro de ayuda",
+    "privacy": "Privacidad",
+    "terms": "Términos",
+    "imprint": "Aviso legal",
+    "skipToContent": "Ir al contenido",
+    "toggleMenu": "Mostrar/ocultar menú",
+    "userMenu": "Menú de la cuenta"
+  },
+  "status": {
+    "new": "Nuevo",
+    "open": "Abierto",
+    "pending": "Pendiente",
+    "on_hold": "En espera",
+    "resolved": "Resuelto",
+    "closed": "Cerrado"
+  },
+  "statusCustomer": {
+    "new": "Abierto",
+    "open": "Abierto",
+    "pending": "Esperando tu respuesta",
+    "on_hold": "Abierto",
+    "resolved": "Resuelto",
+    "closed": "Cerrado",
+    "awaiting_reply": "Esperando tu respuesta"
+  },
+  "priority": {
+    "low": "Baja",
+    "normal": "Normal",
+    "high": "Alta",
+    "urgent": "Urgente"
+  },
+  "tier": {
+    "1": "N1",
+    "2": "N2",
+    "3": "N3",
+    "label": "Nivel"
+  },
+  "thread": {
+    "label": "Conversación",
+    "internalNote": "Nota interna",
+    "system": "Sistema",
+    "empty": "Todavía no hay mensajes.",
+    "attachments": "Adjuntos"
+  },
+  "editor": {
+    "write": "Escribir",
+    "preview": "Vista previa",
+    "placeholder": "Escribe tu mensaje… Se admite Markdown.",
+    "nothingToPreview": "No hay nada que previsualizar.",
+    "submitHint": "Ctrl+Enter para enviar"
+  },
+  "upload": {
+    "drop": "Suelta los archivos aquí o haz clic para seleccionarlos",
+    "remove": "Quitar",
+    "uploading": "Subiendo…",
+    "failed": "Error al subir",
+    "tooMany": "Puedes adjuntar como máximo {max} archivos"
+  },
+  "time": {
+    "justNow": "ahora mismo"
+  },
+  "realtime": {
+    "accessLost": "Ya no tienes acceso a este ticket.",
+    "sessionRevoked": "Tu sesión ha finalizado. Inicia sesión de nuevo."
+  },
+  "confirm": {
+    "title": "¿Quieres continuar?",
+    "body": "Esta acción no se puede deshacer."
+  },
+  "empty": {
+    "title": "Aún no hay nada aquí",
+    "body": "Cuando haya algo que mostrar, aparecerá aquí."
+  },
+  "user": {
+    "unknown": "Usuario desconocido"
+  },
+  "mfa": {
+    "code": "Código de 6 dígitos",
+    "recoveryCode": "Código de recuperación",
+    "verify": "Verificar",
+    "validation": {
+      "otpCode": "Introduzca el código de 6 dígitos",
+      "recoveryCode": "Introduzca un código de recuperación como abcd-efgh-jkmn"
+    },
+    "method": {
+      "totp": "Aplicación de autenticación",
+      "email": "Código por correo",
+      "recovery": "Código de recuperación"
+    },
+    "step": {
+      "title": "Verificación en dos pasos",
+      "enrollTitle": "Configurar la verificación en dos pasos",
+      "enrollIntro": "Este sitio exige un segundo paso al iniciar sesión. Configúrelo ahora para continuar.",
+      "hint": {
+        "totp": "Introduzca el código de 6 dígitos de su aplicación de autenticación.",
+        "email": "Le enviamos un código de 6 dígitos a su dirección de correo.",
+        "recovery": "Introduzca uno de los códigos de recuperación que guardó. Cada código funciona una sola vez."
+      },
+      "expired": "Este intento de inicio de sesión ha caducado. Inicie sesión de nuevo.",
+      "restart": "Iniciar sesión de nuevo",
+      "tooMany": "Demasiados intentos. Espere un momento e inténtelo de nuevo.",
+      "noMethod": "No hay ningún método de verificación disponible para esta cuenta. Pida a un administrador que restablezca la verificación en dos pasos.",
+      "methodLabel": "Método de verificación",
+      "emailSent": "Le hemos enviado un código a su dirección de correo. Es válido durante 10 minutos.",
+      "resendIn": "Reenviar en {s} s",
+      "resend": "Enviar un código nuevo",
+      "sendEmail": "Enviarme un código por correo",
+      "cancel": "Cancelar y volver"
+    },
+    "setup": {
+      "title": "Configurar una aplicación de autenticación",
+      "start": "Mostrar el código QR",
+      "scan": "Escanee este código QR con su aplicación de autenticación.",
+      "qrLabel": "Código QR para su aplicación de autenticación",
+      "manual": "O introduzca esta clave manualmente:",
+      "confirm": "Confirmar y activar"
+    },
+    "codes": {
+      "title": "Sus códigos de recuperación",
+      "warning": "Guarde estos códigos en un lugar seguro. Cada uno le permite iniciar sesión una vez si pierde su dispositivo. Solo se muestran ahora.",
+      "copy": "Copiar",
+      "copied": "Copiados",
+      "download": "Descargar",
+      "continue": "Los he guardado, continuar",
+      "saved": "Los he guardado"
+    },
+    "reauth": {
+      "title": "Confirme su contraseña",
+      "intro": "Por seguridad, introduzca su contraseña para cambiar la verificación en dos pasos."
+    },
+    "profile": {
+      "title": "Verificación en dos pasos",
+      "loadFailed": "No se pudieron cargar los ajustes de la verificación en dos pasos.",
+      "unavailable": "Su cuenta inicia sesión mediante el proveedor de identidad de su organización, que gestiona la verificación en dos pasos.",
+      "intro": "Proteja su cuenta con un segundo paso después de la contraseña.",
+      "required": "Este sitio exige la verificación en dos pasos. Configure al menos un método.",
+      "on": "Activada",
+      "off": "Desactivada",
+      "setUp": "Configurar",
+      "replace": "Sustituir",
+      "turnOff": "Desactivar",
+      "turnOn": "Activar",
+      "emailUnavailable": "No disponible: el correo no está configurado en este sitio",
+      "remaining": "Quedan {n} códigos sin usar",
+      "regenerate": "Códigos nuevos",
+      "totpEnabled": "Aplicación de autenticación activada",
+      "emailEnabled": "Códigos por correo activados",
+      "disabled": "Método desactivado",
+      "disableConfirm": {
+        "totp": "¿Desactivar la aplicación de autenticación?",
+        "email": "¿Desactivar los códigos por correo?"
+      },
+      "regenerateConfirm": "¿Crear códigos de recuperación nuevos? Los antiguos dejarán de funcionar."
+    },
+    "admin": {
+      "label": "Verificación en dos pasos",
+      "sso": "gestionada por el proveedor de identidad",
+      "reset": "Restablecer la verificación en dos pasos",
+      "resetTitle": "¿Restablecer la verificación en dos pasos?",
+      "resetConfirm": "Elimina la aplicación de autenticación, los códigos por correo y los códigos de recuperación del usuario. Podrá iniciar sesión solo con su contraseña (o configurarla de nuevo si el sitio lo exige). La operación queda registrada en el registro de auditoría.",
+      "resetDone": "Se ha restablecido la verificación en dos pasos"
+    },
+    "policy": {
+      "title": "Seguridad",
+      "label": "Exigir la verificación en dos pasos",
+      "hint": "Se aplica a las cuentas con contraseña local. Las cuentas de inicio de sesión único usan su proveedor de identidad.",
+      "none": "Nadie (opcional)",
+      "staff": "Todas las cuentas del personal",
+      "all": "Todos",
+      "saved": "Ajustes de seguridad guardados"
+    }
+  },
+  "mcp": {
+    "title": "Conectar un asistente de IA",
+    "intro": "Los asistentes de IA compatibles con el Model Context Protocol (MCP), como Claude Code, Claude Desktop o Cursor, pueden trabajar con tus tickets usando uno de tus tokens de API. El asistente actúa en tu nombre y nunca puede hacer más de lo que permiten los ámbitos del token. Crea un token abajo y pega una de estas configuraciones en tu asistente.",
+    "endpoint": "Punto de conexión MCP",
+    "scopes": "Ámbitos de token recomendados",
+    "readWrite": "Para leer y gestionar tickets:",
+    "readOnly": "Solo lectura:",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "replaceToken": "Sustituye {placeholder} por tu token. Trata la configuración como una contraseña.",
+    "hint": {
+      "claudeCode": "Ejecuta esto en una terminal.",
+      "claudeDesktop": "Añade esto a claude_desktop_config.json (se abre desde los ajustes de desarrollador de la aplicación) y reinicia la aplicación. Necesita Node.js: mcp-remote conecta la aplicación con el punto de conexión.",
+      "cursor": "Añade esto a ~/.cursor/mcp.json (o a .cursor/mcp.json en un proyecto)."
+    }
+  },
+  "common": {
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña"
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "privacy": {
+    "nav": {
+      "admin": "Confidentialité",
+      "myData": "Mes données"
+    },
+    "admin": {
+      "subtitle": "Exports de données, demandes de suppression et conservation",
+      "tabRequests": "Demandes",
+      "tabSettings": "Conservation et paramètres"
+    },
+    "type": {
+      "export": "Export des données",
+      "erasure": "Suppression du compte"
+    },
+    "status": {
+      "pending": "En attente",
+      "processing": "En cours",
+      "ready": "Prêt",
+      "failed": "Échec",
+      "expired": "Expiré",
+      "completed": "Terminé",
+      "rejected": "Refusé"
+    },
+    "mode": {
+      "label": "Mode d'effacement",
+      "anonymize": "Anonymiser le compte",
+      "anonymize_and_redact": "Anonymiser et masquer ses messages",
+      "hintAnonymize": "Le nom et l'adresse e-mail sont remplacés, les méthodes de connexion supprimées et le compte désactivé. Les tickets et les messages sont conservés.",
+      "hintRedact": "Remplace aussi les messages rédigés par la personne par [redacted] et supprime ses pièces jointes ainsi que les valeurs des champs personnalisés de ses tickets."
+    },
+    "col": {
+      "type": "Demande",
+      "status": "État",
+      "person": "Personne",
+      "requested": "Demandé le",
+      "expires": "Disponible jusqu'au",
+      "size": "Taille du fichier",
+      "actions": "Actions"
+    },
+    "filter": {
+      "type": "Type de demande",
+      "status": "État"
+    },
+    "action": {
+      "download": "Télécharger",
+      "approve": "Approuver",
+      "reject": "Refuser",
+      "export": "Exporter les données",
+      "erase": "Effacer les données personnelles",
+      "preview": "Aperçu",
+      "save": "Enregistrer les paramètres",
+      "cancel": "Annuler",
+      "refresh": "Actualiser"
+    },
+    "requests": {
+      "empty": "Aucune demande relative à la confidentialité pour l'instant.",
+      "loadFailed": "Impossible de charger les demandes relatives à la confidentialité.",
+      "rejected": "Demande refusée",
+      "auto": "approuvée automatiquement le {date}"
+    },
+    "approve": {
+      "title": "Approuver la demande de suppression"
+    },
+    "reject": {
+      "title": "Refuser la demande de suppression",
+      "reason": "Motif (visible par le client)"
+    },
+    "erase": {
+      "title": "Effacer les données personnelles",
+      "intro": "Cette opération est irréversible. Les tickets sont conservés comme documents professionnels, mais la personne ne peut plus être identifiée à partir de ce compte.",
+      "confirm": "Je comprends que cette opération est définitive",
+      "done": "Données personnelles effacées : {messages} messages masqués, {attachments} pièces jointes supprimées"
+    },
+    "export": {
+      "includeInternal": "Inclure les notes internes et les champs réservés à l'équipe",
+      "queued": "Export demandé. Un e-mail sera envoyé lorsqu'il sera prêt."
+    },
+    "actions": {
+      "title": "Confidentialité",
+      "recent": "Demandes récentes",
+      "none": "Aucune demande pour cette personne."
+    },
+    "settings": {
+      "retention": "Politique de conservation",
+      "retentionHint": "Appliquée une fois par jour. L'aperçu montre ce que la prochaine exécution modifierait.",
+      "closedTicketsMonths": "Conserver les tickets fermés (mois)",
+      "closedTicketsMonthsHint": "0 les conserve indéfiniment",
+      "closedTicketsAction": "Ensuite",
+      "purge": "Supprimer le ticket",
+      "anonymize": "Anonymiser le contenu du ticket",
+      "inboundEmailDays": "Conserver les e-mails entrants bruts (jours)",
+      "auditLogMonths": "Conserver le journal d'audit (mois)",
+      "auditLogMonthsHint": "0 conserve le réglage du serveur (ST_AUDIT_RETENTION_DAYS)",
+      "exportDays": "Conserver les exports terminés (jours)",
+      "erasure": "Demandes de suppression",
+      "autoApproveDays": "Approuver automatiquement après (jours)",
+      "autoApproveDaysHint": "0 signifie qu'un administrateur décide de chaque demande",
+      "autoApproveMode": "Mode des approbations automatiques",
+      "policyVersion": "Version de la politique de confidentialité",
+      "policyVersionHint": "Enregistrée avec chaque consentement, par exemple la date de la politique",
+      "saved": "Paramètres de confidentialité enregistrés"
+    },
+    "preview": {
+      "title": "Simulation",
+      "intro": "Ce que la tâche de conservation traiterait maintenant avec les valeurs ci-dessus (rien n'est modifié).",
+      "closedTickets": "Tickets fermés",
+      "inboundEmails": "E-mails entrants bruts",
+      "auditEntries": "Entrées du journal d'audit",
+      "expiredExports": "Fichiers d'export expirés",
+      "autoApprovals": "Demandes de suppression à approuver"
+    },
+    "my": {
+      "title": "Mes données",
+      "intro": "Téléchargez une copie de vos données personnelles ou demandez-nous de supprimer votre compte.",
+      "introStaff": "Téléchargez une copie des données personnelles que ce service d'assistance détient à votre sujet.",
+      "link": "Mes données et confidentialité",
+      "exportTitle": "Exporter vos données",
+      "exportBody": "Nous préparons un fichier ZIP avec votre profil, vos tickets et messages, vos pièces jointes et vos consentements. Vous recevez un e-mail lorsqu'il est prêt ; le fichier peut être téléchargé pendant {days} jours.",
+      "exportButton": "Demander un export de mes données",
+      "exportPending": "Votre export est en cours de préparation.",
+      "requestsTitle": "Vos demandes",
+      "empty": "Vous n'avez encore fait aucune demande.",
+      "deletionTitle": "Supprimer votre compte",
+      "deletionBody": "Un administrateur examine la demande. Après la suppression, vous ne pourrez plus vous connecter et votre nom et votre adresse e-mail seront retirés de nos registres.",
+      "deletionPending": "Votre demande de suppression est en attente d'examen.",
+      "reason": "Motif (facultatif)",
+      "confirm": "Je comprends que mon compte sera supprimé et que cette opération est définitive",
+      "deletionButton": "Demander la suppression du compte",
+      "deletionRequested": "Suppression demandée",
+      "consentsTitle": "Consentements enregistrés",
+      "consentLine": "Politique de confidentialité acceptée",
+      "noConsents": "Aucun consentement enregistré."
+    },
+    "consent": {
+      "accept": "J'ai lu et j'accepte la politique de confidentialité",
+      "read": "Lire la politique de confidentialité"
+    }
+  }
+}

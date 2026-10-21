@@ -1,0 +1,24 @@
+{
+  "kb": {
+    "intro": "Find answers to common questions, or open a ticket if you need more help.",
+    "searchLabel": "Search the help center",
+    "searchPlaceholder": "Describe your question…",
+    "resultsFor": "Results for \"{q}\"",
+    "noResults": "No articles found",
+    "noResultsHint": "Try other words, or open a ticket.",
+    "empty": "The help center has no articles yet",
+    "articleCount": "{n} article | {n} articles",
+    "noArticles": "No articles in this category",
+    "categoryNotFound": "This category does not exist",
+    "articleNotFound": "This article does not exist or is not available to you",
+    "backHome": "Back to the help center",
+    "updated": "Updated",
+    "fallbackNotice": "This article is not available in your language yet. It is shown in {language}.",
+    "helpful": "Was this article helpful?",
+    "yes": "Yes",
+    "no": "No",
+    "thanks": "Thanks for letting us know.",
+    "stillNeedHelp": "Still need help? Our team is here for you.",
+    "loadMore": "Load more"
+  }
+}

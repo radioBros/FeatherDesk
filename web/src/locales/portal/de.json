@@ -1,0 +1,156 @@
+{
+  "portal": {
+    "account": {
+      "name": "Name",
+      "confirmPassword": "Passwort bestätigen",
+      "newPassword": "Neues Passwort",
+      "passwordHint": "Mindestens 10 Zeichen",
+      "registerTitle": "Konto erstellen",
+      "checkInbox": "Wir haben einen Bestätigungslink an {email} gesendet. Öffnen Sie ihn, um Ihr Konto zu aktivieren.",
+      "backToLogin": "Zurück zur Anmeldung",
+      "haveAccount": "Sie haben bereits ein Konto?",
+      "verifyTitle": "E-Mail-Adresse bestätigen",
+      "verified": "Ihre E-Mail-Adresse ist bestätigt.",
+      "linkInvalid": "Dieser Link ist ungültig oder abgelaufen.",
+      "registerAgain": "Erneut registrieren",
+      "forgotTitle": "Passwort zurücksetzen",
+      "forgotIntro": "Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link, um ein neues Passwort festzulegen.",
+      "sendResetLink": "Link zum Zurücksetzen senden",
+      "resetSent": "Falls zu dieser Adresse ein Konto existiert, haben wir einen Link zum Zurücksetzen des Passworts gesendet. Prüfen Sie Ihren Posteingang.",
+      "resetTitle": "Neues Passwort festlegen",
+      "setPassword": "Passwort festlegen",
+      "passwordChanged": "Ihr Passwort wurde geändert. Sie können sich jetzt anmelden.",
+      "requestNewLink": "Neuen Link anfordern",
+      "magicTitle": "Sie werden angemeldet",
+      "sendMagicLink": "Anmeldelink per E-Mail senden",
+      "emailMeLink": "Mit einem Link per E-Mail anmelden",
+      "magicSent": "Falls zu dieser Adresse ein Konto existiert, ist ein Anmeldelink unterwegs. Prüfen Sie Ihren Posteingang.",
+      "usePassword": "Stattdessen mit Passwort anmelden",
+      "inviteTitle": "Ihrem Team beitreten",
+      "inviteIntro": "Geben Sie Ihren Namen ein und wählen Sie ein Passwort, um die Einladung anzunehmen.",
+      "acceptInvite": "Einladung annehmen"
+    },
+    "tickets": {
+      "subject": "Betreff",
+      "status": "Status",
+      "priority": "Priorität",
+      "requester": "Anfragende Person",
+      "updated": "Aktualisiert",
+      "allStatuses": "Alle Status",
+      "mine": "Meine",
+      "organization": "Organisation",
+      "empty": "Sie haben noch keine Tickets",
+      "emptyHint": "Eröffnen Sie ein Ticket, und unser Team meldet sich bei Ihnen.",
+      "noMatch": "Keine Tickets entsprechen diesen Filtern",
+      "loadMore": "Mehr laden"
+    },
+    "newTicket": {
+      "category": "Kategorie",
+      "description": "Beschreiben Sie das Problem",
+      "submit": "Ticket eröffnen",
+      "onBehalfOf": "Im Namen von",
+      "onBehalfOfHint": "Leer lassen, um das Ticket für sich selbst zu eröffnen",
+      "suggestions": "Diese Artikel beantworten Ihre Frage vielleicht schon:",
+      "backToTicket": "Zurück zu meinem Ticket"
+    },
+    "detail": {
+      "notFound": "Dieses Ticket existiert nicht oder Sie haben keinen Zugriff mehr darauf.",
+      "openedBy": "Eröffnet von {name}",
+      "followUpOf": "Folgeticket eines früheren Tickets",
+      "resolve": "Mein Problem ist gelöst",
+      "reopen": "Wieder öffnen",
+      "resolveConfirmTitle": "Als gelöst markieren?",
+      "resolveConfirmBody": "Das Ticket wird als gelöst markiert. Sie können es einige Tage lang wieder öffnen, falls das Problem erneut auftritt.",
+      "resolved": "Ticket als gelöst markiert",
+      "reopened": "Ticket wieder geöffnet",
+      "closedNotice": "Dieses Ticket ist geschlossen. Eine Antwort eröffnet ein Folgeticket.",
+      "yourReply": "Ihre Antwort",
+      "send": "Antwort senden",
+      "sendFollowUp": "Senden und Folgeticket eröffnen",
+      "followUpCreated": "Ihre Antwort hat ein Folgeticket eröffnet",
+      "followUpExists": "Zu dieser Unterhaltung wurde ein Folgeticket eröffnet.",
+      "openFollowUp": "Folgeticket öffnen"
+    },
+    "fields": {
+      "yes": "Ja",
+      "no": "Nein"
+    },
+    "csat": {
+      "title": "Bewerten Sie unseren Support",
+      "question": "Wie zufrieden sind Sie mit der erhaltenen Hilfe?",
+      "score1": "1 · Sehr unzufrieden",
+      "score2": "2 · Unzufrieden",
+      "score3": "3 · In Ordnung",
+      "score4": "4 · Zufrieden",
+      "score5": "5 · Sehr zufrieden",
+      "comment": "Möchten Sie etwas ergänzen? (optional)",
+      "submit": "Bewertung senden",
+      "thanks": "Vielen Dank für Ihr Feedback!",
+      "recorded": "Ihre Bewertung wurde gespeichert. Unten können Sie einen Kommentar hinzufügen.",
+      "already": "Dieses Ticket wurde bereits bewertet.",
+      "viewTicket": "Ticket ansehen"
+    },
+    "profile": {
+      "saved": "Profil gespeichert",
+      "notifications": "E-Mail-Benachrichtigungen",
+      "notify": {
+        "ticket_received": "Bestätigung, wenn ich ein Ticket eröffne",
+        "reply": "Eine neue Antwort des Support-Teams",
+        "resolved": "Mein Ticket ist gelöst"
+      },
+      "changePassword": "Passwort ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "passwordChanged": "Passwort geändert"
+    },
+    "tokens": {
+      "intro": "Mit persönlichen Tokens können Ihre eigenen Skripte in Ihrem Namen Tickets lesen und eröffnen.",
+      "new": "Neues Token",
+      "name": "Name des Tokens",
+      "scopes": "Berechtigungen",
+      "scope": {
+        "tickets_read": "Meine Tickets lesen",
+        "tickets_write": "Tickets eröffnen und beantworten"
+      },
+      "expires": "Läuft ab am (optional)",
+      "expiresHint": "Leer lassen für ein Token ohne Ablaufdatum",
+      "create": "Token erstellen",
+      "copyNow": "Kopieren Sie dieses Token jetzt: Es wird nicht noch einmal angezeigt.",
+      "copy": "Token kopieren",
+      "copied": "Token kopiert",
+      "empty": "Sie haben keine API-Tokens",
+      "lastUsed": "zuletzt verwendet",
+      "neverUsed": "nie verwendet",
+      "revoke": "Widerrufen",
+      "revokeTitle": "Token widerrufen?",
+      "revokeBody": "Skripte, die „{name}“ verwenden, funktionieren sofort nicht mehr."
+    },
+    "sessions": {
+      "title": "Aktive Sitzungen",
+      "intro": "Geräte, auf denen Sie angemeldet sind. Melden Sie alle Geräte ab, die Sie nicht erkennen.",
+      "empty": "Keine aktiven Sitzungen",
+      "current": "Dieses Gerät",
+      "unknownDevice": "Unbekanntes Gerät",
+      "lastSeen": "zuletzt aktiv",
+      "revoke": "Abmelden",
+      "revokeTitle": "Diese Sitzung beenden?",
+      "revokeBody": "Dieses Gerät wird abgemeldet.",
+      "revokeCurrent": "Dies ist Ihre aktuelle Sitzung: Sie werden abgemeldet."
+    },
+    "members": {
+      "title": "Mitglieder der Organisation",
+      "invite": "Kollegen einladen",
+      "inviteTitle": "Einen Kollegen einladen",
+      "invited": "Einladung an {email} gesendet",
+      "empty": "Noch keine Mitglieder",
+      "roleLabel": "Rolle",
+      "role": {
+        "requester": "Mitglied",
+        "org_manager": "Organisationsverwalter"
+      },
+      "disable": "Deaktivieren",
+      "enable": "Aktivieren",
+      "disabled": "Deaktiviert",
+      "pending": "Einladung ausstehend"
+    }
+  }
+}

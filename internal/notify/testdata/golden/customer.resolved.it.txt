@@ -1,0 +1,14 @@
+Subject: [#1042] La tua richiesta è stata risolta: Printer on floor 3 is offline
+
+##- Rispondi sopra questa riga -##
+
+Ciao Ada Lovelace,
+
+la tua richiesta **Printer on floor 3 is offline** è stata contrassegnata come risolta. Se hai ancora bisogno di aiuto, rispondi semplicemente a questa email.
+
+Come siamo andati? [Valuta il nostro supporto](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001?rate=1)
+
+[Visualizza la richiesta](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Questo è un messaggio automatico di SimpleTickets.

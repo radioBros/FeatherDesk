@@ -1,0 +1,114 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# DEV ONLY (DEP-005): seeded users with a fixed, published password. Mounted
+# by deploy/compose.dev.yml only. NEVER import this into a real Authentik.
+#
+#   user             groups                    → SimpleTickets
+#   st-admin         st-admins, st-l3          admin, tier 3
+#   st-supervisor    st-supervisors, st-l3     supervisor, tier 3
+#   st-agent-l1      st-agents                 agent, tier 1
+#   st-agent-l2      st-agents, st-l2          agent, tier 2
+#   st-agent-l3      st-agents, st-l3          agent, tier 3
+#   st-customer      (none)                    customer (portal SSO only)
+#
+# Password for all of them: ST_DEV_IDP_PASSWORD (default below).
+version: 1
+metadata:
+  name: SimpleTickets dev users
+  labels:
+    blueprints.goauthentik.io/description: "DEV ONLY: seeded SimpleTickets users"
+entries:
+  # Apply the main blueprint first so the st-* groups exist.
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        name: SimpleTickets
+      required: true
+
+  - model: authentik_core.user
+    identifiers:
+      username: st-admin
+    attrs:
+      name: Dev Admin
+      email: st-admin@dev.test
+      type: internal
+      is_active: true
+      password: !Env [ST_DEV_IDP_PASSWORD, "dev-Password-123!"]
+      groups:
+        - !Find [authentik_core.group, [name, st-admins]]
+        - !Find [authentik_core.group, [name, st-l3]]
+  - model: authentik_core.user
+    identifiers:
+      username: st-supervisor
+    attrs:
+      name: Dev Supervisor
+      email: st-supervisor@dev.test
+      type: internal
+      is_active: true
+      password: !Env [ST_DEV_IDP_PASSWORD, "dev-Password-123!"]
+      groups:
+        - !Find [authentik_core.group, [name, st-supervisors]]
+        - !Find [authentik_core.group, [name, st-l3]]
+  - model: authentik_core.user
+    identifiers:
+      username: st-agent-l1
+    attrs:
+      name: Dev Agent L1
+      email: st-agent-l1@dev.test
+      type: internal
+      is_active: true
+      password: !Env [ST_DEV_IDP_PASSWORD, "dev-Password-123!"]
+      groups:
+        - !Find [authentik_core.group, [name, st-agents]]
+  - model: authentik_core.user
+    identifiers:
+      username: st-agent-l2
+    attrs:
+      name: Dev Agent L2
+      email: st-agent-l2@dev.test
+      type: internal
+      is_active: true
+      password: !Env [ST_DEV_IDP_PASSWORD, "dev-Password-123!"]
+      groups:
+        - !Find [authentik_core.group, [name, st-agents]]
+        - !Find [authentik_core.group, [name, st-l2]]
+  - model: authentik_core.user
+    identifiers:
+      username: st-agent-l3
+    attrs:
+      name: Dev Agent L3
+      email: st-agent-l3@dev.test
+      type: internal
+      is_active: true
+      password: !Env [ST_DEV_IDP_PASSWORD, "dev-Password-123!"]
+      groups:
+        - !Find [authentik_core.group, [name, st-agents]]
+        - !Find [authentik_core.group, [name, st-l3]]
+  - model: authentik_core.user
+    identifiers:
+      username: st-customer
+    attrs:
+      name: Dev Customer
+      email: st-customer@dev.test
+      type: external
+      is_active: true
+      password: !Env [ST_DEV_IDP_PASSWORD, "dev-Password-123!"]
+
+  # Back-channel logout (AUTH-030): Authentik's worker POSTs the logout token
+  # server-to-server. In the dev stack ST_PUBLIC_URL (http://localhost:8080) is
+  # the browser's address and unreachable from the worker container, so point
+  # the providers at the app's compose service name instead. In production the
+  # main blueprint's default (ST_PUBLIC_URL + path) is correct.
+  - model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: simpletickets-staff
+    attrs:
+      logout_method: backchannel
+      logout_uri: http://app:8080/api/v1/auth/oidc/staff/backchannel-logout
+  - model: authentik_providers_oauth2.oauth2provider
+    identifiers:
+      name: simpletickets-customer
+    attrs:
+      logout_method: backchannel
+      logout_uri: http://app:8080/api/v1/auth/oidc/customer/backchannel-logout

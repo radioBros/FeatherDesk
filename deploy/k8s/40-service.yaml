@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+apiVersion: v1
+kind: Service
+metadata:
+  name: simpletickets
+  namespace: simpletickets
+  labels:
+    app.kubernetes.io/name: simpletickets
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: simpletickets
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

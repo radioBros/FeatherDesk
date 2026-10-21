@@ -1,0 +1,340 @@
+{
+  "app": {
+    "name": "SimpleTickets",
+    "poweredBy": "Propulsé par {name} · par {author}",
+    "loading": "Chargement…",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "delete": "Supprimer",
+    "retry": "Réessayer",
+    "back": "Retour",
+    "search": "Rechercher",
+    "notFound": "Page introuvable",
+    "notFoundHint": "La page demandée n'existe pas ou vous n'y avez pas accès.",
+    "goHome": "Aller à l'accueil",
+    "comingSoon": "Cette page est en cours de construction.",
+    "offline": "Connexion perdue — reconnexion…",
+    "reconnected": "Reconnecté",
+    "language": "Langue",
+    "theme": "Thème",
+    "themeLight": "Clair",
+    "themeDark": "Sombre",
+    "themeSystem": "Système",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "validation": {
+    "required": "Ce champ est obligatoire",
+    "email": "Saisissez une adresse e-mail valide",
+    "url": "Saisissez une URL valide (https://…)",
+    "hostname": "Saisissez un nom d'hôte valide",
+    "port": "Saisissez un port entre 1 et 65535",
+    "hexColor": "Saisissez une couleur comme #1A73E8",
+    "minLength": "Saisissez au moins {n} caractères",
+    "maxLength": "Saisissez au plus {n} caractères",
+    "password": "Utilisez entre 10 et 128 caractères",
+    "number": "Saisissez un nombre",
+    "range": "Saisissez une valeur entre {min} et {max}",
+    "date": "Saisissez une date valide (AAAA-MM-JJ)",
+    "fileType": "Ce type de fichier n'est pas autorisé",
+    "fileSize": "Le fichier dépasse {max}",
+    "emailList": "Saisissez une ou plusieurs adresses e-mail valides, séparées par des virgules",
+    "domain": "Saisissez un domaine valide (exemple.fr)",
+    "slug": "Utilisez uniquement des minuscules, des chiffres et des tirets",
+    "fieldKey": "Commencez par une lettre minuscule, puis utilisez uniquement des minuscules, des chiffres et des tirets bas (63 max.)",
+    "setupToken": "Collez le jeton de configuration depuis les journaux du conteneur",
+    "select": "Choisissez une option",
+    "invalid": "Cette valeur n'est pas valide",
+    "integer": "Saisissez un nombre entier",
+    "httpsUrl": "Saisissez une URL https://",
+    "timeOfDay": "Saisissez une heure comme 09:30",
+    "timeRangeOrder": "La fin doit être après le début et les plages ne doivent pas se chevaucher",
+    "timeZone": "Choisissez un fuseau horaire valide (ex. Europe/Rome)",
+    "unique": "Cette valeur est utilisée plusieurs fois",
+    "dateOrder": "La date de fin ne peut pas précéder la date de début",
+    "internalLink": "Une réponse publique ne peut pas contenir de lien vers un article interne de la base de connaissances",
+    "mismatch": "Les valeurs ne correspondent pas",
+    "unresolvable": "Ce nom d'hôte ne peut pas être résolu",
+    "adminOnly": "Seuls les administrateurs peuvent avoir cette option",
+    "boolean": "Choisissez oui ou non",
+    "contrast": "Le contraste est trop faible (WCAG AA exige 4,5:1)",
+    "customer": "Choisissez un client",
+    "dateTime": "Saisissez une date et une heure valides",
+    "defaultMissing": "Incluez la langue par défaut",
+    "filter": "Cette valeur de filtre n'est pas valide",
+    "immutable": "Cette valeur ne peut pas être modifiée",
+    "inactive": "Cet élément n'est pas actif",
+    "invalidImage": "L'image n'a pas pu être lue",
+    "invalidJson": "La requête n'a pas pu être lue. Rechargez la page et réessayez",
+    "invalidSvg": "Le fichier SVG n'a pas pu être lu",
+    "kbTranslationRequired": "Ajoutez d'abord la traduction dans la langue par défaut",
+    "kbVisibilityWider": "Un article ne peut pas être plus visible que sa catégorie",
+    "length": "La longueur de cette valeur n'est pas autorisée",
+    "locale": "Choisissez une langue prise en charge",
+    "lockedByEnv": "Cette valeur est définie par l'environnement et ne peut pas être modifiée ici",
+    "maxDepth": "L'imbrication est trop profonde",
+    "maxItems": "Il y a trop d'entrées",
+    "mentionNotVisible": "Un collègue mentionné ne peut pas voir ce ticket",
+    "minProperties": "Il n'y a rien à modifier",
+    "notAllowed": "Cette valeur n'est pas autorisée",
+    "notApplicable": "Ce champ ne s'applique pas ici",
+    "notCustomer": "Cette adresse appartient à un compte du personnel, pas à un client",
+    "notFound": "Cet élément n'existe pas (ou plus)",
+    "notOptional": "Ceci ne peut pas être désactivé",
+    "notOwner": "Cette pièce jointe ne vous appartient pas",
+    "order": "Cette valeur ne doit pas dépasser la suivante",
+    "orgRequired": "Choisissez d'abord une organisation",
+    "otherOrg": "Cette personne appartient à une autre organisation",
+    "passwordTooCommon": "Ce mot de passe est trop courant ; choisissez-en un autre",
+    "passwordTooLong": "Ce mot de passe est trop long",
+    "passwordTooShort": "Ce mot de passe est trop court",
+    "past": "Choisissez une date future",
+    "pattern": "Cette valeur n'a pas le format requis",
+    "privateAddress": "Les adresses de réseau privées et locales ne sont pas autorisées",
+    "readOnly": "Ce champ ne peut pas être modifié",
+    "requiresVisible": "Rendez d'abord le champ visible pour les clients",
+    "self": "Un élément ne peut pas se référencer lui-même",
+    "staff": "Choisissez un membre du personnel",
+    "svgNotAllowed": "Le SVG n'est pas autorisé ici ; envoyez un PNG ou un JPEG",
+    "team": "Cette personne ne fait pas partie de l'équipe",
+    "tier": "Le niveau de support de cet agent est inférieur à celui du ticket",
+    "tooManyTokens": "Vous avez trop de jetons actifs ; révoquez-en un d'abord",
+    "type": "Cette valeur n'est pas du bon type",
+    "unknown": "Ce champ est inconnu",
+    "unknownTeam": "Cette équipe n'existe pas",
+    "webmail": "Les domaines de messagerie publics ne peuvent pas être utilisés"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite. Veuillez réessayer.",
+    "network": "Le serveur est injoignable.",
+    "forbidden": "Vous n'êtes pas autorisé à effectuer cette action.",
+    "notFound": "Introuvable.",
+    "conflict": "Quelqu'un d'autre a modifié cet élément. Rechargez et réessayez.",
+    "rateLimited": "Trop de requêtes. Veuillez patienter un instant.",
+    "unauthenticated": "Votre session a expiré. Veuillez vous reconnecter.",
+    "validation": "Veuillez corriger les champs signalés."
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signOut": "Se déconnecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "staffTitle": "Connexion du personnel",
+    "customerTitle": "Connectez-vous à votre portail d'assistance",
+    "sso": "Continuer avec l'authentification unique",
+    "or": "ou",
+    "breakGlass": "Connexion administrateur",
+    "forgot": "Mot de passe oublié ?",
+    "register": "Créer un compte",
+    "invalidCredentials": "L'adresse e-mail ou le mot de passe est incorrect."
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "tickets": "Tickets",
+    "myTickets": "Mes tickets",
+    "staffSignIn": "Connexion du personnel",
+    "newTicket": "Nouveau ticket",
+    "unassigned": "Non attribués",
+    "triage": "Tri",
+    "customers": "Clients",
+    "organizations": "Organisations",
+    "knowledgeBase": "Base de connaissances",
+    "reports": "Rapports",
+    "admin": "Administration",
+    "profile": "Profil",
+    "apiTokens": "Jetons d'API",
+    "help": "Centre d'aide",
+    "privacy": "Confidentialité",
+    "terms": "Conditions",
+    "imprint": "Mentions légales",
+    "skipToContent": "Aller au contenu",
+    "toggleMenu": "Afficher/masquer le menu",
+    "userMenu": "Menu du compte"
+  },
+  "status": {
+    "new": "Nouveau",
+    "open": "Ouvert",
+    "pending": "En attente",
+    "on_hold": "Suspendu",
+    "resolved": "Résolu",
+    "closed": "Fermé"
+  },
+  "statusCustomer": {
+    "new": "Ouvert",
+    "open": "Ouvert",
+    "pending": "En attente de votre réponse",
+    "on_hold": "Ouvert",
+    "resolved": "Résolu",
+    "closed": "Fermé",
+    "awaiting_reply": "En attente de votre réponse"
+  },
+  "priority": {
+    "low": "Basse",
+    "normal": "Normale",
+    "high": "Haute",
+    "urgent": "Urgente"
+  },
+  "tier": {
+    "1": "N1",
+    "2": "N2",
+    "3": "N3",
+    "label": "Niveau"
+  },
+  "thread": {
+    "label": "Conversation",
+    "internalNote": "Note interne",
+    "system": "Système",
+    "empty": "Aucun message pour l'instant.",
+    "attachments": "Pièces jointes"
+  },
+  "editor": {
+    "write": "Écrire",
+    "preview": "Aperçu",
+    "placeholder": "Rédigez votre message… Markdown est pris en charge.",
+    "nothingToPreview": "Rien à afficher.",
+    "submitHint": "Ctrl+Entrée pour envoyer"
+  },
+  "upload": {
+    "drop": "Déposez des fichiers ici ou cliquez pour choisir",
+    "remove": "Retirer",
+    "uploading": "Envoi en cours…",
+    "failed": "Échec de l'envoi",
+    "tooMany": "Vous pouvez joindre au plus {max} fichiers"
+  },
+  "time": {
+    "justNow": "à l'instant"
+  },
+  "realtime": {
+    "accessLost": "Vous n'avez plus accès à ce ticket.",
+    "sessionRevoked": "Votre session a été fermée. Veuillez vous reconnecter."
+  },
+  "confirm": {
+    "title": "Êtes-vous sûr ?",
+    "body": "Cette action est irréversible."
+  },
+  "empty": {
+    "title": "Rien pour l'instant",
+    "body": "Dès qu'il y aura quelque chose à afficher, cela apparaîtra ici."
+  },
+  "user": {
+    "unknown": "Utilisateur inconnu"
+  },
+  "mfa": {
+    "code": "Code à 6 chiffres",
+    "recoveryCode": "Code de récupération",
+    "verify": "Vérifier",
+    "validation": {
+      "otpCode": "Saisissez le code à 6 chiffres",
+      "recoveryCode": "Saisissez un code de récupération comme abcd-efgh-jkmn"
+    },
+    "method": {
+      "totp": "Application d'authentification",
+      "email": "Code par e-mail",
+      "recovery": "Code de récupération"
+    },
+    "step": {
+      "title": "Validation en deux étapes",
+      "enrollTitle": "Configurer la validation en deux étapes",
+      "enrollIntro": "Ce site exige une deuxième étape à la connexion. Configurez-la maintenant pour continuer.",
+      "hint": {
+        "totp": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+        "email": "Nous envoyons un code à 6 chiffres à votre adresse e-mail.",
+        "recovery": "Saisissez l'un des codes de récupération que vous avez conservés. Chaque code ne fonctionne qu'une fois."
+      },
+      "expired": "Cette tentative de connexion a expiré. Veuillez vous reconnecter.",
+      "restart": "Se reconnecter",
+      "tooMany": "Trop de tentatives. Patientez un instant puis réessayez.",
+      "noMethod": "Aucune méthode de validation n'est disponible pour ce compte. Demandez à un administrateur de réinitialiser la validation en deux étapes.",
+      "methodLabel": "Méthode de validation",
+      "emailSent": "Nous avons envoyé un code à votre adresse e-mail. Il est valable 10 minutes.",
+      "resendIn": "Renvoyer dans {s} s",
+      "resend": "Envoyer un nouveau code",
+      "sendEmail": "M'envoyer un code par e-mail",
+      "cancel": "Annuler et revenir"
+    },
+    "setup": {
+      "title": "Configurer une application d'authentification",
+      "start": "Afficher le code QR",
+      "scan": "Scannez ce code QR avec votre application d'authentification.",
+      "qrLabel": "Code QR pour votre application d'authentification",
+      "manual": "Ou saisissez cette clé manuellement :",
+      "confirm": "Confirmer et activer"
+    },
+    "codes": {
+      "title": "Vos codes de récupération",
+      "warning": "Conservez ces codes en lieu sûr. Chacun vous connecte une fois si vous perdez votre appareil. Ils ne sont affichés que maintenant.",
+      "copy": "Copier",
+      "copied": "Copiés",
+      "download": "Télécharger",
+      "continue": "Je les ai conservés, continuer",
+      "saved": "Je les ai conservés"
+    },
+    "reauth": {
+      "title": "Confirmez votre mot de passe",
+      "intro": "Par sécurité, saisissez votre mot de passe pour modifier la validation en deux étapes."
+    },
+    "profile": {
+      "title": "Validation en deux étapes",
+      "loadFailed": "Impossible de charger les réglages de la validation en deux étapes.",
+      "unavailable": "Votre compte se connecte via le fournisseur d'identité de votre organisation, qui gère la validation en deux étapes.",
+      "intro": "Protégez votre compte avec une deuxième étape après le mot de passe.",
+      "required": "Ce site exige la validation en deux étapes. Configurez au moins une méthode.",
+      "on": "Activée",
+      "off": "Désactivée",
+      "setUp": "Configurer",
+      "replace": "Remplacer",
+      "turnOff": "Désactiver",
+      "turnOn": "Activer",
+      "emailUnavailable": "Indisponible : l'e-mail n'est pas configuré sur ce site",
+      "remaining": "{n} codes inutilisés restants",
+      "regenerate": "Nouveaux codes",
+      "totpEnabled": "Application d'authentification activée",
+      "emailEnabled": "Codes par e-mail activés",
+      "disabled": "Méthode désactivée",
+      "disableConfirm": {
+        "totp": "Désactiver l'application d'authentification ?",
+        "email": "Désactiver les codes par e-mail ?"
+      },
+      "regenerateConfirm": "Créer de nouveaux codes de récupération ? Les anciens ne fonctionneront plus."
+    },
+    "admin": {
+      "label": "Validation en deux étapes",
+      "sso": "gérée par le fournisseur d'identité",
+      "reset": "Réinitialiser la validation en deux étapes",
+      "resetTitle": "Réinitialiser la validation en deux étapes ?",
+      "resetConfirm": "Supprime l'application d'authentification, les codes par e-mail et les codes de récupération de l'utilisateur. Il pourra se connecter avec son seul mot de passe (ou la configurer à nouveau si le site l'exige). L'opération est consignée dans le journal d'audit.",
+      "resetDone": "La validation en deux étapes a été réinitialisée"
+    },
+    "policy": {
+      "title": "Sécurité",
+      "label": "Exiger la validation en deux étapes",
+      "hint": "S'applique aux comptes avec mot de passe local. Les comptes à authentification unique utilisent leur fournisseur d'identité.",
+      "none": "Personne (facultatif)",
+      "staff": "Tous les comptes du personnel",
+      "all": "Tout le monde",
+      "saved": "Réglages de sécurité enregistrés"
+    }
+  },
+  "mcp": {
+    "title": "Connecter un assistant IA",
+    "intro": "Les assistants IA compatibles avec le Model Context Protocol (MCP), comme Claude Code, Claude Desktop ou Cursor, peuvent travailler sur vos tickets avec l'un de vos jetons d'API. L'assistant agit en votre nom et ne peut jamais faire plus que ce que permettent les portées du jeton. Créez un jeton ci-dessous, puis collez l'une de ces configurations dans votre assistant.",
+    "endpoint": "Point de terminaison MCP",
+    "scopes": "Portées de jeton recommandées",
+    "readWrite": "Pour lire et traiter les tickets :",
+    "readOnly": "Lecture seule :",
+    "copy": "Copier",
+    "copied": "Copié",
+    "replaceToken": "Remplacez {placeholder} par votre jeton. Protégez cette configuration comme un mot de passe.",
+    "hint": {
+      "claudeCode": "Exécutez cette commande dans un terminal.",
+      "claudeDesktop": "Ajoutez ceci à claude_desktop_config.json (accessible depuis les réglages développeur de l'application) puis redémarrez l'application. Node.js est requis : mcp-remote relie l'application au point de terminaison.",
+      "cursor": "Ajoutez ceci à ~/.cursor/mcp.json (ou à .cursor/mcp.json dans un projet)."
+    }
+  },
+  "common": {
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
+  }
+}

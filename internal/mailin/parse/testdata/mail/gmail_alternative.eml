@@ -1,0 +1,40 @@
+MIME-Version: 1.0
+Date: Tue, 20 Oct 2026 10:15:00 +0200
+References: <ticket-0192f000-0000-7000-8000-000000000001@help.example.com> <0192f000-0000-7000-8000-0000000000aa.0123456789ab@help.example.com>
+In-Reply-To: <0192f000-0000-7000-8000-0000000000aa.0123456789ab@help.example.com>
+Message-ID: <CAF=abc123@mail.gmail.com>
+Subject: =?UTF-8?Q?Re=3A_=5B=231042=5D_Printer_not_working_=E2=80=93_still?=
+From: =?UTF-8?B?SsO8cmdlbiBNw7xsbGVy?= <juergen@example.org>
+To: Acme Support <support+t-abc@help.example.com>
+Cc: Anna <anna@example.org>, "Bob, Jr." <bob@example.org>
+Content-Type: multipart/alternative; boundary="000000000000a1b2c3"
+
+--000000000000a1b2c3
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi,
+
+the printer still shows error E-42 after the reboot. Caf=C3=A9 on floor 2 =
+is affected too.
+
+Thanks,
+J=C3=BCrgen
+
+On Tue, Oct 20, 2026 at 9:00 AM Acme Support <support@help.example.com>
+wrote:
+
+> ##- Reply above this line -##
+>
+> Please reboot the printer.
+>
+
+--000000000000a1b2c3
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<div dir=3D"ltr">Hi,<div><br></div><div>the printer still shows error E-42=
+ after the reboot.</div></div><br><div class=3D"gmail_quote">On Tue wrote:<b=
+lockquote>Please reboot the printer.</blockquote></div>
+
+--000000000000a1b2c3--

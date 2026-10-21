@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Non-secret ST_* settings; see .env.example for every variable.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: simpletickets
+  namespace: simpletickets
+  labels:
+    app.kubernetes.io/name: simpletickets
+data:
+  ST_PUBLIC_URL: https://help.example.com
+  ST_LOG_FORMAT: json
+  ST_LOG_LEVEL: info
+  # Pod network of your ingress controller (X-Forwarded-For is trusted only from here).
+  ST_TRUSTED_PROXIES: 10.0.0.0/8

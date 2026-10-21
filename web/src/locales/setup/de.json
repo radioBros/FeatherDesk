@@ -1,0 +1,78 @@
+{
+  "setup": {
+    "title": "Richten Sie Ihren Helpdesk ein",
+    "next": "Weiter",
+    "alreadyDone": "Die Einrichtung ist bereits abgeschlossen. Melden Sie sich mit dem Administratorkonto an.",
+    "steps": {
+      "token": "Einrichtungstoken",
+      "admin": "Administrator",
+      "branding": "Erscheinungsbild",
+      "email": "E-Mail",
+      "sso": "Single Sign-On",
+      "done": "Fertig"
+    },
+    "token": {
+      "intro": "Um zu bestätigen, dass Sie diesen Server betreiben, fügen Sie das einmalige Einrichtungstoken ein. Es wurde beim Start der Instanz in das Serverprotokoll geschrieben.",
+      "label": "Einrichtungstoken",
+      "hint": "Suchen Sie im Container-Protokoll nach „setup token“",
+      "wrong": "Dieses Einrichtungstoken ist ungültig. Kopieren Sie es erneut aus dem Serverprotokoll."
+    },
+    "admin": {
+      "reenter": "Aus Sicherheitsgründen wird das Passwort nie im Browser gespeichert. Bitte geben Sie es erneut ein.",
+      "name": "Name",
+      "confirmPassword": "Passwort bestätigen",
+      "passwordHint": "Mindestens 10 Zeichen"
+    },
+    "branding": {
+      "productName": "Produktname",
+      "companyName": "Firmenname",
+      "primaryColor": "Primärfarbe",
+      "pickColor": "Farbe wählen",
+      "logo": "Logo (optional)",
+      "logoHint": "PNG, JPEG, WebP oder SVG, bis 1 MB",
+      "create": "Helpdesk erstellen",
+      "logoFailed": "Das Logo konnte nicht hochgeladen werden ({reason}). Sie können es später unter „Erscheinungsbild“ hinzufügen."
+    },
+    "smtp": {
+      "intro": "Optional: Verbinden Sie einen SMTP-Server, damit Kunden Benachrichtigungen erhalten und sich registrieren können. Sie können dies überspringen und später einrichten.",
+      "host": "SMTP-Host",
+      "port": "Port",
+      "security": "Sicherheit",
+      "starttls": "STARTTLS (Port 587)",
+      "tls": "TLS (Port 465)",
+      "none": "Keine (nicht empfohlen)",
+      "username": "Benutzername",
+      "password": "Passwort",
+      "fromAddress": "Absenderadresse",
+      "fromName": "Absendername",
+      "testTo": "Test-E-Mail senden an",
+      "test": "Test-E-Mail senden",
+      "save": "Speichern und weiter",
+      "skip": "Vorerst überspringen",
+      "testOk": "Test-E-Mail an {to} gesendet. Prüfen Sie, ob sie angekommen ist.",
+      "error": {
+        "auth_failed": "Der Server hat Benutzername oder Passwort abgelehnt.",
+        "tls_mismatch": "Die Sicherheitseinstellung passt nicht zum Server. Versuchen Sie einen anderen Port oder Sicherheitsmodus.",
+        "connection_refused": "Der Server hat die Verbindung abgelehnt. Prüfen Sie Host und Port.",
+        "timeout": "Der Server hat nicht rechtzeitig geantwortet.",
+        "dns": "Der Hostname konnte nicht aufgelöst werden.",
+        "rejected": "Der Server hat die Nachricht abgelehnt.",
+        "other": "Die Test-E-Mail konnte nicht gesendet werden."
+      }
+    },
+    "sso": {
+      "intro": "Damit sich Mitarbeitende und Kunden über Ihren Identitätsanbieter (zum Beispiel Authentik) anmelden können, tragen Sie dort diese Redirect-URIs ein, setzen Sie anschließend die OIDC-Umgebungsvariablen und starten Sie die Anwendung neu.",
+      "staffRedirect": "Redirect-URI für Mitarbeitende",
+      "customerRedirect": "Redirect-URI für Kunden",
+      "backchannel": "Back-Channel-Logout-URI",
+      "copy": "Kopieren",
+      "copied": "Kopiert",
+      "later": "Single Sign-On ist optional. Das soeben erstellte Administratorkonto kann sich jederzeit mit E-Mail und Passwort anmelden."
+    },
+    "done": {
+      "title": "Ihr Helpdesk ist bereit",
+      "body": "Sie sind als {email} angemeldet. Legen Sie als Nächstes Teams und Kategorien an und laden Sie Ihre Agenten ein.",
+      "open": "Agentenbereich öffnen"
+    }
+  }
+}

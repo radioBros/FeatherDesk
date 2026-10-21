@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Release (DEP-018): on a v* tag, build linux/amd64 + linux/arm64 and push to
+# ghcr.io/radiobros/simpletickets:{version, major.minor, latest} with an SBOM
+# and provenance attestation, then boot the arm64 image under QEMU and create
+# the GitHub Release.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  attestations: write
+
+defaults:
+  run:
+    shell: bash # -eo pipefail
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: radiobros/simpletickets
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Both platforms published
+        run: |
+          ref="$REGISTRY/$IMAGE_NAME@${{ steps.build.outputs.digest }}"
+          docker buildx imagetools inspect "$ref" | tee manifest.txt
+          grep -q 'linux/amd64' manifest.txt && grep -q 'linux/arm64' manifest.txt
+      - name: arm64 image boots healthy under QEMU
+        run: |
+          ref="$REGISTRY/$IMAGE_NAME@${{ steps.build.outputs.digest }}"
+          docker run -d --name st --platform linux/arm64 -p 127.0.0.1:8080:8080 \
+            -e ST_SECRET_KEY="$(head -c 32 /dev/urandom | base64)" -e ST_PUBLIC_URL=http://127.0.0.1:8080 "$ref"
+          for _ in $(seq 1 120); do curl -fsS http://127.0.0.1:8080/readyz && exit 0; sleep 1; done
+          docker logs st; exit 1
+
+  release:
+    needs: image
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          body: |
+            Image: `ghcr.io/radiobros/simpletickets:${{ github.ref_name }}` (linux/amd64, linux/arm64)
+            Digest: `${{ needs.image.outputs.digest }}`

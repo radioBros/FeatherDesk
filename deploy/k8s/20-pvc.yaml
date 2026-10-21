@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# /data: SQLite database, local attachments, backups, instance lock.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: simpletickets-data
+  namespace: simpletickets
+  labels:
+    app.kubernetes.io/name: simpletickets
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi

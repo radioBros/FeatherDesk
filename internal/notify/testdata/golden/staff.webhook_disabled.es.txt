@@ -1,0 +1,10 @@
+Subject: Webhook desactivado: https://help.example.test/auth/token/abc123
+
+Hola Ada Lovelace,
+
+el webhook **https://help.example.test/auth/token/abc123** se ha desactivado automáticamente (too many failures) tras 20 entregas fallidas consecutivas.
+
+Corrija el punto de recepción y vuelva a activar el webhook en la configuración de administración de SimpleTickets.
+
+-- 
+Este es un mensaje automático de SimpleTickets.

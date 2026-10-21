@@ -1,0 +1,17 @@
+subject: CV
+from: "O'Brien, Pat" <pat@example.ie>
+message_id: <rfc2231@example.ie>
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 
+from_html: false
+has_html: false
+unknown_charset: false
+attachments:
+- résumé final.pdf (application/pdf, 36 bytes, cid="", inline=false)
+--- text ---
+My CV is attached.
+--- stripped (false) ---
+My CV is attached.

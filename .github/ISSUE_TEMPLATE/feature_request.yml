@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How could SimpleTickets solve it?
+    validations:
+      required: true
+  - type: textarea
+    id: footprint
+    attributes:
+      label: Footprint impact
+      description: SimpleTickets is "lightest possible" by design (one container, ≤ 50 MB idle RSS). Would this need a new service, dependency or background work?

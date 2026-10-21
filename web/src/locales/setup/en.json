@@ -1,0 +1,78 @@
+{
+  "setup": {
+    "title": "Set up your help desk",
+    "next": "Next",
+    "alreadyDone": "Setup has already been completed. Sign in with the administrator account.",
+    "steps": {
+      "token": "Setup token",
+      "admin": "Administrator",
+      "branding": "Branding",
+      "email": "Email",
+      "sso": "Single sign-on",
+      "done": "Done"
+    },
+    "token": {
+      "intro": "To prove you run this server, paste the one-time setup token. It was printed in the server log when the instance started.",
+      "label": "Setup token",
+      "hint": "Look for \"setup token\" in the container log",
+      "wrong": "This setup token is not valid. Copy it again from the server log."
+    },
+    "admin": {
+      "reenter": "For your security the password is never stored in the browser. Please enter it again.",
+      "name": "Name",
+      "confirmPassword": "Confirm password",
+      "passwordHint": "At least 10 characters"
+    },
+    "branding": {
+      "productName": "Product name",
+      "companyName": "Company name",
+      "primaryColor": "Primary colour",
+      "pickColor": "Pick a colour",
+      "logo": "Logo (optional)",
+      "logoHint": "PNG, JPEG, WebP or SVG, up to 1 MB",
+      "create": "Create the help desk",
+      "logoFailed": "The logo could not be uploaded ({reason}). You can add it later under Branding."
+    },
+    "smtp": {
+      "intro": "Optional: connect an SMTP server so customers receive notifications and can register. You can skip this and configure it later.",
+      "host": "SMTP host",
+      "port": "Port",
+      "security": "Security",
+      "starttls": "STARTTLS (port 587)",
+      "tls": "TLS (port 465)",
+      "none": "None (not recommended)",
+      "username": "Username",
+      "password": "Password",
+      "fromAddress": "Sender address",
+      "fromName": "Sender name",
+      "testTo": "Send the test email to",
+      "test": "Send test email",
+      "save": "Save and continue",
+      "skip": "Skip for now",
+      "testOk": "Test email sent to {to}. Check that it arrived.",
+      "error": {
+        "auth_failed": "The server rejected the username or password.",
+        "tls_mismatch": "The security setting does not match the server. Try another port or security mode.",
+        "connection_refused": "The server refused the connection. Check the host and port.",
+        "timeout": "The server did not answer in time.",
+        "dns": "The host name could not be resolved.",
+        "rejected": "The server rejected the message.",
+        "other": "The test email could not be sent."
+      }
+    },
+    "sso": {
+      "intro": "To let staff and customers sign in with your identity provider (for example Authentik), register these redirect URIs in it, then set the OIDC environment variables and restart.",
+      "staffRedirect": "Staff redirect URI",
+      "customerRedirect": "Customer redirect URI",
+      "backchannel": "Back-channel logout URI",
+      "copy": "Copy",
+      "copied": "Copied",
+      "later": "Single sign-on is optional. The administrator you just created can always sign in with email and password."
+    },
+    "done": {
+      "title": "Your help desk is ready",
+      "body": "You are signed in as {email}. Next, create teams and categories and invite your agents.",
+      "open": "Open the agent panel"
+    }
+  }
+}

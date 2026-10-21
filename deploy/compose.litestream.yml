@@ -1,0 +1,82 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# OPTIONAL overlay (DEP-020): continuous replication of the SQLite database to
+# S3-compatible storage with Litestream. SQLite engine only: with Postgres
+# (compose.postgres.yml / ST_DATABASE_URL) use your Postgres PITR instead.
+# Not part of the default compose.yml, which stays one service, so the
+# footprint budget of the default install is unchanged.
+#
+#   cp deploy/litestream.env.example deploy/litestream.env   # bucket, endpoint, keys
+#   docker compose -f deploy/compose.yml -f deploy/compose.litestream.yml up -d
+#
+# What it adds:
+#   litestream-restore  one-shot, runs before the app on every `up`: when
+#                       /data/simpletickets.db is missing (new host, lost volume)
+#                       it restores the latest replica; otherwise it does nothing
+#   litestream          the replication sidecar (WAL shipped every second)
+#
+# Attachments (/data/blobs) are NOT replicated: back them up with
+# `simpletickets backup`, or use S3 blob storage (ST_BLOB_URL).
+#
+# Disaster recovery = start the same three files on an empty volume: the
+# restore step pulls the replica, then the app boots on it. Proven by
+# scripts/litestream-drill.sh (100 tickets → volume destroyed → counts match).
+services:
+  app:
+    depends_on:
+      litestream-restore:
+        condition: service_completed_successfully
+
+  litestream-restore:
+    # litestream/litestream:0.5.17 (Debian 12), digest resolved 2026-10-21.
+    image: litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a
+    restart: "no"
+    env_file:
+      - path: ${ST_LITESTREAM_ENV_FILE:-litestream.env}
+        required: true
+    # Root only to hand a freshly created volume to the app's uid (65532);
+    # no other capability.
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        litestream restore -config /etc/litestream.yml -if-db-not-exists -if-replica-exists /data/simpletickets.db
+        && chown -R 65532:65532 /data
+    volumes:
+      - st-data:/data
+      - ./litestream/litestream.yml:/etc/litestream.yml:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt:
+      - no-new-privileges:true
+
+  litestream:
+    image: litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a
+    restart: unless-stopped
+    command: ["replicate", "-config", "/etc/litestream.yml"]
+    env_file:
+      - path: ${ST_LITESTREAM_ENV_FILE:-litestream.env}
+        required: true
+    user: "65532:65532"
+    volumes:
+      - st-data:/data
+      - ./litestream/litestream.yml:/etc/litestream.yml:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.5
+    depends_on:
+      app:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

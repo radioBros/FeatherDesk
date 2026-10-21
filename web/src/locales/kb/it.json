@@ -1,0 +1,24 @@
+{
+  "kb": {
+    "intro": "Trova risposte alle domande più comuni o apri un ticket se hai bisogno di aiuto.",
+    "searchLabel": "Cerca nel centro assistenza",
+    "searchPlaceholder": "Descrivi la tua domanda…",
+    "resultsFor": "Risultati per \"{q}\"",
+    "noResults": "Nessun articolo trovato",
+    "noResultsHint": "Prova con altre parole o apri un ticket.",
+    "empty": "Il centro assistenza non ha ancora articoli",
+    "articleCount": "{n} articolo | {n} articoli",
+    "noArticles": "Nessun articolo in questa categoria",
+    "categoryNotFound": "Questa categoria non esiste",
+    "articleNotFound": "Questo articolo non esiste o non è disponibile",
+    "backHome": "Torna al centro assistenza",
+    "updated": "Aggiornato",
+    "fallbackNotice": "Questo articolo non è ancora disponibile nella tua lingua. È mostrato in {language}.",
+    "helpful": "Questo articolo ti è stato utile?",
+    "yes": "Sì",
+    "no": "No",
+    "thanks": "Grazie per avercelo detto.",
+    "stillNeedHelp": "Hai ancora bisogno di aiuto? Il nostro team è qui per te.",
+    "loadMore": "Carica altri"
+  }
+}

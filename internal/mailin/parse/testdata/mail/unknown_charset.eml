@@ -1,0 +1,8 @@
+From: ivan@example.ru
+To: support@help.example.com
+Subject: test
+MIME-Version: 1.0
+Content-Type: text/plain; charset=koi8-r
+Content-Transfer-Encoding: 8bit
+
+plain ascii body

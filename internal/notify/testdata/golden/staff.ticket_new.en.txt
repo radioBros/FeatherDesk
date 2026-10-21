@@ -1,0 +1,21 @@
+Subject: [#1042] New ticket: Printer on floor 3 is offline
+
+##- Reply above this line -##
+
+Hello Grace Hopper,
+
+a new ticket was opened by Ada Lovelace.
+
+- **Subject:** Printer on floor 3 is offline
+- **Priority:** high
+- **Team:** IT
+- **Tier:** L2
+
+**Ada Lovelace:**
+
+The printer shows **error 42** since this morning.
+
+[Open the ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+This is an automated message from SimpleTickets.

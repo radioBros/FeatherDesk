@@ -1,0 +1,28 @@
+# Planning workspace — not shipped
+development/
+
+# Build output
+/bin/
+/dist/
+web/dist/*
+!web/dist/.gitkeep
+web/node_modules/
+web/test-results/
+web/playwright-report/
+web/coverage/
+node_modules/
+
+# Runtime data
+/data/
+*.db
+*.db-wal
+*.db-shm
+.env
+
+# Tooling
+.DS_Store
+*.test
+coverage.out
+.idea/
+.vscode/*
+!.vscode/extensions.json
