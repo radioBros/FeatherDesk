@@ -10,11 +10,15 @@ import { mdiArrowDown, mdiArrowUp, mdiDeleteOutline, mdiPencil, mdiPlus } from '
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import KbCategoryForm from './KbCategoryForm.vue'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { localized } from '@/utils/localized'
 import { useAction } from '../shared/useAction'
 import { flattenTree, type KbCategory } from './kb'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 
 const { t, locale } = useI18n()
 const { confirm } = useConfirm()
@@ -76,6 +80,15 @@ async function remove(c: KbCategory) {
   const ok = await run(async () => (await unwrap(api.DELETE('/admin/kb/categories/{id}', { params: { path: { id: c.id } } })), true), t('agent.common.deleted'))
   if (ok !== undefined) await load()
 }
+
+const cp = useConfigProjects()
+const cols = useTableColumns('kb-categories', () => [
+  { key: 'title', label: t('agent.kbCategories.title'), locked: true },
+  { key: 'slug', label: t('agent.kb.slug'), lowPriority: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true },
+  { key: 'visibility', label: t('agent.kb.visibility'), lowPriority: true },
+  { key: 'articles', label: t('agent.kbCategories.articles') },
+])
 </script>
 
 <template>
@@ -89,37 +102,42 @@ async function remove(c: KbCategory) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !rows.length" :title="$t('agent.kbCategories.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="kbcat-table">
-        <thead>
-          <tr>
-            <th>{{ $t('agent.kbCategories.title') }}</th>
-            <th>{{ $t('agent.kb.slug') }}</th>
-            <th>{{ $t('agent.kb.visibility') }}</th>
-            <th>{{ $t('agent.kbCategories.articles') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="{ item: c, depth } in rows" :key="c.id" data-testid="kbcat-row">
-            <td :style="{ paddingLeft: `${16 + depth * 24}px` }">{{ label(c) }}</td>
-            <td class="text-medium-emphasis">{{ c.slug }}</td>
-            <td><v-chip size="small" label variant="tonal">{{ $t(`agent.kb.vis.${c.visibility}`) }}</v-chip></td>
-            <td>{{ c.article_count ?? '—' }}</td>
-            <td class="text-right text-no-wrap">
-              <v-btn :icon="mdiArrowUp" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveUp')" :disabled="siblings(c)[0]?.id === c.id" data-testid="kbcat-up" @click="move(c, -1)" />
-              <v-btn :icon="mdiArrowDown" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveDown')" :disabled="siblings(c).at(-1)?.id === c.id" data-testid="kbcat-down" @click="move(c, 1)" />
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
-              <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="kbcat-delete" @click="remove(c)" />
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+      <template v-else>
+        <ColumnsMenu :cols="cols" />
+        <v-table density="comfortable" data-testid="kbcat-table">
+          <thead>
+            <tr>
+              <th v-if="cols.show('title')">{{ $t('agent.kbCategories.title') }}</th>
+              <th v-if="cols.show('slug')">{{ $t('agent.kb.slug') }}</th>
+              <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+              <th v-if="cols.show('visibility')">{{ $t('agent.kb.visibility') }}</th>
+              <th v-if="cols.show('articles')">{{ $t('agent.kbCategories.articles') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="{ item: c, depth } in rows" :key="c.id" data-testid="kbcat-row">
+              <td :style="{ paddingLeft: `${16 + depth * 24}px` }" v-if="cols.show('title')">{{ label(c) }}</td>
+              <td class="text-medium-emphasis" v-if="cols.show('slug')">{{ c.slug }}</td>
+              <td v-if="cols.show('project')"><ProjectCell :id="c.project_id" :empty-label="$t('projects.config.global')" /></td>
+              <td v-if="cols.show('visibility')"><v-chip size="small" label variant="tonal">{{ $t(`agent.kb.vis.${c.visibility}`) }}</v-chip></td>
+              <td v-if="cols.show('articles')">{{ c.article_count ?? '—' }}</td>
+              <td class="text-right text-no-wrap">
+                <v-btn :icon="mdiArrowUp" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveUp')" :disabled="siblings(c)[0]?.id === c.id" data-testid="kbcat-up" @click="move(c, -1)" />
+                <v-btn :icon="mdiArrowDown" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveDown')" :disabled="siblings(c).at(-1)?.id === c.id" data-testid="kbcat-down" @click="move(c, 1)" />
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
+                <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="kbcat-delete" @click="remove(c)" />
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="560">
       <v-card :title="editing ? $t('agent.kbCategories.edit') : $t('agent.kbCategories.new')">
         <v-card-text>
-          <KbCategoryForm v-if="dialog" :category="editing" :categories="items" @saved="onSaved" @cancel="dialog = false" />
+          <KbCategoryForm v-if="dialog" :category="editing" :categories="items" :projects="cp.options.value" :can-global="cp.canGlobal.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

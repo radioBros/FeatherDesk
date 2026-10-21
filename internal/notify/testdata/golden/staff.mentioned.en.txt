@@ -1,10 +1,10 @@
-Subject: [#1042] You were mentioned: Printer on floor 3 is offline
+Subject: [HD-1042] You were mentioned: Printer on floor 3 is offline
 
 ##- Reply above this line -##
 
 Hello Grace Hopper,
 
-Alan Turing mentioned you in an internal note on ticket **#1042 Printer on floor 3 is offline**:
+Alan Turing mentioned you in an internal note on ticket **HD-1042 Printer on floor 3 is offline**:
 
 **Ada Lovelace:**
 

@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/events"
 	"github.com/radioBros/SimpleTickets/internal/store"
 )
@@ -85,14 +86,14 @@ func (m *Module) handleEvent(ctx context.Context, e events.Event) error {
 	}
 	envs := map[bool][]byte{}
 	for i, h := range hooks {
-		if !h.wants(e.Type) || (e.Type == events.NoteCreated && !h.IncludeInternal) {
+		if !h.wants(e.Type) || (e.Type == events.NoteCreated && !h.IncludeInternal) || !h.inScope(e) {
 			continue
 		}
 		// Keep 15 s of budget: defer whatever is left instead of timing out,
 		// which would replay the whole event.
 		if dl, ok := ctx.Deadline(); ok && time.Until(dl) < 15*time.Second {
 			for _, rest := range hooks[i:] {
-				if rest.wants(e.Type) && (e.Type != events.NoteCreated || rest.IncludeInternal) {
+				if rest.wants(e.Type) && (e.Type != events.NoteCreated || rest.IncludeInternal) && rest.inScope(e) {
 					if err := m.deferJob(context.WithoutCancel(ctx), rest.ID, e, 0, "deferred: consumer time budget", 0); err != nil {
 						return err
 					}
@@ -134,7 +135,7 @@ func (m *Module) handleRetry(ctx context.Context, payload json.RawMessage) error
 	if err != nil {
 		return err
 	}
-	if p.Event.Type == events.NoteCreated && !h.IncludeInternal {
+	if (p.Event.Type == events.NoteCreated && !h.IncludeInternal) || !h.inScope(p.Event) {
 		return nil
 	}
 	body, err := m.envelope(ctx, p.Event, h.IncludeInternal)
@@ -360,6 +361,26 @@ func (m *Module) ticketSummary(ctx context.Context, e events.Event) (map[string]
 	default:
 		return nil, err
 	}
+	// D-20: the ref and project of the snapshot (pre-D-20 events: the
+	// Default project and the ticket's current sequence).
+	pid := s.Project()
+	project := map[string]any{"id": pid, "key": "", "name": "", "color": ""}
+	var key, name, color string
+	if err := m.db.Read().QueryRowContext(ctx, `SELECT key, name, color FROM projects WHERE id = ?`, pid).Scan(&key, &name, &color); err == nil {
+		project["key"], project["name"], project["color"] = key, name, color
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	ref := s.Ref
+	if ref == "" {
+		var seq int64
+		if err := m.db.Read().QueryRowContext(ctx, `SELECT project_seq FROM tickets WHERE id = ?`, e.TicketID).Scan(&seq); err == nil && key != "" {
+			ref = domain.TicketRef(key, seq)
+		} else {
+			ref = "#" + strconv.FormatInt(s.Number, 10)
+		}
+	}
+	t["ref"], t["project_id"], t["project"] = ref, pid, project
 	if t["channel"] == "" {
 		t["channel"] = "portal"
 	}

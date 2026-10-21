@@ -38,6 +38,7 @@ var amMatrix = []amRow{
 	{ResWebhooks, OpWrite, false, false, true}, {ResAllTokens, OpRead, false, false, true}, {ResAuditLog, OpRead, false, false, true},
 	{ResDeadJobs, OpWrite, false, false, true},
 	{ResReports, OpRead, false, true, true}, {ResOwnStats, OpRead, true, true, true},
+	{ResProjects, OpRead, false, true, true}, {ResProjects, OpWrite, false, true, true},
 }
 
 func TestAdminMatrix_StaffAdministration(t *testing.T) {

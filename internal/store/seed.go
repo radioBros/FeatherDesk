@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/radioBros/SimpleTickets/internal/domain"
 )
 
 // SeedOptions configure SeedDemo (`simpletickets seed`, DB-021).
@@ -60,6 +62,9 @@ func SeedDemo(ctx context.Context, db *DB, opt SeedOptions) (SeedResult, error) 
 			if err := ex(`INSERT INTO teams (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)`, id, name, now, now); err != nil {
 				return err
 			}
+			if err := ex(`INSERT INTO project_teams (project_id, team_id, created_at) VALUES (?, ?, ?)`, domain.DefaultProjectID, id, now); err != nil {
+				return err
+			}
 		}
 		type staff struct {
 			email, name, role string
@@ -80,6 +85,9 @@ func SeedDemo(ctx context.Context, db *DB, opt SeedOptions) (SeedResult, error) 
 			staffIDs[s.email] = id
 			if err := ex(`INSERT INTO users (id, kind, email, name, role, tier, break_glass, password_hash, created_at, updated_at) VALUES (?, 'staff', ?, ?, ?, ?, ?, ?, ?, ?)`,
 				id, s.email, s.name, s.role, s.tier, s.breakGlass, hash, now, now); err != nil {
+				return err
+			}
+			if err := ex(`INSERT INTO project_members (project_id, user_id, role, created_at) VALUES (?, ?, 'member', ?)`, domain.DefaultProjectID, id, now); err != nil {
 				return err
 			}
 			for _, tn := range s.teams {

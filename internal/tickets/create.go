@@ -5,6 +5,7 @@ package tickets
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -30,12 +31,16 @@ type CreateInput struct {
 	RequesterName  string         `json:"requester_name"`
 	CustomFields   map[string]any `json:"custom_fields"`
 	Tags           []string       `json:"tags"`
+	// ProjectID (D-20): id or key. Omitted: the category's project, else
+	// the only project the customer may use, else the default project.
+	ProjectID *string `json:"project_id"`
 
 	// Set by the server, never by clients.
 	channel          domain.Channel
 	inboundMessageID string
 	followupOf       *ticketRow
 	fixedTeam        *string // mailbox team (email) or follow-up team
+	fixedProject     string  // mailbox project (email)
 	authorID         string  // message author when not the principal (email)
 }
 
@@ -103,14 +108,27 @@ func (s *Service) createTx(ctx context.Context, tx *store.Tx, p *domain.Principa
 	}
 	t.RequesterID, t.OrganizationID = req.ID, req.OrganizationID
 
-	// Routing: category → default team/priority, else triage.
-	if in.CategoryID != nil && *in.CategoryID != "" {
-		cat, err := s.dir.Category(ctx, *in.CategoryID)
-		if err != nil || (!cat.Active && p.IsCustomer()) {
+	// Project (D-20), then routing: category → default team/priority, else
+	// the project's default team, else triage.
+	var cat *directory.Category
+	if in.CategoryID != nil && *in.CategoryID != "" && in.followupOf == nil {
+		c, err := s.dir.Category(ctx, *in.CategoryID)
+		if err != nil || (!c.Active && p.IsCustomer()) {
 			return nil, problems.Validation(problems.Field("category_id", "not_found", "unknown category"))
 		}
+		cat = &c
+	}
+	proj, err := s.ticketProject(ctx, p, &in, cat)
+	if err != nil {
+		return nil, err
+	}
+	t.ProjectID, t.ProjectKey = proj.ID, proj.Key
+	if proj.DefaultTeamID != nil {
+		t.TeamID = *proj.DefaultTeamID
+	}
+	if cat != nil {
 		t.CategoryID = cat.ID
-		if cat.DefaultTeamID != nil {
+		if cat.DefaultTeamID != nil && s.dir.TeamServesProject(ctx, *cat.DefaultTeamID, proj.ID) {
 			t.TeamID = *cat.DefaultTeamID
 		}
 		if cat.DefaultPriority != nil {
@@ -122,12 +140,17 @@ func (s *Service) createTx(ctx context.Context, tx *store.Tx, p *domain.Principa
 			t.TeamID = ""
 		} else if _, err := s.dir.Team(ctx, *in.TeamID); err != nil {
 			return nil, problems.Validation(problems.Field("team_id", "not_found", "unknown team"))
+		} else if !s.dir.TeamServesProject(ctx, *in.TeamID, proj.ID) {
+			return nil, problems.Validation(problems.Field("team_id", "wrong_project", "the team does not serve the ticket's project"))
 		} else {
 			t.TeamID = *in.TeamID
 		}
 	}
 	if in.fixedTeam != nil {
 		t.TeamID = *in.fixedTeam
+		if t.TeamID != "" && !s.dir.TeamServesProject(ctx, t.TeamID, proj.ID) {
+			t.TeamID = "" // a mailbox team that stopped serving the project: triage
+		}
 	}
 	if in.followupOf != nil {
 		t.TeamID, t.CategoryID, t.FollowupOfID = in.followupOf.TeamID, in.followupOf.CategoryID, in.followupOf.ID
@@ -147,8 +170,11 @@ func (s *Service) createTx(ctx context.Context, tx *store.Tx, p *domain.Principa
 		t.Priority = pr
 	}
 
-	// Number (M-6) and insert.
+	// Number (M-6), per-project sequence (D-20) and insert.
 	if t.Number, err = store.NextTicketNumber(ctx, tx); err != nil {
+		return nil, err
+	}
+	if t.ProjectSeq, err = store.NextProjectSeq(ctx, tx, t.ProjectID); err != nil {
 		return nil, err
 	}
 	if err := s.computeDue(ctx, t); err != nil {
@@ -243,4 +269,84 @@ func (s *Service) resolveRequester(ctx context.Context, tx *store.Tx, p *domain.
 		return c, err
 	}
 	return directory.CustomerRef{}, problems.Validation(problems.Field("requester_id", "required", "requester_id or requester_email is required"))
+}
+
+// ticketProject decides the project of a new ticket (D-20): a follow-up keeps
+// its original's, then the explicit project_id, the mailbox's, the category's;
+// otherwise the only project a customer may use, else the default project.
+// Customers must be allowed to use the project (portal-visible, organization
+// limits) and agents must be members of it (I-11).
+func (s *Service) ticketProject(ctx context.Context, p *domain.Principal, in *CreateInput, cat *directory.Category) (directory.Project, error) {
+	if in.followupOf != nil {
+		pr, err := s.dir.Project(ctx, in.followupOf.ProjectID)
+		if err != nil {
+			return directory.Project{ID: in.followupOf.ProjectID, Key: in.followupOf.ProjectKey}, nil
+		}
+		return pr, nil
+	}
+	var pr directory.Project
+	explicit := in.ProjectID != nil && *in.ProjectID != ""
+	switch {
+	case explicit:
+		x, err := s.dir.ResolveProject(ctx, *in.ProjectID)
+		if err != nil {
+			return pr, problems.Validation(problems.Field("project_id", "not_found", "unknown project"))
+		}
+		pr = x
+	case in.fixedProject != "":
+		x, err := s.dir.Project(ctx, in.fixedProject)
+		if err != nil {
+			return pr, problems.Validation(problems.Field("project_id", "not_found", "unknown project"))
+		}
+		pr = x
+	case cat != nil:
+		x, err := s.dir.Project(ctx, cat.ProjectID)
+		if err != nil {
+			return pr, problems.Validation(problems.Field("category_id", "not_found", "unknown category"))
+		}
+		pr = x
+	case p.IsCustomer():
+		allowed, err := s.dir.CustomerProjects(ctx, p)
+		if err != nil {
+			return pr, err
+		}
+		def, derr := s.dir.DefaultProject(ctx)
+		switch {
+		case len(allowed) == 1:
+			pr = allowed[0]
+		case derr == nil && slices.ContainsFunc(allowed, func(x directory.Project) bool { return x.ID == def.ID }):
+			pr = def
+		case len(allowed) == 0:
+			return pr, problems.Validation(problems.Field("project_id", "not_allowed", "no project is open to your organization"))
+		default:
+			return pr, problems.Validation(problems.Field("project_id", "required", "choose a project"))
+		}
+	default:
+		x, err := s.dir.DefaultProject(ctx)
+		if err != nil {
+			return pr, problems.Validation(problems.Field("project_id", "required", "no active project"))
+		}
+		pr = x
+	}
+	if cat != nil && cat.ProjectID != pr.ID {
+		return pr, problems.Validation(problems.Field("category_id", "wrong_project", "the category belongs to another project"))
+	}
+	if in.fixedProject != "" && !explicit {
+		return pr, nil // inbound mail: the mailbox decides, whatever its state
+	}
+	if !pr.Active {
+		return pr, problems.Validation(problems.Field("project_id", "inactive", "the project is not active"))
+	}
+	if p.IsCustomer() {
+		allowed, err := s.dir.CustomerProjects(ctx, p)
+		if err != nil {
+			return pr, err
+		}
+		if !slices.ContainsFunc(allowed, func(x directory.Project) bool { return x.ID == pr.ID }) {
+			return pr, problems.Validation(problems.Field("project_id", "not_allowed", "you cannot open tickets in this project"))
+		}
+	} else if !p.InProject(pr.ID) {
+		return pr, problems.Validation(problems.Field("project_id", "not_allowed", "you are not a member of this project"))
+	}
+	return pr, nil
 }

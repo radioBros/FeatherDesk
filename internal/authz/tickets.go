@@ -76,6 +76,7 @@ type TicketView struct {
 	AssigneeID     string
 	RequesterID    string
 	OrganizationID string
+	ProjectID      string // "" = the Default project (pre-D-20 snapshots)
 	Watchers       []string
 	ResolvedAt     time.Time
 	CSATScore      int // 0 = not rated in this resolution cycle
@@ -88,8 +89,16 @@ func ViewFromSnapshot(s events.Snapshot, pol TicketPolicy) TicketView {
 	return TicketView{
 		Status: domain.TicketStatus(s.Status), Priority: domain.Priority(s.Priority), Tier: s.Tier,
 		TeamID: s.TeamID, AssigneeID: s.AssigneeID, RequesterID: s.RequesterID, OrganizationID: s.OrganizationID,
-		Watchers: s.Watchers, Policy: pol,
+		ProjectID: s.Project(), Watchers: s.Watchers, Policy: pol,
 	}
+}
+
+// project is the view's project, the Default project when unset.
+func (v TicketView) project() string {
+	if v.ProjectID == "" {
+		return domain.DefaultProjectID
+	}
+	return v.ProjectID
 }
 
 func (v TicketView) now() time.Time {
@@ -105,8 +114,8 @@ func canReadTickets(p *domain.Principal) bool {
 	return p.HasScope(domain.ScopeTicketsRead) || p.HasScope(domain.ScopeTicketsWrite)
 }
 
-// CanSeeTicket is the in-memory visibility rule (I-3, I-4, I-8 + V1 watchers).
-// It must agree with TicketPredicate.
+// CanSeeTicket is the in-memory visibility rule (I-3, I-4, I-8, I-11 + V1
+// watchers). It must agree with TicketPredicate.
 func CanSeeTicket(p *domain.Principal, v TicketView) bool {
 	if p == nil || !canReadTickets(p) {
 		return false
@@ -116,6 +125,9 @@ func CanSeeTicket(p *domain.Principal, v TicketView) bool {
 	case domain.KindStaff:
 		if p.IsSupervisorOrAdmin() {
 			return true
+		}
+		if !slices.Contains(p.Projects, v.project()) {
+			return false // I-11
 		}
 		eff := p.EffectiveTier()
 		switch {

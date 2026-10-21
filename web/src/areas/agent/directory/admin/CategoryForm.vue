@@ -10,14 +10,16 @@ import { useForm } from '@/composables/useForm'
 import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
+import ProjectSelect, { type ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
-const props = defineProps<{ category?: S['Category'] | null; teams?: S['Team'][] }>()
+const props = defineProps<{ category?: S['Category'] | null; teams?: S['Team'][]; projects?: ProjectOption[] }>()
 const emit = defineEmits<{ saved: [S['Category']]; cancel: [] }>()
 
 const PRIORITIES: S['Priority'][] = ['low', 'normal', 'high', 'urgent']
 const model = reactive({
   name: props.category?.name ?? '',
+  project_id: (props.category?.project_id ?? props.projects?.[0]?.id ?? null) as string | null,
   default_team_id: props.category?.default_team_id ?? null,
   default_priority: props.category?.default_priority ?? null,
   active: props.category?.active ?? true,
@@ -27,6 +29,8 @@ const { formRef, submit, fieldErrors, formError, submitting } = useForm()
 const onSave = submit(async () => {
   const body: S['CategoryCreate'] = {
     name: model.name.trim(),
+    // A category with tickets cannot move (immutable): only send the project when it changed.
+    ...(model.project_id && model.project_id !== props.category?.project_id ? { project_id: model.project_id } : {}),
     default_team_id: model.default_team_id,
     default_priority: model.default_priority,
     active: model.active,
@@ -47,6 +51,15 @@ const onSave = submit(async () => {
       :rules="[validations.required.any, validations.maxLength(100)]"
       :error-messages="fieldErrors.name"
       data-testid="category-name"
+    />
+    <ProjectSelect
+      v-if="projects?.length"
+      v-model="model.project_id"
+      :projects="projects"
+      :label="$t('projects.config.project')"
+      :rules="[validations.required.any]"
+      :error-messages="fieldErrors.project_id"
+      testid="category-project"
     />
     <v-select
       v-model="model.default_team_id"

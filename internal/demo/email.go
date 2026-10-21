@@ -43,7 +43,7 @@ func (s *seeder) emailOpen(c *person, sp spec, team string) (*tk, error) {
 	if err := s.inboundRow(msgID, c.email, sp.subject, "processed", "", tid); err != nil {
 		return nil, err
 	}
-	t := &tk{id: tid, subject: sp.subject, req: c, team: team, tier: 1, status: "new", created: s.cur()}
+	t := &tk{id: tid, subject: sp.subject, req: c, team: team, tier: 1, status: "new", created: s.cur(), project: "web"}
 	var r ticketResp
 	if err := s.staff["sup"].cl.get("/agent/tickets/"+tid, &r); err != nil {
 		return nil, err

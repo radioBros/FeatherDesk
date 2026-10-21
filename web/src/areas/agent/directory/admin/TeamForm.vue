@@ -11,9 +11,11 @@ import { useForm } from '@/composables/useForm'
 import { validations, type Rule } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
+import ProjectMultiSelect from '@/components/ProjectMultiSelect.vue'
+import type { ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
-const props = defineProps<{ team?: S['Team'] | null; calendars?: S['BusinessCalendar'][] }>()
+const props = defineProps<{ team?: S['Team'] | null; calendars?: S['BusinessCalendar'][]; projects?: ProjectOption[] }>()
 const emit = defineEmits<{ saved: [S['Team']]; cancel: [] }>()
 const { t } = useI18n()
 
@@ -27,6 +29,7 @@ const model = reactive({
   notify_mode: (props.team?.notify_mode ?? 'agents') as S['NotifyMode'],
   calendar_id: props.team?.calendar_id ?? null,
   assignment_strategy: (props.team?.assignment_strategy ?? 'manual') as S['AssignmentStrategy'],
+  project_ids: [...(props.team?.project_ids ?? [])] as string[],
 })
 const emailRules = computed<Rule[]>(() => (model.notify_mode === 'agents' ? [validations.email] : [validations.required.email]))
 const calendarItems = computed(() => [
@@ -45,6 +48,9 @@ const onSave = submit(async () => {
     // Always sent: the PATCH keeps the stored value when it is absent, the form owns it.
     assignment_strategy: model.assignment_strategy,
   }
+  // Omitted on create: the default project; on PATCH: unchanged. Only a changed or chosen list is sent.
+  const before = [...(props.team?.project_ids ?? [])].sort().join(',')
+  if (model.project_ids.length && [...model.project_ids].sort().join(',') !== before) body.project_ids = model.project_ids
   const saved = props.team
     ? await unwrap(api.PATCH('/admin/teams/{id}', { params: { path: { id: props.team.id } }, body }))
     : await unwrap(api.POST('/admin/teams', { body }))
@@ -108,6 +114,16 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.assignment_strategy"
       class="mt-2"
       data-testid="team-strategy"
+    />
+    <ProjectMultiSelect
+      v-if="projects?.length"
+      v-model="model.project_ids"
+      :projects="projects"
+      :label="$t('projects.config.projects')"
+      :hint="$t('projects.config.teamHint')"
+      :error-messages="fieldErrors.project_ids"
+      class="mt-2"
+      testid="team-projects"
     />
     <div class="d-flex justify-end ga-2 mt-2">
       <v-btn variant="text" @click="emit('cancel')">{{ $t('app.cancel') }}</v-btn>

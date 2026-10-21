@@ -3,7 +3,7 @@
 {{define "subject"}}{{if .SLABreached}}SLA incumplido{{else}}Aviso de SLA{{end}}: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hola {{.RecipientName}},
 
-El objetivo de {{if eq .SLAWhich "first_response"}}primera respuesta{{else}}resolución{{end}} del ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** {{if .SLABreached}}se ha incumplido{{else}}vence{{end}} a las {{.SLADue}} (UTC).
+El objetivo de {{if eq .SLAWhich "first_response"}}primera respuesta{{else}}resolución{{end}} del ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** {{if .SLABreached}}se ha incumplido{{else}}vence{{end}} a las {{.SLADue}} (UTC).
 
 - **Asunto:** {{.Ticket.Subject}}
 - **Prioridad:** {{.Ticket.Priority}}

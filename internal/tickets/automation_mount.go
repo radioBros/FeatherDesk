@@ -19,7 +19,7 @@ import (
 // (supervisor or admin), personal macros, and the agent availability flag.
 // The macro apply route is mounted with the other ticket routes.
 func (m *Module) mountAutomation(g server.Groups) {
-	g.Support.Route("/automation/rules", func(r chi.Router) {
+	g.ProjectAdmin.Route("/automation/rules", func(r chi.Router) {
 		r.Method(http.MethodGet, "/", handler(m.listRules))
 		r.Method(http.MethodPost, "/", handler(m.createRule))
 		r.Method(http.MethodPost, "/reorder", handler(m.reorderRules))
@@ -28,7 +28,7 @@ func (m *Module) mountAutomation(g server.Groups) {
 		r.Method(http.MethodDelete, "/{id}", handler(m.deleteRule))
 		r.Method(http.MethodPost, "/{id}/dry-run", handler(m.dryRunRule))
 	})
-	g.Support.Route("/macros", func(r chi.Router) {
+	g.ProjectAdmin.Route("/macros", func(r chi.Router) {
 		r.Method(http.MethodGet, "/", handler(m.adminListMacros))
 		r.Method(http.MethodPost, "/", handler(m.adminCreateMacro))
 		r.Method(http.MethodPatch, "/{id}", handler(m.adminUpdateMacro))

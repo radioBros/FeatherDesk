@@ -137,12 +137,12 @@ describe('Composer extras (FE-039, FE-052)', () => {
 describe('Links, merge and split (FE-055)', () => {
   it('merge: a 409 merge-cross-requester shows the translated reason and stays open', async () => {
     const h = await mountAgent(MergeForm, {
-      props: { ticket: { id: 't-1', number: 1042 } },
+      props: { ticket: { id: 't-1', number: 1042, ref: 'WEB-1042' } },
       api: { 'POST /agent/tickets/t-1/merge': () => json({ type: 'https://simpletickets.dev/problems/merge-cross-requester', title: 'x', status: 409 }, 409) },
     })
     ;(h.wrapper.vm as unknown as { $: { setupState: { target: unknown } } }).$.setupState.target = fx.summary({ id: 't-9', number: 1099 })
     await h.flush()
-    expect(byTestId('merge-summary')?.textContent).toContain('#1099')
+    expect(byTestId('merge-summary')?.textContent).toContain('WEB-1099')
     await h.wrapper.find('form').trigger('submit')
     await h.flush()
     expect(byTestId('merge-problem')?.textContent).toContain('different customers')
@@ -161,7 +161,7 @@ describe('Links, merge and split (FE-055)', () => {
     ;(document.querySelector('[data-testid="merge-form"]') as HTMLFormElement).dispatchEvent(new Event('submit', { cancelable: true }))
     await h.flush()
     expect(h.calls('POST /agent/tickets/t-1/merge')[0]!.body).toEqual({ into_ticket_id: 't-9' })
-    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/1099')
+    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/WEB-1099')
   })
 
   it('split: without a selected message or subject nothing is sent; then it posts exactly the selected ids', async () => {
@@ -187,7 +187,7 @@ describe('Links, merge and split (FE-055)', () => {
     await form.trigger('submit')
     await h.flush()
     expect(h.calls('POST /agent/tickets/t-1/split')[0]!.body).toEqual({ subject: 'Second problem', message_ids: ['m-1', 'm-3'] })
-    expect(byTestId('split-open-child')?.getAttribute('href')).toBe('/agent/tickets/1050')
+    expect(byTestId('split-open-child')?.getAttribute('href')).toBe('/agent/tickets/WEB-1050')
   })
 
   it('split form: an empty selection is rejected client-side', async () => {
@@ -199,10 +199,10 @@ describe('Links, merge and split (FE-055)', () => {
   })
 
   it('the links panel groups children and adds a link through the form', async () => {
-    const link = { id: 'l1', type: 'parent_of', from_ticket_id: 't-1', to_ticket_id: 't-2', created_at: fx.iso, to_ticket: { id: 't-2', number: 1043, subject: 'Child', status: 'open' } } as const
+    const link = { id: 'l1', type: 'parent_of', from_ticket_id: 't-1', to_ticket_id: 't-2', created_at: fx.iso, to_ticket: { id: 't-2', number: 1043, ref: 'WEB-1043', subject: 'Child', status: 'open' } } as const
     const h = await openDetail(fx.ticket({ links: [link] }))
     expect(byTestId('links-panel')?.textContent).toContain('Child tickets')
-    expect(byTestId('links-panel')?.textContent).toContain('#1043')
+    expect(byTestId('links-panel')?.textContent).toContain('WEB-1043')
     await click(byTestId('link-add'))
     const form = document.querySelector('[data-testid="link-form"]') as HTMLFormElement
     form.dispatchEvent(new Event('submit', { cancelable: true }))
@@ -273,6 +273,6 @@ describe('TicketNewPage (FE-025)', () => {
     expect(post.body).toMatchObject({ requester_email: 'grace@example.com', requester_name: 'Grace Hopper', subject: 'Compiler bug', body_md: 'It prints moths' })
     expect(post.body).not.toHaveProperty('requester_id')
     expect(post.headers.get('Idempotency-Key')).toBeTruthy()
-    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/2001')
+    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/WEB-2001')
   })
 })

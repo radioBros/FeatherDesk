@@ -51,6 +51,12 @@ func (s *seeder) setupAutomation() error {
 		}
 		s.advance(7 * time.Minute)
 	}
+	// D-20: the Mobile project admin keeps a shared macro of that project.
+	if err := s.staff[projectAdminKey].cl.post("/admin/macros", map[string]any{"name": "Mobile: ask for app version", "reply_kind": "public",
+		"status": "pending", "add_tags": []string{"mobile"}, "project_id": s.projects["mob"].ID,
+		"reply_md": "Hi {{customer.name}},\n\nwhich app version and phone model are you using (ticket {{ticket.ref}})? You find the version under *Settings > About*.\n\n{{agent.name}}"}, nil); err != nil {
+		return fmt.Errorf("project macro: %w", err)
+	}
 	// Personal macros of a few agents.
 	personal := []struct {
 		by    string
@@ -101,6 +107,12 @@ func (s *seeder) setupAutomation() error {
 			"conditions": []map[string]any{{"field": "status", "op": "is", "value": "pending"}, {"field": "hours_since_status", "op": "gte", "value": 168}},
 			"actions": []map[string]any{{"type": "add_note", "body_md": "Closed automatically: no answer from the customer for 7 days."},
 				{"type": "set_status", "value": "closed"}}},
+		// D-20: a project rule (runs on Mobile tickets only) and a project condition.
+		{"name": "Mobile: tag new tickets", "event": "ticket.created", "project_id": s.projects["mob"].ID,
+			"actions": []map[string]any{{"type": "add_tag", "value": "mobile"}}},
+		{"name": "Internal IT: watch every new ticket", "event": "ticket.created",
+			"conditions": []map[string]any{{"field": "project", "op": "is", "value": "IT"}},
+			"actions":    []map[string]any{{"type": "add_tag", "value": "internal"}, {"type": "add_watcher", "user_id": sup.id}}},
 		{"name": "Urgent L1 tickets: escalate after 4 hours", "event": "time", "enabled": false,
 			"conditions": []map[string]any{{"field": "priority", "op": "is", "value": "urgent"}, {"field": "tier", "op": "is", "value": 1},
 				{"field": "hours_since_update", "op": "gte", "value": 4}},

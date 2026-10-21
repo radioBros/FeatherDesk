@@ -191,7 +191,8 @@ func decodeArgs(raw json.RawMessage, dst any) error {
 	return nil
 }
 
-// ticketArg accepts a ticket number (1042, "1042", "#1042") or a ticket id.
+// ticketArg accepts a ticket reference ("WEB-12", D-20), a ticket number
+// (1042, "1042", "#1042") or a ticket id.
 type ticketArg string
 
 func (t *ticketArg) UnmarshalJSON(b []byte) error {
@@ -202,7 +203,7 @@ func (t *ticketArg) UnmarshalJSON(b []byte) error {
 	}
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
-		return errors.New("ticket must be a ticket number or id")
+		return errors.New("ticket must be a ticket reference (KEY-123), number or id")
 	}
 	*t = ticketArg(s)
 	return nil
@@ -213,6 +214,15 @@ func (t ticketArg) number() (int64, bool) {
 	s := strings.TrimPrefix(strings.TrimSpace(string(t)), "#")
 	n, err := strconv.ParseInt(s, 10, 64)
 	return n, err == nil && n > 0
+}
+
+// ref returns the KEY-123 reference (upper-cased key) when the argument is one.
+func (t ticketArg) ref() (string, bool) {
+	key, seq, ok := domain.ParseTicketRef(strings.Trim(strings.TrimSpace(string(t)), "[]"))
+	if !ok {
+		return "", false
+	}
+	return domain.TicketRef(key, seq), true
 }
 
 func (c *caller) area() string {
@@ -228,7 +238,9 @@ func (c *caller) getTicket(ctx context.Context, ref ticketArg) (map[string]any, 
 		return nil, badArg("ticket is required")
 	}
 	path := c.area() + "/tickets/" + url.PathEscape(string(ref))
-	if n, ok := ref.number(); ok {
+	if r, ok := ref.ref(); ok {
+		path = c.area() + "/tickets/by-ref/" + url.PathEscape(r)
+	} else if n, ok := ref.number(); ok {
 		path = c.area() + "/tickets/by-number/" + strconv.FormatInt(n, 10)
 	}
 	var out map[string]any
@@ -236,9 +248,11 @@ func (c *caller) getTicket(ctx context.Context, ref ticketArg) (map[string]any, 
 	return out, err
 }
 
-// ticketID resolves a reference to the ticket id (one read for a number).
+// ticketID resolves a reference to the ticket id (one read for a ref or a
+// number).
 func (c *caller) ticketID(ctx context.Context, ref ticketArg) (string, error) {
-	if _, ok := ref.number(); !ok {
+	_, isRef := ref.ref()
+	if _, ok := ref.number(); !ok && !isRef {
 		if strings.TrimSpace(string(ref)) == "" {
 			return "", badArg("ticket is required")
 		}

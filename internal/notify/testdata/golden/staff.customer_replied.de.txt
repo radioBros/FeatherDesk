@@ -1,10 +1,10 @@
-Subject: [#1042] Kunde hat geantwortet: Printer on floor 3 is offline
+Subject: [HD-1042] Kunde hat geantwortet: Printer on floor 3 is offline
 
 ##- Bitte oberhalb dieser Zeile antworten -##
 
 Hallo Grace Hopper,
 
-der Kunde hat auf das Ticket **#1042 Printer on floor 3 is offline** geantwortet:
+der Kunde hat auf das Ticket **HD-1042 Printer on floor 3 is offline** geantwortet:
 
 **Ada Lovelace:**
 

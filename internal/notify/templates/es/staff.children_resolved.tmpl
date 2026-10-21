@@ -3,7 +3,7 @@
 {{define "subject"}}Todos los tickets hijos resueltos: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hola {{.RecipientName}},
 
-todos los tickets hijos de **#{{.Ticket.Number}} {{.Ticket.Subject}}** ya están resueltos. Puede que también quiera resolver el ticket principal.
+todos los tickets hijos de **{{.Ticket.Ref}} {{.Ticket.Subject}}** ya están resueltos. Puede que también quiera resolver el ticket principal.
 
 [Abrir el ticket]({{.Ticket.URL}})
 {{end}}

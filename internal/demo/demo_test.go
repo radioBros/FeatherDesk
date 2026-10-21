@@ -533,16 +533,17 @@ func TestSeed_RefusesSecondRunAndForce(t *testing.T) {
 		if got := count(t, db, `SELECT COUNT(*) FROM tickets`); got != 36 || sum.Count("tickets") != 36 {
 			t.Errorf("tickets after --force: %d / %d", got, sum.Count("tickets"))
 		}
-		if got := count(t, db, `SELECT COUNT(*) FROM users`); got != 24 {
-			t.Errorf("users after --force: %d, want 24 (no leftovers)", got)
+		// 24 before D-20, plus the Mobile-only agent and two Demo HQ employees.
+		if got := count(t, db, `SELECT COUNT(*) FROM users`); got != 27 {
+			t.Errorf("users after --force: %d, want 27 (no leftovers)", got)
 		}
 		for q, want := range map[string]int{
 			`SELECT COUNT(*) FROM user_mfa`:           1,
 			`SELECT COUNT(*) FROM mfa_recovery_codes`: 10,
 			`SELECT COUNT(*) FROM privacy_requests`:   5,
 			`SELECT COUNT(*) FROM user_consents`:      4,
-			`SELECT COUNT(*) FROM automation_rules`:   8,
-			`SELECT COUNT(*) FROM macros`:             8,
+			`SELECT COUNT(*) FROM automation_rules`:   10, // two project rules (D-20)
+			`SELECT COUNT(*) FROM macros`:             9,  // one Mobile macro (D-20)
 		} {
 			if got := count(t, db, q); got != want {
 				t.Errorf("after --force %s = %d, want %d (no leftovers)", q, got, want)
@@ -628,4 +629,116 @@ func TestSeed_FewTicketsStillCoversScenarios(t *testing.T) {
 	if n := sum.Count("tickets"); n < 30 {
 		t.Errorf("the scripted scenarios are always created, got %d tickets", n)
 	}
+}
+
+// TestSeed_Projects (D-20): three projects with tickets in each, refs on
+// every ticket, organization limits respected, staff-only IT never on the
+// portal or by mail, and the Mobile-only agent sees Mobile tickets only
+// through the real API (I-11).
+func TestSeed_Projects(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		sum, err := run(t, db, Options{Now: fixedNow})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sum.Count("projects") < 3 || len(sum.Projects) != 3 {
+			t.Fatalf("projects: count %d, summary %+v", sum.Count("projects"), sum.Projects)
+		}
+		wantPortal := map[string]bool{"WEB": true, "MOB": true, "IT": false}
+		for _, p := range sum.Projects {
+			if v, ok := wantPortal[p.Key]; !ok || v != p.PortalVisible || p.Tickets == 0 || len(p.SampleRefs) == 0 {
+				t.Errorf("project %+v", p)
+			}
+			for _, r := range p.SampleRefs {
+				if !strings.HasPrefix(r, p.Key+"-") {
+					t.Errorf("sample ref %s of %s", r, p.Key)
+				}
+			}
+		}
+		var out bytes.Buffer
+		sum.Print(&out)
+		if !strings.Contains(out.String(), "Projects") || !strings.Contains(out.String(), "WEB-") || !strings.Contains(out.String(), "staff only") {
+			t.Errorf("printout lacks the projects section:\n%s", out.String())
+		}
+		wantAll(t, "tickets per project", column(t, db, `SELECT p.key, COUNT(*) FROM tickets t JOIN projects p ON p.id = t.project_id GROUP BY p.key`), "WEB", "MOB", "IT")
+		for q, name := range map[string]string{
+			`SELECT COUNT(*) FROM tickets t JOIN projects p ON p.id = t.project_id WHERE p.key = 'IT' AND t.channel IN ('portal', 'email')`: "IT ticket on the portal or by mail",
+			`SELECT COUNT(*) FROM tickets t JOIN organizations o ON o.id = t.organization_id JOIN projects p ON p.id = t.project_id
+				WHERE o.name = 'Globex' AND p.key <> 'WEB'`: "Globex ticket outside WEB",
+			`SELECT COUNT(*) FROM tickets t JOIN categories c ON c.id = t.category_id WHERE c.project_id <> t.project_id`: "category of another project",
+		} {
+			if n := count(t, db, q); n != 0 {
+				t.Errorf("%s: %d", name, n)
+			}
+		}
+		for q, name := range map[string]string{
+			`SELECT COUNT(*) FROM project_members m JOIN projects p ON p.id = m.project_id JOIN users u ON u.id = m.user_id
+				WHERE p.key = 'MOB' AND m.role = 'project_admin' AND u.email = 'freya.fields@demo.test'`: "Mobile project admin",
+			`SELECT COUNT(*) FROM sla_policies s JOIN projects p ON p.id = s.project_id WHERE p.key = 'MOB'`:     "Mobile SLA override",
+			`SELECT COUNT(*) FROM canned_responses c JOIN projects p ON p.id = c.project_id WHERE p.key = 'MOB'`: "Mobile canned response",
+			`SELECT COUNT(*) FROM automation_rules r JOIN projects p ON p.id = r.project_id WHERE p.key = 'MOB'`: "Mobile rule",
+			`SELECT COUNT(*) FROM macros m JOIN projects p ON p.id = m.project_id WHERE p.key = 'MOB'`:           "Mobile macro",
+			`SELECT COUNT(*) FROM kb_categories k JOIN projects p ON p.id = k.project_id WHERE p.key = 'MOB'`:    "Mobile KB category",
+			`SELECT COUNT(*) FROM organization_projects`:                                                         "organization limited to projects",
+			`SELECT COUNT(*) FROM custom_field_defs WHERE project_ids IS NOT NULL`:                               "project custom field",
+		} {
+			if n := count(t, db, q); n == 0 {
+				t.Errorf("missing: %s", name)
+			}
+		}
+		// The Mobile-only agent: one membership, Mobile tickets only (I-11).
+		if n := count(t, db, `SELECT COUNT(*) FROM project_members m JOIN users u ON u.id = m.user_id WHERE u.email = 'mona.mobile@demo.test'`); n != 1 {
+			t.Fatalf("mona.mobile has %d memberships, want 1", n)
+		}
+		_, newClient := stackFor(t, db)
+		mona := newClient()
+		if err := mona.login("staff", "mona.mobile@demo.test", DefaultPassword); err != nil {
+			t.Fatal(err)
+		}
+		var page struct {
+			Items []struct {
+				ID, Ref  string
+				Project  struct{ Key string } `json:"project"`
+				Assignee *struct{ ID string } `json:"assignee"`
+			} `json:"items"`
+		}
+		if err := mona.get("/agent/tickets?limit=200", &page); err != nil {
+			t.Fatal(err)
+		}
+		mine := 0
+		for _, it := range page.Items {
+			if it.Project.Key != "MOB" || !strings.HasPrefix(it.Ref, "MOB-") {
+				t.Errorf("mona.mobile sees %s (%s)", it.Ref, it.Project.Key)
+			}
+			if it.Assignee != nil && it.Assignee.ID == mona.userID {
+				mine++
+			}
+		}
+		if len(page.Items) == 0 || mine == 0 {
+			t.Errorf("mona.mobile sees %d tickets, %d assigned to her", len(page.Items), mine)
+		}
+		var projects []struct{ Key string }
+		if err := mona.get("/agent/projects", &projects); err != nil || len(projects) != 1 || projects[0].Key != "MOB" {
+			t.Errorf("mona.mobile projects %v: %v", projects, err)
+		}
+		var webID string
+		if err := db.Read().QueryRowContext(context.Background(), `SELECT t.id FROM tickets t JOIN projects p ON p.id = t.project_id WHERE p.key = 'WEB' LIMIT 1`).Scan(&webID); err != nil {
+			t.Fatal(err)
+		}
+		var apiErr *APIError
+		if err := mona.get("/agent/tickets/"+webID, nil); !errors.As(err, &apiErr) || apiErr.Status != http.StatusNotFound {
+			t.Errorf("a WEB ticket must be 404 for mona.mobile, got %v", err)
+		}
+		// Supervisors see every project; refs resolve.
+		sup := newClient()
+		if err := sup.login("staff", "supervisor@demo.test", DefaultPassword); err != nil {
+			t.Fatal(err)
+		}
+		var any struct {
+			Ref string `json:"ref"`
+		}
+		if err := sup.get("/agent/tickets/by-ref/"+sum.Projects[2].SampleRefs[0], &any); err != nil || any.Ref != sum.Projects[2].SampleRefs[0] {
+			t.Errorf("by-ref %s: %v %v", sum.Projects[2].SampleRefs[0], any.Ref, err)
+		}
+	})
 }

@@ -2,7 +2,7 @@
 {{define "subject"}}Sei stato menzionato: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Ciao {{.RecipientName}},
 
-{{.ActorName}} ti ha menzionato in una nota interna sul ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**:{{range .Messages}}
+{{.ActorName}} ti ha menzionato in una nota interna sul ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

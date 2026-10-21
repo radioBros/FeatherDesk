@@ -156,11 +156,24 @@ func (d *Directory) Mount(g server.Groups) {
 		r.Method(http.MethodPost, "/{id}/members", dirHandler(d.addMember))
 		r.Method(http.MethodDelete, "/{id}/members/{user_id}", dirHandler(d.removeMember))
 	})
-	g.Support.Route("/categories", func(r chi.Router) {
+	// Categories are project configuration (D-20): project admins manage
+	// those of their projects.
+	g.ProjectAdmin.Route("/categories", func(r chi.Router) {
 		r.Method(http.MethodGet, "/", dirHandler(d.listCategories))
 		r.Method(http.MethodPost, "/", dirHandler(d.createCategory))
 		r.Method(http.MethodPatch, "/{id}", dirHandler(d.patchCategory))
 	})
+	g.Agent.Method(http.MethodGet, "/projects", dirHandler(d.agentProjects))
+	g.Portal.Method(http.MethodGet, "/projects", dirHandler(d.portalProjects))
+	g.ProjectAdmin.Method(http.MethodGet, "/projects", dirHandler(d.listProjects))
+	g.Support.Method(http.MethodPost, "/projects", dirHandler(d.createProject))
+	g.ProjectAdmin.Method(http.MethodGet, "/projects/{id}", dirHandler(d.getProject))
+	g.ProjectAdmin.Method(http.MethodPatch, "/projects/{id}", dirHandler(d.patchProject))
+	g.Support.Method(http.MethodDelete, "/projects/{id}", dirHandler(d.deleteProject))
+	g.ProjectAdmin.Method(http.MethodGet, "/projects/{id}/members", dirHandler(d.listProjectMembers))
+	g.Support.Method(http.MethodPut, "/projects/{id}/members", dirHandler(d.putProjectMembers))
+	g.ProjectAdmin.Method(http.MethodGet, "/projects/{id}/teams", dirHandler(d.getProjectTeams))
+	g.ProjectAdmin.Method(http.MethodPut, "/projects/{id}/teams", dirHandler(d.putProjectTeams))
 	g.Support.Route("/calendars", func(r chi.Router) {
 		r.Method(http.MethodGet, "/", dirHandler(d.listCalendars))
 		r.Method(http.MethodPost, "/", dirHandler(d.createCalendar))

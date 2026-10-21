@@ -39,7 +39,8 @@ func TestSeed_DemoCommand(t *testing.T) {
 	authntest.FastArgon()
 	seedEnvVars(t)
 	ctx := context.Background()
-	if c := run(ctx, []string{"seed", "--demo", "--tickets", "31"}); c != 0 {
+	// 32 = the scripted stories plus the Mobile-only agent's ticket (D-20).
+	if c := run(ctx, []string{"seed", "--demo", "--tickets", "32"}); c != 0 {
 		t.Fatalf("seed --demo: exit %d", c)
 	}
 	if c := run(ctx, []string{"seed", "--demo"}); c != 1 {
@@ -48,7 +49,7 @@ func TestSeed_DemoCommand(t *testing.T) {
 	if c := run(ctx, []string{"seed"}); c != 1 {
 		t.Errorf("basic seed on a seeded database must be refused: exit %d", c)
 	}
-	if c := run(ctx, []string{"seed", "--demo", "--force", "--tickets", "31"}); c != 0 {
+	if c := run(ctx, []string{"seed", "--demo", "--force", "--tickets", "32"}); c != 0 {
 		t.Errorf("seed --demo --force: exit %d", c)
 	}
 	db, err := store.Open(ctx, os.Getenv("ST_DATABASE_URL"), store.Options{})
@@ -63,7 +64,7 @@ func TestSeed_DemoCommand(t *testing.T) {
 	if err := db.Read().QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&users); err != nil {
 		t.Fatal(err)
 	}
-	if tickets != 31 || users != 24 {
-		t.Errorf("after --force: %d tickets, %d users; want 31 and 24", tickets, users)
+	if tickets != 32 || users != 27 {
+		t.Errorf("after --force: %d tickets, %d users; want 32 and 27", tickets, users)
 	}
 }

@@ -32,8 +32,11 @@ export const portalRoutes: RouteRecordRaw[] = [
       { path: 'reset-password', name: 'portal-reset', component: portal('ResetPasswordPage'), meta: { area: 'portal', public: true, title: 'portal.account.resetTitle' } },
       { path: 'magic-link', name: 'portal-magic', component: portal('MagicLinkPage'), meta: { area: 'portal', public: true, title: 'portal.account.magicTitle' } },
       { path: 'invite', name: 'portal-invite', component: portal('InvitePage'), meta: { area: 'portal', public: true, title: 'portal.account.inviteTitle' } },
+      // Per-project entry (D-20): public, branded by `GET /auth/config?project=KEY`.
+      { path: 'p/:key', name: 'portal-project', component: portal('ProjectEntryPage'), meta: { area: 'portal', public: true } },
       { path: 'tickets', name: 'portal-tickets', component: portal('TicketListPage'), meta: { area: 'portal', title: 'nav.myTickets' } },
       { path: 'tickets/new', name: 'portal-ticket-new', component: portal('NewTicketPage'), meta: { area: 'portal', title: 'nav.newTicket' } },
+      { path: 'tickets/:ref([A-Za-z][A-Za-z0-9]*-\\d+)', name: 'portal-ticket-ref', component: portal('TicketDetailPage'), meta: { area: 'portal' } },
       { path: 'tickets/:id', name: 'portal-ticket', component: portal('TicketDetailPage'), meta: { area: 'portal' } },
       // Public: the emailed one-click rating link works signed out with its csat_token (FE-036).
       { path: 'tickets/:id/rate', name: 'portal-ticket-rate', component: portal('CsatPage'), meta: { area: 'portal', public: true, title: 'portal.csat.title' } },

@@ -177,6 +177,7 @@ type cannedDTO struct {
 	Title     string    `json:"title"`
 	BodyMD    string    `json:"body_md"`
 	TeamID    *string   `json:"team_id"`
+	ProjectID *string   `json:"project_id"` // D-20: nil = every project
 	CreatedBy *userRef  `json:"created_by"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -184,7 +185,7 @@ type cannedDTO struct {
 
 func (s *Service) listCanned(ctx context.Context, where string, args []any) ([]cannedDTO, error) {
 	q := s.db.Read()
-	rows, err := q.QueryContext(ctx, `SELECT id, title, body_md, team_id, created_by, created_at, updated_at FROM canned_responses WHERE `+where+` ORDER BY lower(title), id`, args...)
+	rows, err := q.QueryContext(ctx, `SELECT id, title, body_md, team_id, created_by, created_at, updated_at, project_id FROM canned_responses WHERE `+where+` ORDER BY lower(title), id`, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -193,12 +194,13 @@ func (s *Service) listCanned(ctx context.Context, where string, args []any) ([]c
 	creators := map[int]string{}
 	for rows.Next() {
 		var c cannedDTO
-		var team, by sql.NullString
-		if err := rows.Scan(&c.ID, &c.Title, &c.BodyMD, &team, &by, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		var team, by, project sql.NullString
+		if err := rows.Scan(&c.ID, &c.Title, &c.BodyMD, &team, &by, &c.CreatedAt, &c.UpdatedAt, &project); err != nil {
 			rows.Close()
 			return nil, err
 		}
 		c.TeamID, c.CreatedAt, c.UpdatedAt = strOrNil(team.String), c.CreatedAt.UTC(), c.UpdatedAt.UTC()
+		c.ProjectID = strOrNil(project.String)
 		if by.Valid {
 			creators[len(out)] = by.String
 			authors = append(authors, by.String)
@@ -221,6 +223,8 @@ func (s *Service) listCanned(ctx context.Context, where string, args []any) ([]c
 
 // agentCanned lists global responses plus those of the caller's teams
 // (supervisors and admins see all), optionally filtered by title (TKT-023).
+// Project responses (D-20) are offered in the projects the caller works in;
+// `project` narrows to one project's responses plus the unscoped ones.
 func (m *Module) agentCanned(w http.ResponseWriter, r *http.Request) error {
 	if err := readScope(r); err != nil {
 		return err
@@ -233,6 +237,20 @@ func (m *Module) agentCanned(w http.ResponseWriter, r *http.Request) error {
 			where = "(team_id IS NULL OR team_id IN (" + placeholders(len(p.Teams)) + "))"
 			args = anyStrings(p.Teams)
 		}
+		if len(p.Projects) > 0 {
+			where += " AND (project_id IS NULL OR project_id IN (" + placeholders(len(p.Projects)) + "))"
+			args = append(args, anyStrings(p.Projects)...)
+		} else {
+			where += " AND project_id IS NULL"
+		}
+	}
+	if v := r.URL.Query().Get("project"); v != "" {
+		pid, err := m.svc.projectParam(r.Context(), v)
+		if err != nil {
+			return err
+		}
+		where += " AND (project_id IS NULL OR project_id = ?)"
+		args = append(args, pid)
 	}
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
 		where += ` AND lower(title) LIKE ? ESCAPE '\'`
@@ -246,11 +264,22 @@ func (m *Module) agentCanned(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+// adminListCanned: every response for supervisors and admins; project
+// admins see the responses of the projects they administer (D-20).
 func (m *Module) adminListCanned(w http.ResponseWriter, r *http.Request) error {
-	if authz.CanAdmin(principal(r), authz.ResCannedGlobal, authz.OpRead) != nil {
+	p := principal(r)
+	if authz.CanAdmin(p, authz.ResCannedGlobal, authz.OpRead) != nil {
 		return problems.Forbidden("")
 	}
-	out, err := m.svc.listCanned(r.Context(), "1=1", nil)
+	where, args := "1=1", []any{}
+	if !p.IsSupervisorOrAdmin() {
+		if len(p.AdminProjects) == 0 {
+			where = "1=0"
+		} else {
+			where, args = "project_id IN ("+placeholders(len(p.AdminProjects))+")", anyStrings(p.AdminProjects)
+		}
+	}
+	out, err := m.svc.listCanned(r.Context(), where, args)
 	if err != nil {
 		return err
 	}
@@ -259,9 +288,35 @@ func (m *Module) adminListCanned(w http.ResponseWriter, r *http.Request) error {
 }
 
 type cannedIn struct {
-	Title  string  `json:"title"`
-	BodyMD string  `json:"body_md"`
-	TeamID *string `json:"team_id"`
+	Title     string  `json:"title"`
+	BodyMD    string  `json:"body_md"`
+	TeamID    *string `json:"team_id"`
+	ProjectID *string `json:"project_id"` // D-20: id or key; nil = every project
+}
+
+// canWriteCanned decides a change of a response scoped to team and project
+// (either may be ""): a team response needs the team (and, for agents, the
+// project to be one of theirs), a project response without team a project
+// admin, a response without either a supervisor (D-20).
+func canWriteCanned(p *domain.Principal, team, project string) error {
+	switch {
+	case team != "":
+		if authz.CanWriteTeamCanned(p, team) != nil {
+			return problems.Forbidden("not a member of the team")
+		}
+		if project != "" && !p.InProject(project) {
+			return problems.Forbidden("not a member of the project")
+		}
+	case project != "":
+		if authz.CanProjectConfig(p, authz.PCCanned, project) != nil {
+			return problems.Forbidden("not a project admin of the response's project")
+		}
+	default:
+		if authz.CanAdmin(p, authz.ResCannedGlobal, authz.OpWrite) != nil {
+			return problems.Forbidden("global canned responses need a supervisor")
+		}
+	}
+	return nil
 }
 
 func (m *Module) validCanned(ctx context.Context, r *http.Request, in *cannedIn) error {
@@ -281,18 +336,28 @@ func (m *Module) validCanned(ctx context.Context, r *http.Request, in *cannedIn)
 			errs = append(errs, problems.Field("team_id", "not_found", "unknown team"))
 		}
 	}
+	if in.ProjectID != nil && *in.ProjectID == "" {
+		in.ProjectID = nil
+	}
+	if in.ProjectID != nil {
+		if pr, err := m.dir.ResolveProject(ctx, *in.ProjectID); err != nil {
+			errs = append(errs, problems.Field("project_id", "not_found", "unknown project"))
+		} else {
+			id := pr.ID
+			in.ProjectID = &id
+		}
+	}
 	if len(errs) > 0 {
 		return problems.Validation(errs...)
 	}
-	p := principal(r)
-	if in.TeamID == nil {
-		if authz.CanAdmin(p, authz.ResCannedGlobal, authz.OpWrite) != nil {
-			return problems.Forbidden("global canned responses need a supervisor")
-		}
-	} else if authz.CanWriteTeamCanned(p, *in.TeamID) != nil {
-		return problems.Forbidden("not a member of the team")
+	return canWriteCanned(principal(r), ptrOr(in.TeamID), ptrOr(in.ProjectID))
+}
+
+func ptrOr(p *string) string {
+	if p == nil {
+		return ""
 	}
-	return nil
+	return *p
 }
 
 func (m *Module) cannedOne(ctx context.Context, id string) (*cannedDTO, error) {
@@ -317,8 +382,8 @@ func (m *Module) adminCreateCanned(w http.ResponseWriter, r *http.Request) error
 	}
 	id, now := store.NewID(), store.Now()
 	err := m.svc.db.Tx(ctx, func(tx *store.Tx) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO canned_responses (id, title, body_md, team_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-			id, in.Title, in.BodyMD, in.TeamID, principal(r).UserID, now, now)
+		_, err := tx.ExecContext(ctx, `INSERT INTO canned_responses (id, title, body_md, team_id, project_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, in.Title, in.BodyMD, in.TeamID, in.ProjectID, principal(r).UserID, now, now)
 		return err
 	})
 	if err != nil {
@@ -347,14 +412,12 @@ func (m *Module) adminUpdateCanned(w http.ResponseWriter, r *http.Request) error
 	}
 	// Moving or editing an existing response also needs rights on its current
 	// scope: a global response stays supervisor+ even when moved to a team.
-	if cur.TeamID == nil && authz.CanAdmin(principal(r), authz.ResCannedGlobal, authz.OpWrite) != nil {
-		return problems.Forbidden("global canned responses need a supervisor")
-	}
-	if cur.TeamID != nil && authz.CanWriteTeamCanned(principal(r), *cur.TeamID) != nil {
-		return problems.Forbidden("not a member of the team")
+	if err := canWriteCanned(principal(r), ptrOr(cur.TeamID), ptrOr(cur.ProjectID)); err != nil {
+		return err
 	}
 	err = m.svc.db.Tx(ctx, func(tx *store.Tx) error {
-		_, err := tx.ExecContext(ctx, `UPDATE canned_responses SET title = ?, body_md = ?, team_id = ?, updated_at = ? WHERE id = ?`, in.Title, in.BodyMD, in.TeamID, store.Now(), cur.ID)
+		_, err := tx.ExecContext(ctx, `UPDATE canned_responses SET title = ?, body_md = ?, team_id = ?, project_id = ?, updated_at = ? WHERE id = ?`,
+			in.Title, in.BodyMD, in.TeamID, in.ProjectID, store.Now(), cur.ID)
 		return err
 	})
 	if err != nil {
@@ -374,9 +437,8 @@ func (m *Module) adminDeleteCanned(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	p := principal(r)
-	if cur.TeamID == nil && authz.CanAdmin(p, authz.ResCannedGlobal, authz.OpWrite) != nil || cur.TeamID != nil && authz.CanWriteTeamCanned(p, *cur.TeamID) != nil {
-		return problems.Forbidden("")
+	if err := canWriteCanned(principal(r), ptrOr(cur.TeamID), ptrOr(cur.ProjectID)); err != nil {
+		return err
 	}
 	err = m.svc.db.Tx(ctx, func(tx *store.Tx) error {
 		_, err := tx.ExecContext(ctx, `DELETE FROM canned_responses WHERE id = ?`, cur.ID)
@@ -406,6 +468,9 @@ func (m *Module) agentCannedOne(r *http.Request, id string) (*cannedDTO, error) 
 	if c.TeamID != nil && !p.IsSupervisorOrAdmin() && !p.InTeam(*c.TeamID) {
 		return nil, problems.NotFound()
 	}
+	if c.ProjectID != nil && !p.InProject(*c.ProjectID) {
+		return nil, problems.NotFound()
+	}
 	return c, nil
 }
 
@@ -430,7 +495,7 @@ func (m *Module) agentDeleteCanned(w http.ResponseWriter, r *http.Request) error
 }
 
 // agentPreviewCanned renders the placeholders of a canned response for a
-// visible ticket: {{customer.name}}, {{ticket.number}}, {{agent.name}};
+// visible ticket: {{customer.name}}, {{ticket.number}}, {{ticket.ref}}, {{agent.name}};
 // unknown placeholders stay literal.
 func (m *Module) agentPreviewCanned(w http.ResponseWriter, r *http.Request) error {
 	if err := readScope(r); err != nil {
@@ -480,7 +545,9 @@ func (s *Service) CannedVars(ctx context.Context, p *domain.Principal, ticketID 
 	}
 	// {{customer.name}} is canonical; {{requester.name}} is an accepted alias.
 	name := refs[t.RequesterID].Name
-	return map[string]string{"customer.name": name, "requester.name": name, "ticket.number": strconv.FormatInt(t.Number, 10), "agent.name": refs[p.UserID].Name}, nil
+	s.fillKey(ctx, t)
+	return map[string]string{"customer.name": name, "requester.name": name, "ticket.number": strconv.FormatInt(t.Number, 10),
+		"ticket.ref": t.Ref(), "agent.name": refs[p.UserID].Name}, nil
 }
 
 // ---- saved views ----

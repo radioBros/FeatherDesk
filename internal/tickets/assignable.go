@@ -39,8 +39,8 @@ func (s *Service) Assignable(ctx context.Context, p *domain.Principal, ticketID 
 	rows, err := q.QueryContext(ctx, `SELECT u.id, u.name, u.email, u.role, u.tier FROM users u
 		JOIN team_members m ON m.user_id = u.id AND m.team_id = ?
 		WHERE u.kind = 'staff' AND u.status = 'active'
-		  AND (u.role IN ('admin', 'supervisor') OR u.tier >= ?)
-		ORDER BY lower(u.name), u.id`, t.TeamID, t.Tier)
+		  AND (u.role IN ('admin', 'supervisor') OR u.tier >= ?) AND `+projectMemberSQL+`
+		ORDER BY lower(u.name), u.id`, t.TeamID, t.Tier, t.ProjectID)
 	if err != nil {
 		return nil, err
 	}

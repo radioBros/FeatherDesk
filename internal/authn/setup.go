@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 	"unicode/utf8"
 
 	"github.com/radioBros/SimpleTickets/internal/domain"
@@ -144,6 +145,20 @@ func insertAdmin(ctx context.Context, tx *store.Tx, id, email, name, hash, local
 	now := store.Now()
 	_, err := tx.ExecContext(ctx, `INSERT INTO users (id, kind, email, name, role, tier, status, password_hash, break_glass, locale, created_at, updated_at)
 		VALUES (?, 'staff', ?, ?, 'admin', 3, 'active', ?, ?, ?, ?, ?)`, id, email, name, hash, true, locale, now, now)
+	if err != nil {
+		return err
+	}
+	return joinDefaultProject(ctx, tx, id, now)
+}
+
+// joinDefaultProject makes a new staff user a member of the default project
+// (D-20; admins see every project anyway, agents need the membership, I-11):
+// the Default project while active, else the first active project.
+func joinDefaultProject(ctx context.Context, tx *store.Tx, userID string, now time.Time) error {
+	// Same choice as directory.DefaultProjectSQL (authn cannot import it).
+	_, err := tx.ExecContext(ctx, `INSERT INTO project_members (project_id, user_id, role, created_at)
+		SELECT id, ?, 'member', ? FROM projects WHERE id = (SELECT id FROM projects WHERE active
+			ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, sort, lower(name), id LIMIT 1) ON CONFLICT DO NOTHING`, userID, now, domain.DefaultProjectID)
 	return err
 }
 

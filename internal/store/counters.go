@@ -26,3 +26,17 @@ func SetCursor(ctx context.Context, tx *Tx, name, value string) error {
 		ON CONFLICT (name) DO UPDATE SET text_value = excluded.text_value`, name, value)
 	return err
 }
+
+// NextProjectSeq allocates the next per-project ticket sequence (D-20) inside
+// the caller's write transaction, from counters row "ticket_seq:<projectID>"
+// (created on first use). Like NextTicketNumber it never reuses a value; the
+// row lock of the UPDATE serialises concurrent creators on Postgres.
+func NextProjectSeq(ctx context.Context, tx *Tx, projectID string) (int64, error) {
+	var n int64
+	err := tx.QueryRowContext(ctx, `INSERT INTO counters (name, int_value, text_value) VALUES (?, 1, '')
+		ON CONFLICT (name) DO UPDATE SET int_value = counters.int_value + 1 RETURNING int_value`, ProjectSeqCounter(projectID)).Scan(&n)
+	return n, err
+}
+
+// ProjectSeqCounter is the counters row name of a project's ticket sequence.
+func ProjectSeqCounter(projectID string) string { return "ticket_seq:" + projectID }

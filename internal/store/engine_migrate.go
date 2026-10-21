@@ -20,10 +20,12 @@ import (
 // Search tables are rebuilt by the index worker afterwards (NeedsReindex).
 var copyOrder = []string{
 	"organizations", "users", "user_identities", "sessions", "api_tokens", "auth_tokens", "audit_log",
-	"business_calendars", "teams", "team_members", "categories", "settings", "sla_policies", "canned_responses", "tags",
+	"business_calendars", "teams", "team_members",
+	"branding_assets", "projects", "project_members", "project_teams", "organization_projects", // 0140 (D-20)
+	"categories", "settings", "sla_policies", "canned_responses", "tags",
 	"tickets", "ticket_messages", "attachments", "ticket_events", "ticket_links", "custom_field_defs", "ticket_field_values",
 	"ticket_tags", "ticket_watchers", "saved_views", "counters",
-	"deferred_jobs", "branding_assets", "idempotency_keys", "webhooks", "webhook_deliveries",
+	"deferred_jobs", "idempotency_keys", "webhooks", "webhook_deliveries",
 	"kb_categories", "kb_articles", "kb_article_translations", "kb_article_feedback", "kb_slug_history", "kb_assets",
 	"inbound_mailboxes", "inbound_messages",
 	"automation_rules", "automation_runs", "automation_time_runs", "macros", // 0100 (D-19 §A)
@@ -36,8 +38,12 @@ var copyOrder = []string{
 // patched afterwards so insertion order never matters.
 var selfRefs = map[string]string{"tickets": "followup_of_id", "kb_categories": "parent_id"}
 
+// deferredRefs are columns referencing a table copied later (users →
+// projects): they are copied as NULL and patched once every table is in.
+var deferredRefs = map[string]string{"users": "current_project_id"}
+
 // seededTables are filled by migrations; the target's seed rows are replaced.
-var seededTables = map[string]bool{"settings": true, "sla_policies": true, "counters": true}
+var seededTables = map[string]bool{"settings": true, "sla_policies": true, "counters": true, "projects": true}
 
 type TableReport struct {
 	Table    string
@@ -89,10 +95,28 @@ func MigrateEngine(ctx context.Context, from, to *DB) (EngineReport, error) {
 			return rep, fmt.Errorf("migrate-engine: table %s is not in the copy order", t)
 		}
 	}
+	var deferred []refPatch
 	for _, tbl := range copyOrder {
-		if err := copyTable(ctx, from, to, tbl); err != nil {
+		ps, err := copyTable(ctx, from, to, tbl)
+		if err != nil {
 			return rep, fmt.Errorf("migrate-engine: %s: %w", tbl, err)
 		}
+		deferred = append(deferred, ps...)
+	}
+	if len(deferred) > 0 {
+		err := to.Tx(ctx, func(tx *Tx) error {
+			for _, p := range deferred {
+				if _, err := tx.ExecContext(ctx, `UPDATE `+p.tbl+` SET `+p.col+` = ? WHERE id = ?`, p.ref, p.id); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		if err != nil {
+			return rep, fmt.Errorf("migrate-engine: deferred references: %w", err)
+		}
+	}
+	for _, tbl := range copyOrder {
 		cf, sf, err := tableChecksum(ctx, from, tbl)
 		if err != nil {
 			return rep, err
@@ -110,7 +134,19 @@ func MigrateEngine(ctx context.Context, from, to *DB) (EngineReport, error) {
 	return rep, nil
 }
 
-func copyTable(ctx context.Context, from, to *DB, tbl string) error {
+// refPatch sets tbl.col = ref on row id after the copy (deferredRefs).
+type refPatch struct {
+	tbl, col string
+	id, ref  any
+}
+
+func copyTable(ctx context.Context, from, to *DB, tbl string) ([]refPatch, error) {
+	var deferred []refPatch
+	err := copyTableInto(ctx, from, to, tbl, &deferred)
+	return deferred, err
+}
+
+func copyTableInto(ctx context.Context, from, to *DB, tbl string, deferred *[]refPatch) error {
 	srcCols, err := Columns(ctx, from, tbl)
 	if err != nil {
 		return err
@@ -130,7 +166,7 @@ func copyTable(ctx context.Context, from, to *DB, tbl string) error {
 		}
 		names[i] = c.Name
 	}
-	selfCol := selfRefs[tbl]
+	selfCol, deferCol := selfRefs[tbl], deferredRefs[tbl]
 	if seededTables[tbl] {
 		if err := to.Tx(ctx, func(tx *Tx) error { _, err := tx.ExecContext(ctx, `DELETE FROM `+tbl); return err }); err != nil {
 			return err
@@ -173,6 +209,10 @@ func copyTable(ctx context.Context, from, to *DB, tbl string) error {
 			vals[i] = convertValue(vals[i], dstType[n])
 			if n == selfCol && vals[i] != nil {
 				patches = append(patches, patch{id: vals[0], ref: vals[i]})
+				vals[i] = nil
+			}
+			if n == deferCol && vals[i] != nil {
+				*deferred = append(*deferred, refPatch{tbl: tbl, col: n, id: vals[0], ref: vals[i]})
 				vals[i] = nil
 			}
 		}

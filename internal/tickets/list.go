@@ -35,15 +35,16 @@ type ListQuery struct {
 	Breached     *bool
 	CF           map[string]string
 	MineOnly     bool
+	Project      string // D-20: project id or key; resolved by filterSQL (422 when unknown)
 	Limit        int
 	Cursor       string
 }
 
 var agentListParams = map[string]bool{"cursor": true, "limit": true, "status": true, "priority": true, "team_id": true, "assignee": true,
 	"tier": true, "category_id": true, "organization_id": true, "requester_id": true, "tag": true, "updated_since": true, "q": true,
-	"sort": true, "breached": true}
+	"sort": true, "breached": true, "project": true}
 
-var portalListParams = map[string]bool{"cursor": true, "limit": true, "status": true, "q": true, "mine_only": true}
+var portalListParams = map[string]bool{"cursor": true, "limit": true, "status": true, "q": true, "mine_only": true, "project": true}
 
 func parseLimit(v string) (int, error) {
 	if v == "" {
@@ -110,6 +111,7 @@ func ParseAgentListQuery(v url.Values) (ListQuery, error) {
 	if len(q.Q) > 200 {
 		errs = append(errs, problems.Field("q", "max_length", "at most 200 characters"))
 	}
+	q.Project = v.Get("project")
 	if s := v.Get("sort"); s != "" {
 		if _, ok := sorts[s]; !ok {
 			errs = append(errs, problems.Field("sort", "enum", "unknown sort"))
@@ -155,6 +157,7 @@ func ParsePortalListQuery(v url.Values) (ListQuery, error) {
 	if len(q.Q) > 200 {
 		errs = append(errs, problems.Field("q", "max_length", "at most 200 characters"))
 	}
+	q.Project = v.Get("project")
 	if m := v.Get("mine_only"); m != "" {
 		b, err := strconv.ParseBool(m)
 		if err != nil {
@@ -399,6 +402,13 @@ func (s *Service) filterSQL(ctx context.Context, p *domain.Principal, q ListQuer
 	if q.MineOnly {
 		add("t.requester_id = ?", p.UserID)
 	}
+	if q.Project != "" {
+		pid, err := s.projectParam(ctx, q.Project)
+		if err != nil {
+			return "", nil, err
+		}
+		add("t.project_id = ?", pid)
+	}
 	if q.Tag != "" {
 		add("EXISTS (SELECT 1 FROM ticket_tags tt JOIN tags g ON g.id = tt.tag_id WHERE tt.ticket_id = t.id AND lower(g.name) = ?)", q.Tag)
 	}
@@ -566,7 +576,9 @@ func (s *Service) staffSummaries(ctx context.Context, q store.Querier, p *domain
 	}
 	now := s.clock()
 	for _, t := range rows {
+		s.fillKey(ctx, t)
 		d := t.summary(now)
+		d.Project = s.dir.ProjectRefOf(ctx, t.ProjectID)
 		s.fillRefs(&d, t, refs)
 		if tg := tags[t.ID]; tg != nil {
 			d.Tags = tg
@@ -609,7 +621,9 @@ func (s *Service) customerSummaries(ctx context.Context, q store.Querier, p *dom
 		return nil, err
 	}
 	for _, t := range rows {
+		s.fillKey(ctx, t)
 		d := t.customerSummary()
+		d.Project = s.dir.ProjectRefOf(ctx, t.ProjectID)
 		if r, ok := refs[t.RequesterID]; ok {
 			d.Requester = r
 		}
@@ -640,8 +654,8 @@ func tagsFor(ctx context.Context, q store.Querier, ids []string) (map[string][]s
 	return out, rows.Err()
 }
 
-// Counts is TicketCounts.
-type Counts struct {
+// TicketCounts are the sidebar buckets (TicketCounts schema).
+type TicketCounts struct {
 	Mine       int            `json:"mine"`
 	Unassigned int            `json:"unassigned"`
 	Triage     int            `json:"triage"`
@@ -649,12 +663,49 @@ type Counts struct {
 	Tier       map[string]int `json:"tier"`
 }
 
+func (c *TicketCounts) add(o TicketCounts) {
+	c.Mine += o.Mine
+	c.Unassigned += o.Unassigned
+	c.Triage += o.Triage
+	c.Breached += o.Breached
+	for k, v := range o.Tier {
+		c.Tier[k] += v
+	}
+}
+
+func newTicketCounts() TicketCounts {
+	return TicketCounts{Tier: map[string]int{"1": 0, "2": 0, "3": 0}}
+}
+
+// Counts is TicketCounts plus the per-project breakdown (D-20).
+type Counts struct {
+	TicketCounts
+	ByProject map[string]TicketCounts `json:"by_project"`
+}
+
+// projectParam resolves a `project` query parameter (id or key).
+func (s *Service) projectParam(ctx context.Context, v string) (string, error) {
+	pr, err := s.dir.ResolveProject(ctx, v)
+	if err != nil {
+		return "", problems.Validation(problems.Field("project", "not_found", "unknown project"))
+	}
+	return pr.ID, nil
+}
+
 // Counts computes the sidebar buckets over open (non resolved/closed)
-// tickets through the same visibility predicate as the list (TKT-004).
+// tickets through the same visibility predicate as the list (TKT-004), for
+// all projects.
 func (s *Service) Counts(ctx context.Context, p *domain.Principal) (Counts, error) {
+	return s.CountsFor(ctx, p, "")
+}
+
+// CountsFor is Counts with the totals limited to project (id; "" = all).
+// by_project always lists every project the caller works in (I-11), with
+// zeros for projects without open tickets, so the switcher can read any.
+func (s *Service) CountsFor(ctx context.Context, p *domain.Principal, project string) (Counts, error) {
 	pred, args := authz.TicketPredicate(p, s.Policy(ctx), "t")
 	now := s.clock()
-	q := `SELECT
+	q := `SELECT t.project_id,
 		COALESCE(SUM(CASE WHEN t.assignee_id = ? THEN 1 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN t.assignee_id IS NULL THEN 1 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN t.team_id IS NULL THEN 1 ELSE 0 END), 0),
@@ -662,13 +713,35 @@ func (s *Service) Counts(ctx context.Context, p *domain.Principal) (Counts, erro
 		COALESCE(SUM(CASE WHEN t.tier = 1 THEN 1 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN t.tier = 2 THEN 1 ELSE 0 END), 0),
 		COALESCE(SUM(CASE WHEN t.tier = 3 THEN 1 ELSE 0 END), 0)
-		FROM tickets t WHERE ` + openishSQL + ` AND ` + pred
-	var c Counts
-	var t1, t2, t3 int
+		FROM tickets t WHERE ` + openishSQL + ` AND ` + pred + ` GROUP BY t.project_id`
+	c := Counts{TicketCounts: newTicketCounts(), ByProject: map[string]TicketCounts{}}
+	if p.IsStaff() {
+		prs, err := s.dir.StaffProjects(ctx, p)
+		if err != nil {
+			return c, err
+		}
+		for _, pr := range prs {
+			c.ByProject[pr.ID] = newTicketCounts()
+		}
+	}
 	all := append([]any{p.UserID, now, now}, args...)
-	if err := s.db.Read().QueryRowContext(ctx, q, all...).Scan(&c.Mine, &c.Unassigned, &c.Triage, &c.Breached, &t1, &t2, &t3); err != nil {
+	rows, err := s.db.Read().QueryContext(ctx, q, all...)
+	if err != nil {
 		return c, err
 	}
-	c.Tier = map[string]int{"1": t1, "2": t2, "3": t3}
-	return c, nil
+	defer rows.Close()
+	for rows.Next() {
+		var pid string
+		var t1, t2, t3 int
+		g := newTicketCounts()
+		if err := rows.Scan(&pid, &g.Mine, &g.Unassigned, &g.Triage, &g.Breached, &t1, &t2, &t3); err != nil {
+			return c, err
+		}
+		g.Tier = map[string]int{"1": t1, "2": t2, "3": t3}
+		c.ByProject[pid] = g
+		if project == "" || project == pid {
+			c.add(g)
+		}
+	}
+	return c, rows.Err()
 }

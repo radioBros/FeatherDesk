@@ -375,6 +375,7 @@ func (m *Module) exportTickets(ctx context.Context, aw *arrayWriter, sc exportSc
 	q := m.d.DB.Read()
 	type ticket struct {
 		ID, Subject, Status, Channel string
+		Ref                          string // D-20
 		Number                       int64
 		Priority                     string
 		Created, Updated             time.Time
@@ -383,19 +384,23 @@ func (m *Module) exportTickets(ctx context.Context, aw *arrayWriter, sc exportSc
 		CSATComment                  sql.NullString
 	}
 	var list []ticket
-	if err := each(ctx, q, `SELECT id, number, subject, status, priority, channel, created_at, updated_at, resolved_at, closed_at, csat_score, csat_comment
+	if err := each(ctx, q, `SELECT id, number, subject, status, priority, channel, created_at, updated_at, resolved_at, closed_at, csat_score, csat_comment,
+		(SELECT pj.key FROM projects pj WHERE pj.id = tickets.project_id), project_seq
 		FROM tickets WHERE requester_id = ? ORDER BY number`, []any{sc.userID}, func(r *sql.Rows) error {
 		var t ticket
-		if err := r.Scan(&t.ID, &t.Number, &t.Subject, &t.Status, &t.Priority, &t.Channel, &t.Created, &t.Updated, &t.Resolved, &t.Closed, &t.CSAT, &t.CSATComment); err != nil {
+		var key string
+		var seq int64
+		if err := r.Scan(&t.ID, &t.Number, &t.Subject, &t.Status, &t.Priority, &t.Channel, &t.Created, &t.Updated, &t.Resolved, &t.Closed, &t.CSAT, &t.CSATComment, &key, &seq); err != nil {
 			return err
 		}
+		t.Ref = domain.TicketRef(key, seq)
 		list = append(list, t)
 		return nil
 	}); err != nil {
 		return err
 	}
 	for _, t := range list {
-		out := map[string]any{"number": t.Number, "subject": t.Subject, "channel": t.Channel, "created_at": t.Created.UTC(), "updated_at": t.Updated.UTC(),
+		out := map[string]any{"number": t.Number, "ref": t.Ref, "subject": t.Subject, "channel": t.Channel, "created_at": t.Created.UTC(), "updated_at": t.Updated.UTC(),
 			"resolved_at": ts(t.Resolved), "closed_at": ts(t.Closed)}
 		if sc.internal {
 			out["id"], out["status"], out["priority"] = t.ID, t.Status, t.Priority

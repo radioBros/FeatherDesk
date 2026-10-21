@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // Package demo fills a fresh installation with a complete, believable demo
-// data set (`simpletickets seed --demo`): organizations, staff of every role
-// and tier, customers, teams with calendars and assignment strategies,
+// data set (`simpletickets seed --demo`): three projects (D-20: "Web App" WEB
+// and "Mobile" MOB in the portal, "Internal IT" IT staff-only, with team
+// mapping, an organization limited to one project, a Mobile SLA override,
+// project-scoped categories, custom field, canned response, macro, rule and
+// KB category, a Mobile project admin and an agent who works in Mobile
+// only), organizations, staff of every role and tier, customers, teams with
+// calendars and assignment strategies,
 // categories, custom fields, SLA policies, about sixty tickets spread over two
 // months, canned responses, saved views, automation rules and macros, a
 // multilingual knowledge base, branding, email, webhook, inbound-mailbox and
@@ -60,6 +65,7 @@ import (
 	"github.com/radioBros/SimpleTickets/internal/authn"
 	"github.com/radioBros/SimpleTickets/internal/blob"
 	"github.com/radioBros/SimpleTickets/internal/config"
+	"github.com/radioBros/SimpleTickets/internal/directory"
 	"github.com/radioBros/SimpleTickets/internal/notify"
 	"github.com/radioBros/SimpleTickets/internal/privacy"
 	"github.com/radioBros/SimpleTickets/internal/store"
@@ -115,6 +121,7 @@ type Summary struct {
 	APIToken            string       // shown once
 	MFA                 []MFAAccount // two-step verification secrets and recovery codes, shown once
 	MailpitURL          string
+	Projects            []ProjectInfo // D-20: projects with their ticket counts and sample refs
 	Notes               []string
 }
 
@@ -159,6 +166,7 @@ type seeder struct {
 	out  io.Writer
 
 	svc        *tickets.Service
+	dir        *directory.Directory
 	authnMod   *authn.Module
 	notifyMod  *notify.Module
 	privacyMod *privacy.Module
@@ -171,13 +179,15 @@ type seeder struct {
 	patToken             string
 	webhookID, mailboxID string
 
-	orgs   map[string]*orgRef
-	staff  map[string]*person
-	custs  map[string]*person
-	teams  map[string]*teamRef
-	cals   map[string]string
-	cats   map[string]*catRef
-	fields map[string]*fieldRef
+	orgs  map[string]*orgRef
+	staff map[string]*person
+	custs map[string]*person
+	teams map[string]*teamRef
+	cals  map[string]string
+	cats  map[string]*catRef
+	// projects by key (web, mob, it), D-20
+	projects map[string]*projRef
+	fields   map[string]*fieldRef
 
 	canned     map[string]string // canned response title → id
 	kbArticles map[string]string // slug → id
@@ -255,7 +265,7 @@ func Run(ctx context.Context, getenv func(string) string, opt Options) (sum *Sum
 	s := &seeder{ctx: ctx, opt: opt, a: a, db: a.Deps.DB, now: opt.Now.UTC().Truncate(time.Microsecond), out: opt.Progress,
 		rng: rand.New(rand.NewPCG(20260101, 42)), origin: cfg.PublicOrigin(),
 		orgs: map[string]*orgRef{}, staff: map[string]*person{}, custs: map[string]*person{}, teams: map[string]*teamRef{},
-		cals: map[string]string{}, cats: map[string]*catRef{}, fields: map[string]*fieldRef{}, kbArticles: map[string]string{},
+		cals: map[string]string{}, cats: map[string]*catRef{}, projects: map[string]*projRef{}, fields: map[string]*fieldRef{}, kbArticles: map[string]string{},
 		canned: map[string]string{}}
 	s.host = strings.TrimPrefix(strings.TrimPrefix(cfg.PublicOrigin(), "https://"), "http://")
 	for _, m := range a.Modules {
@@ -266,11 +276,14 @@ func Run(ctx context.Context, getenv func(string) string, opt Options) (sum *Sum
 			s.notifyMod = x
 		case *privacy.Module:
 			s.privacyMod = x
-		case interface{ Service() *tickets.Service }:
-			s.svc = x.Service()
+		case interface {
+			Service() *tickets.Service
+			Directory() *directory.Directory
+		}:
+			s.svc, s.dir = x.Service(), x.Directory()
 		}
 	}
-	if s.authnMod == nil || s.svc == nil || s.notifyMod == nil || s.privacyMod == nil {
+	if s.authnMod == nil || s.svc == nil || s.dir == nil || s.notifyMod == nil || s.privacyMod == nil {
 		return nil, errors.New("demo: authn, tickets, notify or privacy module missing from the app")
 	}
 	s.authnMod.SetThrottle(false)
@@ -295,6 +308,7 @@ func (s *seeder) run(cfg *config.Config) (*Summary, error) {
 	}{
 		{"administrator", s.setupAdmin},
 		{"organizations, calendars and teams", s.setupStructure},
+		{"projects", s.setupProjects},
 		{"staff", s.setupStaff},
 		{"customers", s.setupCustomers},
 		{"categories, custom fields and SLA", s.setupSupport},
@@ -304,6 +318,7 @@ func (s *seeder) run(cfg *config.Config) (*Summary, error) {
 		{"webhook and inbound mailbox", s.setupIntegrations},
 		{"knowledge base", s.setupKB},
 		{"tickets", s.seedTickets},
+		{"project assignments", s.projectExtras},
 		{"saved views", s.setupViews},
 		{"automation rules, macros and assignment", s.setupAutomation},
 		{"privacy requests, consents and retention", s.setupPrivacy},
@@ -351,6 +366,9 @@ func (s *seeder) prepare() error {
 			}
 		}
 		s.a.Deps.Settings.Invalidate()
+		// The wipe re-created the Default project: drop the directory snapshot
+		// (projects, teams, categories) of the app built before it.
+		s.dir.Invalidate()
 		s.a.Deps.Queue.Wake()
 	}
 	return s.a.Deps.Settings.Put(s.ctx, settingsKey, map[string]any{"seeded_at": s.now.Format(time.RFC3339), "complete": false}, "")

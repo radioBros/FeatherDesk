@@ -3,7 +3,7 @@
 {{define "subject"}}Kunde hat geantwortet: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hallo {{.RecipientName}},
 
-der Kunde hat auf das Ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** geantwortet:{{range .Messages}}
+der Kunde hat auf das Ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** geantwortet:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

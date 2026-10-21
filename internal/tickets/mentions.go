@@ -73,7 +73,7 @@ func (s *Service) resolveMentions(ctx context.Context, tx *store.Tx, pol authz.T
 		if err != nil {
 			continue // not staff: plain text
 		}
-		p := &domain.Principal{UserID: st.ID, Kind: domain.KindStaff, Role: st.Role, Tier: st.Tier, Teams: st.Teams}
+		p := st.principal()
 		if st.Status != domain.UserActive || !authz.CanSeeTicket(p, t.view(pol, s.clock())) {
 			invisible = append(invisible, st.Name)
 			continue

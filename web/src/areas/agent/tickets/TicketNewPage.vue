@@ -7,18 +7,21 @@ import PageHeader from '@/components/PageHeader.vue'
 import TicketCreateForm from './detail/TicketCreateForm.vue'
 import { useLookupsStore } from '../shared/lookups'
 import { api, unwrap } from '@/api/client'
+import { useProjectsStore } from '@/stores/projects'
 import type { components } from '@/api/schema'
 
 type S = components['schemas']
 const router = useRouter()
 const route = useRoute()
 const lookups = useLookupsStore()
+const projects = useProjectsStore()
 const requester = ref<S['User'] | null>(null)
 const ready = ref(false)
 
 onMounted(async () => {
   const id = typeof route.query.requester_id === 'string' ? route.query.requester_id : null
   await Promise.all([
+    projects.load(),
     lookups.ensure('categories', 'teams', 'customFields'),
     id ? unwrap(api.GET('/agent/customers/{id}', { params: { path: { id } } })).then((u) => (requester.value = u)).catch(() => null) : null,
   ])
@@ -26,7 +29,7 @@ onMounted(async () => {
 })
 
 function onCreated(t: S['Ticket']) {
-  void router.push(`/agent/tickets/${t.number}`)
+  void router.push(`/agent/tickets/${t.ref ?? t.number}`)
 }
 </script>
 
@@ -41,6 +44,8 @@ function onCreated(t: S['Ticket']) {
         :teams="lookups.teams"
         :custom-fields="lookups.customFields"
         :requester="requester"
+        :projects="projects.active"
+        :default-project-id="projects.currentId"
         @created="onCreated"
       />
     </v-card>

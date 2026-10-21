@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * Rule builder (FE-063, D-19 A): name, event, ALL/ANY, condition rows
  * (operators filtered per field; hours-since fields on time rules only) and
@@ -41,6 +42,7 @@ import {
   type Field,
 } from './model'
 import type { components } from '@/api/schema'
+import ProjectSelect, { type ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
 const props = defineProps<{
@@ -51,6 +53,8 @@ const props = defineProps<{
   canned?: S['CannedResponse'][]
   customFields?: S['CustomFieldDef'][]
   organizations?: S['Organization'][]
+  projects?: ProjectOption[]
+  canGlobal?: boolean
 }>()
 const emit = defineEmits<{ saved: [S['AutomationRule']]; cancel: [] }>()
 const { t, locale } = useI18n()
@@ -61,6 +65,7 @@ const model = reactive({
   event: (props.rule?.event ?? 'ticket.created') as S['AutomationEvent'],
   match: (props.rule?.match ?? 'all') as S['AutomationMatch'],
   enabled: props.rule?.enabled ?? true,
+  project_id: (props.rule?.project_id ?? null) as string | null,
   stop_processing: props.rule?.stop_processing ?? false,
   conditions: (props.rule?.conditions ?? []).map(conditionFromApi) as ConditionRow[],
   actions: (props.rule?.actions?.length ? props.rule.actions.map(actionFromApi) : [newAction()]) as ActionRow[],
@@ -94,6 +99,8 @@ function multiItems(f: Field) {
       return STATUSES.map((s) => ({ value: s, title: t(`status.${s}`) }))
     case 'category_id':
       return (props.categories ?? []).map((c) => ({ value: c.id, title: c.name }))
+    case 'project':
+      return (props.projects ?? []).map((p) => ({ value: p.id, title: `${p.key} · ${p.name}` }))
     case 'team_id':
       return (props.teams ?? []).map((tm) => ({ value: tm.id, title: tm.name }))
     default:
@@ -124,6 +131,7 @@ const onSave = submit(async () => {
     event: model.event,
     match: model.match,
     enabled: model.enabled,
+    ...(props.projects?.length ? { project_id: model.project_id } : {}),
     stop_processing: model.stop_processing,
     conditions: model.conditions.map(conditionToApi),
     actions: model.actions.map(actionToApi),
@@ -141,6 +149,18 @@ const onSave = submit(async () => {
     <v-alert v-if="fieldErrors.conditions || fieldErrors.actions" type="error" variant="tonal" density="compact" class="mb-3" data-testid="rule-list-errors">
       {{ [...(fieldErrors.conditions ?? []), ...(fieldErrors.actions ?? [])].join(' ') }}
     </v-alert>
+    <ProjectSelect
+      v-if="projects?.length"
+      v-model="model.project_id"
+      :projects="projects"
+      :nullable="canGlobal !== false"
+      :null-label="$t('projects.config.global')"
+      :label="$t('projects.config.project')"
+      :hint="$t('projects.config.scopeHint')"
+      :rules="canGlobal === false ? [validations.required.any] : []"
+      :error-messages="fieldErrors.project_id"
+      testid="rule-project"
+    />
     <v-row density="compact">
       <v-col cols="12" md="6">
         <v-text-field
@@ -211,11 +231,10 @@ const onSave = submit(async () => {
           :label="$t('automation.rules.value')"
           :rules="[validations.required.array]"
           multiple
-          chips
-          closable-chips
           density="compact"
-          data-testid="condition-value"
-        />
+          data-testid="condition-value">
+          <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="((c.value as string[]) ?? []).length" /></template>
+        </v-select>
         <v-select
           v-else-if="valueKind(c.field) === 'tier'"
           v-model="c.value"

@@ -3,7 +3,7 @@
 {{define "subject"}}Assigné à vous : {{.Ticket.Subject}}{{end}}
 {{define "body"}}Bonjour {{.RecipientName}},
 
-{{.ActorName}} vous a assigné le ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**.
+{{.ActorName}} vous a assigné le ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**.
 
 - **Objet:** {{.Ticket.Subject}}
 - **Priorité:** {{.Ticket.Priority}}

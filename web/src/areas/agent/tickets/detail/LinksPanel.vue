@@ -45,8 +45,8 @@ function onSaved(l: S['TicketLink']) {
         <div v-if="groups[g]?.length" class="mb-2">
           <div class="text-caption text-medium-emphasis">{{ $t(`agent.ticket.links.group.${g}`) }}</div>
           <div v-for="l in groups[g]" :key="l.id" class="d-flex align-center ga-2" data-testid="link-row">
-            <router-link v-if="l.to_ticket" :to="`/agent/tickets/${l.to_ticket.number}`" class="text-truncate">
-              #{{ l.to_ticket.number }} {{ l.to_ticket.subject }}
+            <router-link v-if="l.to_ticket" :to="`/agent/tickets/${l.to_ticket.ref}`" class="text-truncate">
+              {{ l.to_ticket.ref }} {{ l.to_ticket.subject }}
             </router-link>
             <StatusChip v-if="l.to_ticket" :status="l.to_ticket.status" size="x-small" />
             <v-spacer />

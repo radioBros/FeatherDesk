@@ -96,6 +96,7 @@ type hook struct {
 	Events          []string
 	IncludeInternal bool
 	Failures        int
+	ProjectIDs      []string // D-20: empty = every project
 }
 
 // WebhookEvents are the event types a webhook may subscribe to (OpenAPI EventType).
@@ -105,6 +106,7 @@ var WebhookEvents = []string{
 	events.TicketTagsChanged, events.TicketFieldsChanged, events.MessageCreated, events.NoteCreated,
 	events.SLAWarning, events.SLABreached, events.TicketCSAT, events.TicketFollowupCreated, events.TicketMerged,
 	events.TicketSplit, events.TicketLinked, events.TicketUnlinked, events.TicketChildrenResolved,
+	events.TicketProjectChanged,
 }
 
 // New builds the module. It does no network I/O.
@@ -196,7 +198,7 @@ func (m *Module) activeHooks(ctx context.Context) ([]*hook, error) {
 		return c, nil
 	}
 	m.mu.Unlock()
-	rows, err := m.db.Read().QueryContext(ctx, `SELECT id, name, url, secret_enc, events, include_internal, consecutive_failures FROM webhooks WHERE active ORDER BY id`)
+	rows, err := m.db.Read().QueryContext(ctx, `SELECT id, name, url, secret_enc, events, include_internal, consecutive_failures, project_ids FROM webhooks WHERE active ORDER BY id`)
 	if err != nil {
 		return nil, err
 	}
@@ -226,11 +228,11 @@ func (m *Module) activeHooks(ctx context.Context) ([]*hook, error) {
 func (m *Module) scanHook(row interface{ Scan(...any) error }) (*hook, error) {
 	var h hook
 	var enc string
-	var evs store.JSON[[]string]
-	if err := row.Scan(&h.ID, &h.Name, &h.URL, &enc, &evs, &h.IncludeInternal, &h.Failures); err != nil {
+	var evs, projects store.JSON[[]string]
+	if err := row.Scan(&h.ID, &h.Name, &h.URL, &enc, &evs, &h.IncludeInternal, &h.Failures, &projects); err != nil {
 		return nil, err
 	}
-	h.Events = evs.V
+	h.Events, h.ProjectIDs = evs.V, projects.V
 	if enc != "" {
 		s, err := m.box.OpenString(settings.PurposeWebhook, enc)
 		if err != nil {
@@ -243,7 +245,7 @@ func (m *Module) scanHook(row interface{ Scan(...any) error }) (*hook, error) {
 
 // loadActive loads one webhook if it is active (retry path).
 func (m *Module) loadActive(ctx context.Context, id string) (*hook, error) {
-	row := m.db.Read().QueryRowContext(ctx, `SELECT id, name, url, secret_enc, events, include_internal, consecutive_failures FROM webhooks WHERE id = ? AND active`, id)
+	row := m.db.Read().QueryRowContext(ctx, `SELECT id, name, url, secret_enc, events, include_internal, consecutive_failures, project_ids FROM webhooks WHERE id = ? AND active`, id)
 	h, err := m.scanHook(row)
 	if err != nil {
 		return nil, store.NotFound(err)
@@ -252,6 +254,12 @@ func (m *Module) loadActive(ctx context.Context, id string) (*hook, error) {
 }
 
 func (h *hook) wants(typ string) bool { return slices.Contains(h.Events, typ) }
+
+// inScope reports whether the event's ticket is in the webhook's projects
+// (D-20; no project filter = every project).
+func (h *hook) inScope(e events.Event) bool {
+	return len(h.ProjectIDs) == 0 || slices.Contains(h.ProjectIDs, e.Snapshot.Project())
+}
 
 // retryPayload is the deferred_jobs payload of JobDeliver.
 type retryPayload struct {

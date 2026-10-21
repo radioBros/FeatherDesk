@@ -2,7 +2,7 @@
 {{define "subject"}}All child tickets resolved: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hello {{.RecipientName}},
 
-all child tickets of **#{{.Ticket.Number}} {{.Ticket.Subject}}** are now resolved. You may want to resolve the parent ticket too.
+all child tickets of **{{.Ticket.Ref}} {{.Ticket.Subject}}** are now resolved. You may want to resolve the parent ticket too.
 
 [Open the ticket]({{.Ticket.URL}})
 {{end}}

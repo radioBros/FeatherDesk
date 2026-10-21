@@ -4,6 +4,7 @@ package authn
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -53,8 +54,43 @@ func userJSON(ctx context.Context, q store.Querier, u userRow) (map[string]any, 
 			return nil, err
 		}
 		out["team_ids"] = teams
+		projects, current, err := projectMemberships(ctx, q, u.ID)
+		if err != nil {
+			return nil, err
+		}
+		out["projects"], out["current_project_id"] = projects, current
 	}
 	return out, nil
+}
+
+// projectMemberships returns the user's project memberships (D-20) as
+// ProjectMembership objects and the persisted project switcher choice.
+func projectMemberships(ctx context.Context, q store.Querier, userID string) ([]map[string]string, *string, error) {
+	rows, err := q.QueryContext(ctx, `SELECT project_id, role FROM project_members WHERE user_id = ? ORDER BY project_id`, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+	out := []map[string]string{}
+	for rows.Next() {
+		var pid, role string
+		if err := rows.Scan(&pid, &role); err != nil {
+			rows.Close()
+			return nil, nil, err
+		}
+		out = append(out, map[string]string{"project_id": pid, "role": role})
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
+	}
+	var cur sql.NullString
+	if err := q.QueryRowContext(ctx, `SELECT current_project_id FROM users WHERE id = ?`, userID).Scan(&cur); err != nil {
+		return nil, nil, err
+	}
+	if !cur.Valid {
+		return out, nil, nil
+	}
+	return out, &cur.String, nil
 }
 
 func teamIDs(ctx context.Context, q store.Querier, userID string) ([]string, error) {
@@ -105,6 +141,13 @@ func (m *Module) meJSON(ctx context.Context, q store.Querier, u userRow, idHash 
 		return nil, err
 	}
 	p := &domain.Principal{UserID: u.ID, Kind: u.Kind, Role: u.Role, Tier: int(u.Tier.Int64), Scopes: scopes}
+	if ms, ok := out["projects"].([]map[string]string); ok {
+		for _, m := range ms {
+			if m["role"] == string(domain.ProjectAdmin) {
+				p.AdminProjects = append(p.AdminProjects, m["project_id"])
+			}
+		}
+	}
 	out["csrf_token"] = ""
 	if idHash != "" {
 		out["csrf_token"] = m.csrfFor(idHash)
@@ -180,6 +223,28 @@ type mePatch struct {
 	NewPassword        *string                         `json:"new_password"`
 	NotificationOptOut *[]string                       `json:"notification_opt_out"`
 	NotificationPrefs  map[string]notify.ChannelsPatch `json:"notification_prefs"` // NOT-037
+	// CurrentProjectID is the agent panel's project switcher (D-20), staff
+	// only: a project id, or null for "All projects".
+	CurrentProjectID optProject `json:"current_project_id"`
+}
+
+// optProject distinguishes an absent current_project_id from null.
+type optProject struct {
+	Set bool
+	ID  *string
+}
+
+func (o *optProject) UnmarshalJSON(b []byte) error {
+	o.Set = true
+	if string(b) == "null" {
+		return nil
+	}
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	o.ID = &s
+	return nil
 }
 
 func (m *Module) handlePatchMe(w http.ResponseWriter, r *http.Request) {
@@ -213,6 +278,17 @@ func (m *Module) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.NotificationPrefs != nil {
 		fields = append(fields, notify.ValidatePrefs(string(u.Kind), in.NotificationPrefs)...)
+	}
+	if in.CurrentProjectID.Set && in.CurrentProjectID.ID != nil {
+		var one int
+		switch {
+		case !p.IsStaff():
+			fields = append(fields, problems.Field("current_project_id", "staff", "only staff have a project switcher"))
+		case m.d.DB.Read().QueryRowContext(ctx, `SELECT 1 FROM projects WHERE id = ?`, *in.CurrentProjectID.ID).Scan(&one) != nil:
+			fields = append(fields, problems.Field("current_project_id", "not_found", "unknown project"))
+		case !p.InProject(*in.CurrentProjectID.ID):
+			fields = append(fields, problems.Field("current_project_id", "not_allowed", "you are not a member of this project"))
+		}
 	}
 	var newHash string
 	if in.NewPassword != nil {
@@ -259,6 +335,11 @@ func (m *Module) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 		}
 		if in.Locale != nil {
 			if _, err := tx.ExecContext(ctx, `UPDATE users SET locale = ?, updated_at = ? WHERE id = ?`, *in.Locale, now, u.ID); err != nil {
+				return err
+			}
+		}
+		if in.CurrentProjectID.Set && p.IsStaff() {
+			if _, err := tx.ExecContext(ctx, `UPDATE users SET current_project_id = ? WHERE id = ?`, in.CurrentProjectID.ID, u.ID); err != nil {
 				return err
 			}
 		}

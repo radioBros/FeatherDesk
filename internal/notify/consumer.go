@@ -325,7 +325,7 @@ func (c *evCtx) staffView() StaffTicketView {
 	if team == "" {
 		team = "—"
 	}
-	return StaffTicketView{ID: c.e.TicketID, Number: s.Number, Subject: s.Subject, Priority: s.Priority, Status: s.Status,
+	return StaffTicketView{ID: c.e.TicketID, Number: s.Number, Ref: viewRef(s.Ref, s.Number), Subject: s.Subject, Priority: s.Priority, Status: s.Status,
 		TierLabel: c.m.tierLabel(c.support, s.Tier), TeamName: team, RequesterName: c.reqName, URL: c.m.agentURL + "/tickets/" + c.e.TicketID}
 }
 
@@ -338,7 +338,7 @@ func (c *evCtx) data(t Target) (branded, error) {
 	e, s := c.e, c.e.Snapshot
 	name := t.R.Name
 	if strings.HasPrefix(t.Key, "customer.") {
-		d := &CustomerData{RecipientName: name, Ticket: CustomerTicketView{Number: s.Number, Subject: s.Subject, URL: c.m.portalURL + "/tickets/" + e.TicketID}}
+		d := &CustomerData{RecipientName: name, Ticket: CustomerTicketView{Number: s.Number, Ref: viewRef(s.Ref, s.Number), Subject: s.Subject, URL: c.m.portalURL + "/tickets/" + e.TicketID}}
 		switch t.Key {
 		case TplCustomerReply:
 			if c.msg == nil || c.msg.Kind != "public" {

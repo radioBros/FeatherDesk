@@ -37,12 +37,14 @@ import {
   mdiHelpCircleOutline,
   mdiTicketOutline,
   mdiMonitorCellphone,
+  mdiFolderMultipleOutline,
 } from '@mdi/js'
 import type { Section } from './palette'
 
 export interface SectionMeta { icon: string; section: Section }
 
 export const ADMIN_META: Record<string, SectionMeta> = {
+  '/agent/admin/projects': { icon: mdiFolderMultipleOutline, section: 'projects' },
   '/agent/admin/teams': { icon: mdiAccountGroupOutline, section: 'teams' },
   '/agent/admin/staff': { icon: mdiBadgeAccountOutline, section: 'teams' },
   '/agent/admin/privacy': { icon: mdiShieldLockOutline, section: 'privacy' },

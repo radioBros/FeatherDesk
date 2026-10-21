@@ -5,6 +5,7 @@ package tickets
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/radioBros/SimpleTickets/internal/authz"
 	"github.com/radioBros/SimpleTickets/internal/domain"
@@ -42,6 +43,38 @@ func (s *Service) StaffTicket(ctx context.Context, p *domain.Principal, id strin
 	return s.staffDetail(ctx, q, p, t)
 }
 
+// TicketIDByRef resolves a KEY-123 reference (D-20) to a ticket id. It does
+// not check visibility: callers load the ticket through the visibility
+// predicate next, so an invisible and an unknown ref are the same 404.
+func (s *Service) TicketIDByRef(ctx context.Context, ref string) (string, error) {
+	key, seq, ok := domain.ParseTicketRef(ref)
+	if !ok {
+		return "", problems.NotFound()
+	}
+	pr, err := s.dir.ResolveProject(ctx, key)
+	if err != nil {
+		return "", problems.NotFound()
+	}
+	var id string
+	err = s.db.Read().QueryRowContext(ctx, `SELECT id FROM tickets WHERE project_id = ? AND project_seq = ?`, pr.ID, seq).Scan(&id)
+	if err != nil {
+		if errors.Is(store.NotFound(err), store.ErrNotFound) {
+			return "", problems.NotFound()
+		}
+		return "", err
+	}
+	return id, nil
+}
+
+// StaffTicketByRef is StaffTicket by KEY-123 reference (D-20).
+func (s *Service) StaffTicketByRef(ctx context.Context, p *domain.Principal, ref string) (*ticketDTO, error) {
+	id, err := s.TicketIDByRef(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.StaffTicket(ctx, p, id)
+}
+
 // StaffTicketByNumber is StaffTicket by human number.
 func (s *Service) StaffTicketByNumber(ctx context.Context, p *domain.Principal, n int64) (*ticketDTO, error) {
 	q := s.db.Read()
@@ -54,7 +87,9 @@ func (s *Service) StaffTicketByNumber(ctx context.Context, p *domain.Principal, 
 
 func (s *Service) staffDetail(ctx context.Context, q store.Querier, p *domain.Principal, t *ticketRow) (*ticketDTO, error) {
 	now := s.clock()
+	s.fillKey(ctx, t)
 	d := &ticketDTO{ticketSummaryDTO: t.summary(now), etag: t.etag()}
+	d.Project = s.dir.ProjectRefOf(ctx, t.ProjectID)
 	d.FirstRespondedAt = nullTimePtr(t.FirstRespondedAt.Valid, t.FirstRespondedAt.Time)
 	d.ResolvedAt = nullTimePtr(t.ResolvedAt.Valid, t.ResolvedAt.Time)
 	d.ClosedAt = nullTimePtr(t.ClosedAt.Valid, t.ClosedAt.Time)
@@ -208,8 +243,10 @@ func (s *Service) minimalStaffTicket(ctx context.Context, id string) (*ticketDTO
 	if err != nil {
 		return nil, err
 	}
+	s.fillKey(ctx, t)
 	d := &ticketDTO{ticketSummaryDTO: t.summary(s.clock()), Messages: []messageDTO{}, AllowedActions: []string{},
 		Attachments: []attachmentDTO{}, Watchers: []userRef{}, Links: []linkDTO{}, etag: t.etag()}
+	d.Project = s.dir.ProjectRefOf(ctx, t.ProjectID)
 	// Team, tier and assignee are exactly what the caller lost access to.
 	if r, ok := refs[t.RequesterID]; ok {
 		d.Requester = r

@@ -14,7 +14,10 @@ import (
 //
 // specCells lists every ✅/❌/◐ cell of the spec, reviewed against it:
 //   - §3 staff action matrix: 21 rows × 5 columns (L1, L2, L3, supervisor, admin)
-//   - §3 staff administration matrix: 10 rows × 3 columns (agent, supervisor, admin)
+//   - §3 staff administration matrix: 11 rows × 3 columns (agent, supervisor, admin)
+//   - §3 project administration matrix (D-20): 10 rows × 5 columns (member,
+//     project_admin, other project's admin, supervisor, admin)
+//   - I-11 project visibility (D-20): 5 rows × 3 columns (agent, supervisor, admin)
 //   - §4 customer action matrix: 11 rows × 2 columns (requester, org_manager)
 //   - I-9 custom fields: see/edit × staff/customer
 //   - I-10 KB: 3 audiences × 3 visibilities × published/draft
@@ -23,7 +26,7 @@ import (
 // at least one row, and ◐ cells have rows for both outcomes of their
 // condition. matrixRows is the reviewed row count: changing the spec means
 // changing specCells, the rows and this constant together.
-const matrixRows = 367
+const matrixRows = 478
 
 var staffActionRows = []string{
 	"read", "reply", "note", "set_status", "set_priority", "category_tags", "assign_self", "assign_other", "unassign",
@@ -33,8 +36,15 @@ var staffActionRows = []string{
 
 var adminRows = []string{
 	"customers_orgs", "create_customer", "teams", "support_config", "kb", "custom_fields_inbound_storage",
-	"staff_users", "instance_settings", "webhooks_tokens_audit_jobs", "reports",
+	"staff_users", "instance_settings", "webhooks_tokens_audit_jobs", "reports", "projects",
 }
+
+// projectAdminCols are the columns of the project administration matrix.
+var projectAdminCols = []string{"member", "project_admin", "other_project_admin", "supervisor", "admin"}
+
+// i11Rows are the rows of the I-11 table: an agent outside the ticket's
+// project sees nothing, whatever the other rules say.
+var i11RowNames = []string{"in_project_team", "outside_project_team", "outside_project_assignee", "outside_project_watcher", "outside_project_triage"}
 
 var customerActionRows = []string{
 	"create", "list", "read_public", "reply", "priority_on_create", "resolve", "reopen_resolved", "reply_closed",
@@ -57,6 +67,16 @@ func specCells() []string {
 	for _, r := range customerActionRows {
 		for _, k := range []domain.Role{domain.RoleRequester, domain.RoleOrgManager} {
 			out = append(out, "customer-action/"+r+"/"+string(k))
+		}
+	}
+	for _, r := range authzProjectConfigs() {
+		for _, k := range projectAdminCols {
+			out = append(out, "project-admin/"+r+"/"+k)
+		}
+	}
+	for _, r := range i11RowNames {
+		for _, k := range []string{"agent", "supervisor", "admin"} {
+			out = append(out, "I-11/"+r+"/"+k)
 		}
 	}
 	for _, op := range []string{"see", "edit"} {
@@ -83,7 +103,79 @@ var adminCellOf = map[AdminResource]string{
 	ResCustomFields: "custom_fields_inbound_storage", ResInboundMailboxes: "custom_fields_inbound_storage", ResStorage: "custom_fields_inbound_storage",
 	ResStaffUsers: "staff_users", ResSettings: "instance_settings", ResBranding: "instance_settings", ResTierLabels: "instance_settings",
 	ResWebhooks: "webhooks_tokens_audit_jobs", ResAllTokens: "webhooks_tokens_audit_jobs", ResAuditLog: "webhooks_tokens_audit_jobs",
-	ResDeadJobs: "webhooks_tokens_audit_jobs", ResReports: "reports", ResOwnStats: "reports",
+	ResDeadJobs: "webhooks_tokens_audit_jobs", ResReports: "reports", ResOwnStats: "reports", ResProjects: "projects",
+}
+
+func authzProjectConfigs() []string {
+	out := make([]string, len(ProjectConfigs))
+	for i, r := range ProjectConfigs {
+		out[i] = string(r)
+	}
+	return out
+}
+
+// projectAdminRows: the project administration matrix (D-20). Each resource
+// is checked in project P (the project admin's) and, for supervisors and
+// admins, globally too; a project admin is also checked on the global
+// configuration and on another project (both denied).
+func projectAdminRows() []tmRow {
+	const pP, pQ = "proj-p", "proj-q"
+	member := &domain.Principal{UserID: "pm", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 3, Projects: []string{pP}}
+	padm := &domain.Principal{UserID: "pa", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1, Projects: []string{pP}, AdminProjects: []string{pP}}
+	other := &domain.Principal{UserID: "po", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 3, Projects: []string{pQ}, AdminProjects: []string{pQ}}
+	padmTok := &domain.Principal{UserID: "pt", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1, Projects: []string{pP}, AdminProjects: []string{pP},
+		TokenID: "t", Scopes: []string{domain.ScopeTicketsWrite}}
+	var rows []tmRow
+	for _, res := range ProjectConfigs {
+		res := res
+		lead := res != PCMembers && res != PCLifecycle
+		add := func(col, name string, p *domain.Principal, project string, want bool) {
+			rows = append(rows, tmRow{cell: "project-admin/" + string(res) + "/" + col, name: "project-admin/" + string(res) + "/" + name,
+				who: p, ok: func() bool { return CanProjectConfig(p, res, project) == nil }, want: want})
+		}
+		add("member", "member", member, pP, false)
+		add("project_admin", "project_admin", padm, pP, lead)
+		add("project_admin", "project_admin-global", padm, "", false)
+		add("project_admin", "project_admin-token-without-admin", padmTok, pP, false)
+		add("other_project_admin", "other_project_admin", other, pP, false)
+		add("supervisor", "supervisor", tmSup, pP, true)
+		add("supervisor", "supervisor-global", tmSup, "", true)
+		add("admin", "admin", tmAdm, pP, true)
+		add("admin", "admin-global", tmAdm, "", true)
+	}
+	return rows
+}
+
+// i11Rows: I-11 (D-20), agents see only tickets of their projects; admins
+// and supervisors see every project. The SQL predicate is checked against
+// CanSeeTicket by TestCanRead_AgreesWithVisibilityPredicate.
+func i11Rows() []tmRow {
+	const pOther = "proj-other"
+	in := tmTk()                                              // team A, tier 1, Default project
+	out := tmTk(func(v *TicketView) { v.ProjectID = pOther }) // same, another project
+	asg := tmTk(func(v *TicketView) { v.ProjectID, v.TeamID, v.AssigneeID = pOther, tmTeamB, tmL3.UserID })
+	wat := tmTk(func(v *TicketView) { v.ProjectID, v.TeamID, v.Watchers = pOther, tmTeamB, []string{tmL3.UserID} })
+	tri := tmTk(func(v *TicketView) { v.ProjectID, v.TeamID = pOther, "" })
+	cases := []struct {
+		row  string
+		v    TicketView
+		want bool
+	}{{"in_project_team", in, true}, {"outside_project_team", out, false}, {"outside_project_assignee", asg, false},
+		{"outside_project_watcher", wat, false}, {"outside_project_triage", tri, false}}
+	var rows []tmRow
+	for _, c := range cases {
+		v := c.v
+		for _, w := range []struct {
+			col  string
+			p    *domain.Principal
+			want bool
+		}{{"agent", tmL3, c.want}, {"supervisor", tmSup, true}, {"admin", tmAdm, true}} {
+			p := w.p
+			rows = append(rows, tmRow{cell: "I-11/" + c.row + "/" + w.col, name: "I-11/" + c.row + "/" + w.col,
+				who: p, ok: func() bool { return CanSeeTicket(p, v) }, want: w.want})
+		}
+	}
+	return rows
 }
 
 // adminMatrixRows: the §3 staff administration matrix (amMatrix in
@@ -181,6 +273,8 @@ func allMatrixRows() []tmRow {
 	rows = append(rows, tmStaffMatrix()...)
 	rows = append(rows, tmCustomerMatrix()...)
 	rows = append(rows, adminMatrixRows()...)
+	rows = append(rows, projectAdminRows()...)
+	rows = append(rows, i11Rows()...)
 	rows = append(rows, i9Rows()...)
 	rows = append(rows, i10Rows()...)
 	return rows
@@ -197,7 +291,7 @@ func TestPermissionMatrix(t *testing.T) {
 	for _, c := range specCells() {
 		cells[c] = 0
 	}
-	if len(cells) != 21*5+10*3+11*2+4+18 {
+	if len(cells) != 21*5+11*3+10*5+5*3+11*2+4+18 {
 		t.Fatalf("specCells lists %d cells", len(cells))
 	}
 	seen := map[string]bool{}

@@ -13,7 +13,8 @@ import (
 	"github.com/radioBros/SimpleTickets/internal/domain"
 )
 
-// Resources: ticket://{number} (the ticket as get_ticket returns it, JSON)
+// Resources: ticket://{ref} (KEY-123, D-20; the ticket as get_ticket returns
+// it, JSON; ticket://{number} still resolves)
 // and kb://{slug} (the article as Markdown). Both read through the same REST
 // routes as the tools, so a resource is visible exactly when the REST object
 // is (customers get the portal view: public messages only).
@@ -26,7 +27,7 @@ const (
 
 func resourceTemplates() []map[string]any {
 	return []map[string]any{
-		{"uriTemplate": schemeTicket + "{number}", "name": "ticket", "title": "Ticket",
+		{"uriTemplate": schemeTicket + "{ref}", "name": "ticket", "title": "Ticket",
 			"description": "A ticket you can see, with its conversation (JSON, the get_ticket shape).", "mimeType": "application/json"},
 		{"uriTemplate": schemeKB + "{slug}", "name": "kb-article", "title": "Knowledge base article",
 			"description": "A knowledge base article you may read, as Markdown.", "mimeType": "text/markdown"},
@@ -46,6 +47,7 @@ func (h *Handler) listResources(r *http.Request, c *caller) (map[string]any, *rp
 		var page struct {
 			Items []struct {
 				Number  int64  `json:"number"`
+				Ref     string `json:"ref"`
 				Subject string `json:"subject"`
 				Status  string `json:"status"`
 			} `json:"items"`
@@ -54,8 +56,8 @@ func (h *Handler) listResources(r *http.Request, c *caller) (map[string]any, *rp
 			return nil, internalError(h, r, err)
 		}
 		for _, t := range page.Items {
-			out = append(out, map[string]any{"uri": fmt.Sprintf("%s%d", schemeTicket, t.Number), "name": fmt.Sprintf("ticket-%d", t.Number),
-				"title": fmt.Sprintf("#%d %s", t.Number, t.Subject), "description": "Status: " + t.Status, "mimeType": "application/json"})
+			out = append(out, map[string]any{"uri": schemeTicket + t.Ref, "name": "ticket-" + t.Ref,
+				"title": t.Ref + " " + t.Subject, "description": "Status: " + t.Status, "mimeType": "application/json"})
 		}
 	}
 	var kb struct {
@@ -103,7 +105,8 @@ func (h *Handler) readResource(r *http.Request, c *caller, version string, m *me
 	switch {
 	case strings.HasPrefix(p.URI, schemeTicket):
 		ref := ticketArg(strings.TrimPrefix(p.URI, schemeTicket))
-		if _, ok := ref.number(); !ok {
+		_, isRef := ref.ref()
+		if _, ok := ref.number(); !ok && !isRef {
 			return nil, notFound()
 		}
 		t, err := c.getTicket(ctx, ref)

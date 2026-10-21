@@ -31,8 +31,8 @@ const FIELDS = [
   def('serial', { category_ids: ['c2'] }),
 ]
 const CATEGORIES = [
-  { id: 'c1', name: 'Billing', active: true, sort: 1 },
-  { id: 'c2', name: 'Hardware', active: true, sort: 2 },
+  { id: 'c1', name: 'Billing', active: true, sort: 1, project_id: 'p-web' },
+  { id: 'c2', name: 'Hardware', active: true, sort: 2, project_id: 'p-web' },
 ]
 
 describe('custom fields in the portal (FE-054)', () => {

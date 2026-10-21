@@ -40,6 +40,9 @@ const (
 	ResCustomerInvite    AdminResource = "customer_invite"    // create customer / invite
 	ResStaffDirectory    AdminResource = "staff_directory"    // staff lookups for pickers
 	ResCustomFieldLookup AdminResource = "custom_field_lookup"
+	// ResProjects: create, delete and membership of projects (D-20).
+	// Per-project configuration is decided by Principal.AdminsProject.
+	ResProjects AdminResource = "projects"
 )
 
 // AdminOp is read or write on an AdminResource.
@@ -89,6 +92,7 @@ var adminMatrix = map[AdminResource]adminRule{
 	ResDeadJobs:          {domain.RoleAdmin, domain.RoleAdmin, domain.ScopeAdmin, domain.ScopeAdmin},
 	ResReports:           {domain.RoleSupervisor, "", domain.ScopeTicketsRead, ""},
 	ResOwnStats:          {domain.RoleAgent, "", domain.ScopeTicketsRead, ""},
+	ResProjects:          {domain.RoleSupervisor, domain.RoleSupervisor, domain.ScopeAdmin, domain.ScopeAdmin},
 }
 
 // AdminResources lists every resource of the matrix (tests iterate it).
@@ -157,8 +161,57 @@ func AllowedAreas(p *domain.Principal) []string {
 		return []string{"agent", "admin"}
 	case p.IsSupervisorOrAdmin():
 		return []string{"agent", "support_admin"}
+	case p.IsStaff() && len(p.AdminProjects) > 0:
+		// D-20: the configuration pages of the projects they administer.
+		return []string{"agent", "project_admin"}
 	case p.IsStaff():
 		return []string{"agent"}
 	}
 	return []string{}
+}
+
+// ProjectConfig is a project-scoped configuration resource (D-20,
+// permissions_spec §3 "Project administration matrix").
+type ProjectConfig string
+
+const (
+	PCCategories   ProjectConfig = "categories"
+	PCTeamMapping  ProjectConfig = "team_mapping"
+	PCSLA          ProjectConfig = "sla"
+	PCKBCategories ProjectConfig = "kb_categories"
+	PCAutomation   ProjectConfig = "automation"
+	PCMacros       ProjectConfig = "macros"
+	PCCanned       ProjectConfig = "canned"
+	PCPortal       ProjectConfig = "portal_settings"
+	PCMembers      ProjectConfig = "members"
+	PCLifecycle    ProjectConfig = "create_delete"
+)
+
+// ProjectConfigs lists every project configuration resource (tests iterate it).
+var ProjectConfigs = []ProjectConfig{PCCategories, PCTeamMapping, PCSLA, PCKBCategories, PCAutomation, PCMacros, PCCanned,
+	PCPortal, PCMembers, PCLifecycle}
+
+// CanProjectConfig decides a change of res in project projectID ("" =
+// global configuration). Supervisors and admins may change anything; a
+// project admin only the configuration of the projects they administer, and
+// never the membership, creation or deletion of projects or anything global.
+// A PAT additionally needs the admin scope (the routes' x-scopes).
+func CanProjectConfig(p *domain.Principal, res ProjectConfig, projectID string) error {
+	if !p.IsStaff() {
+		return ErrAdminDenied
+	}
+	if !HasAnyScope(p, domain.ScopeAdmin) {
+		return ErrAdminDenied
+	}
+	if p.IsSupervisorOrAdmin() {
+		return nil
+	}
+	switch res {
+	case PCMembers, PCLifecycle:
+		return ErrAdminDenied
+	}
+	if projectID == "" || !p.AdminsProject(projectID) {
+		return ErrAdminDenied
+	}
+	return nil
 }

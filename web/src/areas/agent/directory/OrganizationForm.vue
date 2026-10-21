@@ -7,15 +7,18 @@ import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import { eachItem } from './rules'
 import type { components } from '@/api/schema'
+import ProjectMultiSelect from '@/components/ProjectMultiSelect.vue'
+import type { ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
-const props = defineProps<{ organization?: S['Organization'] | null }>()
+const props = defineProps<{ organization?: S['Organization'] | null; projects?: ProjectOption[] }>()
 const emit = defineEmits<{ saved: [S['Organization']]; cancel: [] }>()
 
 const model = reactive({
   name: props.organization?.name ?? '',
   email_domains: [...(props.organization?.email_domains ?? [])] as string[],
   notes: props.organization?.notes ?? '',
+  project_ids: [...(props.organization?.project_ids ?? [])] as string[],
   status: (props.organization?.status ?? 'active') as 'active' | 'archived',
 })
 const domainRules = [eachItem(validations.domain)]
@@ -26,7 +29,7 @@ function normalise(list: string[]) {
 }
 
 const onSave = submit(async () => {
-  const base = { name: model.name.trim(), email_domains: normalise(model.email_domains), notes: model.notes }
+  const base = { name: model.name.trim(), email_domains: normalise(model.email_domains), notes: model.notes, ...(props.projects?.length ? { project_ids: model.project_ids } : {}) }
   const saved = props.organization
     ? await unwrap(
         api.PATCH('/agent/organizations/{id}', {
@@ -69,6 +72,15 @@ const onSave = submit(async () => {
       rows="3"
       auto-grow
       class="mt-2"
+    />
+    <ProjectMultiSelect
+      v-if="projects?.length"
+      v-model="model.project_ids"
+      :projects="projects"
+      :label="$t('projects.config.projects')"
+      :hint="$t('projects.config.orgHint')"
+      :error-messages="fieldErrors.project_ids"
+      testid="org-projects"
     />
     <v-select
       v-if="organization"

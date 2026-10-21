@@ -91,4 +91,46 @@ describe('formatMinutes', () => {
     expect(formatMinutes(200, t)).toBe('3 h 20 min')
     expect(formatMinutes(3000, t)).toBe('2 d 2 h')
   })
+
+  describe('projects (D-20)', () => {
+    const projects = [fx.project(), fx.project({ id: 'p-mob', key: 'MOB', name: 'Mobile', color: '#e91e63' })]
+    const byProject = [
+      { project_id: 'p-web', key: 'WEB', name: 'Web App', created: 70, resolved: 60 },
+      { project_id: 'p-mob', key: 'MOB', name: 'Mobile', created: 50, resolved: 38 },
+    ]
+
+    it('shows the by-project chart and table and a project filter', async () => {
+      const h = await mountAgent(ReportsPage, {
+        me: fx.me('supervisor'),
+        api: { 'GET /agent/projects': projects, 'GET /agent/reports/summary': { ...report, by_project: byProject } },
+      })
+      await h.flush()
+      expect(h.calls('GET /agent/reports/summary')[0]!.url.searchParams.get('project')).toBeNull()
+      const box = byTestId('reports-by-project')!
+      expect(box.querySelectorAll('[data-testid="chart-bar"]')).toHaveLength(4)
+      expect(byTestId('reports-project-table')!.textContent).toContain('Mobile')
+      expect(byTestId('reports-project')).toBeTruthy()
+    })
+
+    it('sends the switcher project and hides the breakdown when filtered', async () => {
+      const h = await mountAgent(ReportsPage, {
+        me: fx.me('supervisor', 1, { current_project_id: 'p-mob' }),
+        api: { 'GET /agent/projects': projects, 'GET /agent/reports/summary': { ...report, project_id: 'p-mob', by_project: [byProject[1]] } },
+      })
+      await h.flush()
+      expect(h.calls('GET /agent/reports/summary')[0]!.url.searchParams.get('project')).toBe('p-mob')
+      expect(byTestId('reports-by-project')).toBeNull()
+      expect(byTestId('reports-applied-project')!.textContent).toContain('MOB')
+    })
+
+    it('hides the project select with a single project', async () => {
+      const h = await mountAgent(ReportsPage, {
+        me: fx.me('supervisor'),
+        api: { 'GET /agent/projects': [projects[0]], 'GET /agent/reports/summary': { ...report, by_project: [byProject[0]] } },
+      })
+      await h.flush()
+      expect(byTestId('reports-project')).toBeNull()
+      expect(byTestId('reports-by-project')).toBeNull()
+    })
+  })
 })

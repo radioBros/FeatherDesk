@@ -3,7 +3,7 @@
 {{define "subject"}}Ihnen zugewiesen: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hallo {{.RecipientName}},
 
-{{.ActorName}} hat Ihnen das Ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** zugewiesen.
+{{.ActorName}} hat Ihnen das Ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** zugewiesen.
 
 - **Betreff:** {{.Ticket.Subject}}
 - **Priorität:** {{.Ticket.Priority}}

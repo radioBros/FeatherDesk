@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/radioBros/SimpleTickets/internal/blob"
+	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/mailin/parse"
 	"github.com/radioBros/SimpleTickets/internal/notify/thread"
 	"github.com/radioBros/SimpleTickets/internal/store"
@@ -181,6 +182,10 @@ func (m *Module) setOutcome(ctx context.Context, id string, o outcome) error {
 
 var subjectNumber = regexp.MustCompile(`\[#(\d{1,12})\]`)
 
+// subjectRef matches the D-20 reference tag "[KEY-123]" (any letter case:
+// mail clients and people retype subjects).
+var subjectRef = regexp.MustCompile(`\[([A-Za-z][A-Za-z0-9]{1,9}-[1-9]\d{0,11})\]`)
+
 func (m *Module) run(ctx context.Context, r *inboundRow, retry bool) (outcome, error) {
 	mb, err := m.getMailbox(ctx, r.MailboxID)
 	if err != nil {
@@ -310,7 +315,7 @@ func (m *Module) run(ctx context.Context, r *inboundRow, retry bool) (outcome, e
 		subject = string([]rune(subject)[:200])
 	}
 	er, err := sink.CreateFromEmail(ctx, EmailTicket{
-		InboundMessageID: r.ID, MailboxID: mb.ID, TeamID: m.effectiveTeam(ctx, mb), RequesterID: snd.UserID,
+		InboundMessageID: r.ID, MailboxID: mb.ID, TeamID: m.effectiveTeam(ctx, mb), ProjectID: mb.ProjectID, RequesterID: snd.UserID,
 		CCUserIDs: m.ccUsers(ctx, msg, snd), Subject: subject, BodyMD: body, Attachments: atts,
 	})
 	if err != nil {
@@ -369,10 +374,10 @@ type ticketRef struct {
 	ID, RequesterID, OrgID string
 }
 
-func (m *Module) loadTicket(ctx context.Context, where string, arg any) (*ticketRef, error) {
+func (m *Module) loadTicket(ctx context.Context, where string, args ...any) (*ticketRef, error) {
 	var t ticketRef
 	var org sql.NullString
-	err := m.d.DB.Read().QueryRowContext(ctx, `SELECT id, requester_id, organization_id FROM tickets WHERE `+where, arg).Scan(&t.ID, &t.RequesterID, &org)
+	err := m.d.DB.Read().QueryRowContext(ctx, `SELECT id, requester_id, organization_id FROM tickets WHERE `+where, args...).Scan(&t.ID, &t.RequesterID, &org)
 	if err != nil {
 		if errors.Is(store.NotFound(err), store.ErrNotFound) {
 			return nil, nil
@@ -463,7 +468,21 @@ func (m *Module) findTicket(ctx context.Context, msg *parse.Message, s *Sender, 
 			}
 		}
 	}
-	// 3. "[#n]" in the subject, sender must be requester or watcher.
+	// 3. "[KEY-123]" (D-20) or "[#n]" in the subject, sender must be
+	// requester or watcher.
+	for _, mm := range subjectRef.FindAllStringSubmatch(msg.Subject, 3) {
+		key, seq, ok := domain.ParseTicketRef(mm[1])
+		if !ok {
+			continue
+		}
+		t, err := m.loadTicket(ctx, `project_id = (SELECT id FROM projects WHERE key = ?) AND project_seq = ?`, key, seq)
+		if err != nil {
+			return "", err
+		}
+		if id, err := try(t); err != nil || id != "" {
+			return id, err
+		}
+	}
 	if mm := subjectNumber.FindStringSubmatch(msg.Subject); mm != nil {
 		n, _ := strconv.ParseInt(mm[1], 10, 64)
 		t, err := m.loadTicket(ctx, `number = ?`, n)

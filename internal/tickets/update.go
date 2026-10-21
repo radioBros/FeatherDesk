@@ -55,11 +55,12 @@ type PatchInput struct {
 	Subject      optStr         `json:"subject"`
 	Tags         *[]string      `json:"tags"`
 	CustomFields map[string]any `json:"custom_fields"`
+	ProjectID    optStr         `json:"project_id"` // D-20: move to another project
 }
 
 func (in PatchInput) empty() bool {
 	return !in.Status.Set && !in.Priority.Set && !in.CategoryID.Set && !in.TeamID.Set && !in.AssigneeID.Set &&
-		!in.Subject.Set && in.Tags == nil && in.CustomFields == nil
+		!in.Subject.Set && in.Tags == nil && in.CustomFields == nil && !in.ProjectID.Set
 }
 
 // pendingEvent is emitted after the row is saved, so every snapshot carries
@@ -140,6 +141,14 @@ func (s *Service) Patch(ctx context.Context, p *domain.Principal, id string, in 
 		need := func(a authz.Action) error { return authz.Can(p, a, t.view(pol, now)) }
 		origTeam, origAssignee := t.TeamID, t.AssigneeID
 
+		if in.ProjectID.Set {
+			if err := need(authz.ActTransfer); err != nil {
+				return err
+			}
+			if err := s.moveProject(ctx, tx, p, m, in.ProjectID.str()); err != nil {
+				return err
+			}
+		}
 		if in.Subject.Set {
 			if err := need(authz.ActEditSubject); err != nil {
 				return err
@@ -178,8 +187,12 @@ func (s *Service) Patch(ctx context.Context, p *domain.Principal, id string, in 
 			}
 			cat := in.CategoryID.str()
 			if cat != "" {
-				if _, err := s.dir.Category(ctx, cat); err != nil {
+				c, err := s.dir.Category(ctx, cat)
+				if err != nil {
 					return problems.Validation(problems.Field("category_id", "not_found", "unknown category"))
+				}
+				if c.ProjectID != t.ProjectID {
+					return problems.Validation(problems.Field("category_id", "wrong_project", "the category belongs to another project"))
 				}
 			}
 			if cat != t.CategoryID {
@@ -295,6 +308,9 @@ func (s *Service) transfer(ctx context.Context, tx *store.Tx, m *mutation, teamI
 		if _, err := s.dir.Team(ctx, teamID); err != nil {
 			return problems.Validation(problems.Field("team_id", "not_found", "unknown team"))
 		}
+		if teamID != t.TeamID && !s.dir.TeamServesProject(ctx, teamID, t.ProjectID) {
+			return problems.Validation(problems.Field("team_id", "wrong_project", "the team does not serve the ticket's project"))
+		}
 	}
 	if teamID == t.TeamID {
 		return nil
@@ -314,7 +330,7 @@ func (s *Service) revalidateAssignee(ctx context.Context, tx *store.Tx, m *mutat
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return err
 	}
-	if err == nil && satisfiesM4(st, t.TeamID, t.Tier) {
+	if err == nil && satisfiesM4(st, t) {
 		return nil
 	}
 	m.add(events.TicketAssigned, events.Assignment{From: t.AssigneeID})
@@ -373,6 +389,8 @@ func (s *Service) checkAssign(ctx context.Context, tx *store.Tx, p *domain.Princ
 		return problems.Validation(problems.Field("assignee_id", "team", "the assignee is not a member of the ticket's team"))
 	case st.EffectiveTier() < t.Tier:
 		return problems.Validation(problems.Field("assignee_id", "tier", "the assignee's tier is below the ticket's tier"))
+	case !st.InProject(t.ProjectID):
+		return problems.Validation(problems.Field("assignee_id", "wrong_project", "the assignee is not a member of the ticket's project"))
 	}
 	return nil
 }
@@ -441,4 +459,56 @@ func ticketTags(ctx context.Context, q store.Querier, ticketID string) ([]string
 		out = append(out, n)
 	}
 	return out, rows.Err()
+}
+
+// moveProject moves the ticket to another project (D-20): the next ref of
+// the target, a category of the old project cleared, a team that does not
+// serve the target replaced by the target's default team (or triage), the
+// assignee re-validated (M-4 includes project membership) and the SLA due
+// dates recomputed with the target's policies.
+func (s *Service) moveProject(ctx context.Context, tx *store.Tx, p *domain.Principal, m *mutation, ref string) error {
+	t := m.t
+	pr, err := s.dir.ResolveProject(ctx, ref)
+	if err != nil {
+		return problems.Validation(problems.Field("project_id", "not_found", "unknown project"))
+	}
+	if pr.ID == t.ProjectID {
+		return nil
+	}
+	switch {
+	case !pr.Active:
+		return problems.Validation(problems.Field("project_id", "inactive", "the project is not active"))
+	case !p.InProject(pr.ID):
+		return problems.Validation(problems.Field("project_id", "not_allowed", "you are not a member of this project"))
+	}
+	seq, err := store.NextProjectSeq(ctx, tx, pr.ID)
+	if err != nil {
+		return err
+	}
+	s.fillKey(ctx, t)
+	change := events.ProjectChange{From: t.ProjectID, To: pr.ID, FromRef: t.Ref()}
+	t.ProjectID, t.ProjectSeq, t.ProjectKey = pr.ID, seq, pr.Key
+	change.ToRef = t.Ref()
+	m.add(events.TicketProjectChanged, change)
+	if t.CategoryID != "" {
+		if c, err := s.dir.Category(ctx, t.CategoryID); err != nil || c.ProjectID != pr.ID {
+			m.add(events.TicketCategoryChanged, events.Change{From: t.CategoryID, To: nil})
+			t.CategoryID = ""
+		}
+	}
+	if t.TeamID != "" && !s.dir.TeamServesProject(ctx, t.TeamID, pr.ID) {
+		team := ""
+		if pr.DefaultTeamID != nil {
+			team = *pr.DefaultTeamID
+		}
+		m.add(events.TicketTeamChanged, events.Change{From: nilIfEmpty(t.TeamID), To: nilIfEmpty(team)})
+		t.TeamID = team
+	}
+	if err := s.revalidateAssignee(ctx, tx, m); err != nil {
+		return err
+	}
+	if t.openish() {
+		return s.computeDue(ctx, t)
+	}
+	return nil
 }

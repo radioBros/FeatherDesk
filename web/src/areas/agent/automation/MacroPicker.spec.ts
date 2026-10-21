@@ -23,6 +23,7 @@ const macro = (extra: Partial<S['Macro']> = {}): S['Macro'] => ({
   status: 'pending',
   priority: null,
   add_tags: ['needs-info'],
+  project_id: null,
   remove_tags: [],
   assignee: null,
   created_at: fx.iso,

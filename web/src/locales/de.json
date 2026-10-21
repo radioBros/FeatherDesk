@@ -23,7 +23,14 @@
     "themeDark": "Dunkel",
     "themeSystem": "System",
     "yes": "Ja",
-    "no": "Nein"
+    "no": "Nein",
+    "columns": {
+      "button": "Spalten",
+      "title": "Spalten auswählen",
+      "locked": "Immer sichtbar",
+      "reset": "Auf Standard zurücksetzen"
+    },
+    "moreCount": "+{n} weitere"
   },
   "validation": {
     "required": "Dieses Feld ist erforderlich",
@@ -104,7 +111,9 @@
     "type": "Dieser Wert hat den falschen Typ",
     "unknown": "Dieses Feld ist unbekannt",
     "unknownTeam": "Dieses Team existiert nicht",
-    "webmail": "Öffentliche Webmail-Domains können nicht verwendet werden"
+    "webmail": "Öffentliche Webmail-Domains können nicht verwendet werden",
+    "projectKey": "2 bis 10 Zeichen: ein Buchstabe, dann Buchstaben oder Ziffern (zum Beispiel WEB)",
+    "wrongProject": "Gehört nicht zum gewählten Projekt"
   },
   "errors": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",

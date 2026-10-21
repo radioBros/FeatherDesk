@@ -653,7 +653,7 @@ func (h *Handler) dispatch(r *http.Request, c *caller, version string, m *messag
 	return nil, newError(codeMethodNotFound, "Method not found: "+m.method)
 }
 
-const instructions = `SimpleTickets is a help desk. Tickets have a number (shown as #1042) and an id; every tool that takes "ticket" accepts either. ` +
+const instructions = `SimpleTickets is a help desk. Tickets belong to projects and have a reference (shown as WEB-12: the project key and a number), a legacy number (#1042) and an id; every tool that takes "ticket" accepts any of them. ` +
 	`You act as the owner of the access token, with their permissions limited by the token's scopes: what you can see and do is exactly what the REST API allows them. ` +
 	`Ticket details list "allowed_actions"; only attempt changes listed there. ` +
 	`reply_to_ticket sends a public reply that the customer sees and is emailed; staff-only remarks belong in add_internal_note. ` +

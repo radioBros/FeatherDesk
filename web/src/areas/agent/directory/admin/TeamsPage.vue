@@ -6,8 +6,12 @@ import { useI18n } from 'vue-i18n'
 import { mdiAccountGroup, mdiAccountGroupOutline, mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import TeamForm from './TeamForm.vue'
 import TeamMembers from './TeamMembers.vue'
+import ProjectCell from '../../shared/ProjectCell.vue'
+import { useConfigProjects } from '../../shared/useConfigProjects'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { useAction } from '../../shared/useAction'
@@ -20,6 +24,7 @@ const { t } = useI18n()
 const { confirm } = useConfirm()
 const { run } = useAction()
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
 const teams = ref<S['Team'][]>([])
 const calendars = ref<S['BusinessCalendar'][]>([])
 const staff = ref<S['User'][]>([])
@@ -84,6 +89,13 @@ async function remove(team: S['Team']) {
     void load()
   }
 }
+const cols = useTableColumns('admin-teams', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
+  { key: 'members', label: t('agent.teams.members'), lowPriority: true },
+  { key: 'notifyMode', label: t('agent.teams.notifyMode'), lowPriority: true },
+  { key: 'calendar', label: t('agent.teams.calendar'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -97,19 +109,22 @@ async function remove(team: S['Team']) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !teams.length" :title="$t('agent.teams.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="team-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="team-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.teams.members') }}</th>
-            <th>{{ $t('agent.teams.notifyMode') }}</th>
-            <th>{{ $t('agent.teams.calendar') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
+            <th v-if="cols.show('members')">{{ $t('agent.teams.members') }}</th>
+            <th v-if="cols.show('notifyMode')">{{ $t('agent.teams.notifyMode') }}</th>
+            <th v-if="cols.show('calendar')">{{ $t('agent.teams.calendar') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="team in teams" :key="team.id" data-testid="team-row">
-            <td>
+            <td v-if="cols.show('name')">
               <div class="d-flex align-center ga-2">
                 <SectionIcon section="teams" :icon="mdiAccountGroupOutline" :size="30" />
                 <div>
@@ -118,12 +133,13 @@ async function remove(team: S['Team']) {
                 </div>
               </div>
             </td>
-            <td>{{ team.member_count ?? '—' }}</td>
-            <td>
+            <td v-if="cols.show('projects')"><ProjectCell :ids="team.project_ids ?? []" /></td>
+            <td v-if="cols.show('members')">{{ team.member_count ?? '—' }}</td>
+            <td v-if="cols.show('notifyMode')">
               {{ $t(`agent.teams.modes.${team.notify_mode}`) }}
               <div v-if="team.notification_email" class="text-caption text-medium-emphasis">{{ team.notification_email }}</div>
             </td>
-            <td>{{ calendarName(team.calendar_id) }}</td>
+            <td v-if="cols.show('calendar')">{{ calendarName(team.calendar_id) }}</td>
             <td class="text-right text-no-wrap">
               <v-btn :icon="mdiAccountGroup" variant="text" size="small" :aria-label="$t('agent.teams.members')" data-testid="team-members-open" @click="openMembers(team)" />
               <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="team-edit" @click="openForm(team)" />
@@ -132,12 +148,13 @@ async function remove(team: S['Team']) {
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="560">
       <v-card :title="editing ? $t('agent.teams.edit') : $t('agent.teams.new')">
         <v-card-text>
-          <TeamForm v-if="dialog" :team="editing" :calendars="calendars" @saved="onSaved" @cancel="dialog = false" />
+          <TeamForm v-if="dialog" :team="editing" :calendars="calendars" :projects="cp.options.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

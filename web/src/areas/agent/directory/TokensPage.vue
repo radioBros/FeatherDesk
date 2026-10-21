@@ -10,6 +10,8 @@ import { useI18n } from 'vue-i18n'
 import { mdiDelete, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import RelativeTime from '@/components/RelativeTime.vue'
 import TokenForm from './TokenForm.vue'
 import SecretOnce from '../shared/SecretOnce.vue'
@@ -62,6 +64,13 @@ async function revoke(tok: S['ApiToken']) {
   }, t('agent.tokens.revoked'))
   if (ok) tokens.value = tokens.value.filter((x) => x.id !== tok.id)
 }
+const cols = useTableColumns('agent-tokens', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'prefix', label: t('agent.tokens.prefix'), locked: true },
+  { key: 'scopes', label: t('agent.tokens.scopes'), lowPriority: true },
+  { key: 'lastUsed', label: t('agent.common.lastUsed'), lowPriority: true },
+  { key: 'expires', label: t('agent.common.expires'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -76,30 +85,33 @@ async function revoke(tok: S['ApiToken']) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !tokens.length" :title="$t('agent.tokens.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="token-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="token-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.tokens.prefix') }}</th>
-            <th>{{ $t('agent.tokens.scopes') }}</th>
-            <th>{{ $t('agent.common.lastUsed') }}</th>
-            <th>{{ $t('agent.common.expires') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('prefix')">{{ $t('agent.tokens.prefix') }}</th>
+            <th v-if="cols.show('scopes')">{{ $t('agent.tokens.scopes') }}</th>
+            <th v-if="cols.show('lastUsed')">{{ $t('agent.common.lastUsed') }}</th>
+            <th v-if="cols.show('expires')">{{ $t('agent.common.expires') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="tok in tokens" :key="tok.id" data-testid="token-row">
-            <td>{{ tok.name }}</td>
-            <td><code>{{ tok.prefix }}…</code></td>
-            <td><v-chip v-for="s in tok.scopes" :key="s" size="x-small" label class="mr-1">{{ s }}</v-chip></td>
-            <td><RelativeTime v-if="tok.last_used_at" :value="tok.last_used_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-            <td><RelativeTime v-if="tok.expires_at" :value="tok.expires_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+            <td v-if="cols.show('name')">{{ tok.name }}</td>
+            <td v-if="cols.show('prefix')"><code>{{ tok.prefix }}…</code></td>
+            <td v-if="cols.show('scopes')"><v-chip v-for="s in tok.scopes" :key="s" size="x-small" label class="mr-1">{{ s }}</v-chip></td>
+            <td v-if="cols.show('lastUsed')"><RelativeTime v-if="tok.last_used_at" :value="tok.last_used_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+            <td v-if="cols.show('expires')"><RelativeTime v-if="tok.expires_at" :value="tok.expires_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
             <td class="text-right">
               <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.tokens.revoke')" data-testid="token-revoke" @click="revoke(tok)" />
             </td>
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="formOpen" max-width="560">

@@ -6,11 +6,15 @@ import { useI18n } from 'vue-i18n'
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import RelativeTime from '@/components/RelativeTime.vue'
 import CannedForm from './CannedForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { useLookupsStore } from '../shared/lookups'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 
@@ -18,6 +22,7 @@ type S = components['schemas']
 const { t } = useI18n()
 const { confirm } = useConfirm()
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
 const { run } = useAction()
 const items = ref<S['CannedResponse'][]>([])
 const loading = ref(true)
@@ -64,6 +69,12 @@ async function remove(c: S['CannedResponse']) {
   }, t('agent.common.deleted'))
   if (ok) void load()
 }
+const cols = useTableColumns('config-canned', () => [
+  { key: 'title', label: t('agent.canned.title'), locked: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true },
+  { key: 'scope', label: t('agent.canned.scope') },
+  { key: 'updatedAt', label: t('agent.common.updatedAt'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -78,20 +89,24 @@ async function remove(c: S['CannedResponse']) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !filtered.length" :title="$t('agent.canned.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="canned-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="canned-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.canned.title') }}</th>
-            <th>{{ $t('agent.canned.scope') }}</th>
-            <th>{{ $t('agent.common.updatedAt') }}</th>
+            <th v-if="cols.show('title')">{{ $t('agent.canned.title') }}</th>
+            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+            <th v-if="cols.show('scope')">{{ $t('agent.canned.scope') }}</th>
+            <th v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in filtered" :key="c.id" data-testid="canned-row">
-            <td>{{ c.title }}</td>
-            <td>{{ c.team_id ? lookups.teamName(c.team_id) || '—' : $t('agent.canned.global') }}</td>
-            <td><RelativeTime v-if="c.updated_at ?? c.created_at" :value="(c.updated_at ?? c.created_at)!" /></td>
+            <td v-if="cols.show('title')">{{ c.title }}</td>
+            <td v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
+            <td v-if="cols.show('scope')">{{ c.team_id ? lookups.teamName(c.team_id) || '—' : $t('agent.canned.global') }}</td>
+            <td v-if="cols.show('updatedAt')"><RelativeTime v-if="c.updated_at ?? c.created_at" :value="(c.updated_at ?? c.created_at)!" /></td>
             <td class="text-right text-no-wrap">
               <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
               <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="canned-delete" @click="remove(c)" />
@@ -99,12 +114,13 @@ async function remove(c: S['CannedResponse']) {
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="720">
       <v-card :title="editing ? $t('agent.canned.edit') : $t('agent.canned.new')">
         <v-card-text>
-          <CannedForm v-if="dialog" :canned="editing" :teams="lookups.teams" @saved="onSaved" @cancel="dialog = false" />
+          <CannedForm v-if="dialog" :canned="editing" :teams="lookups.teams" :projects="cp.options.value" :can-global="cp.canGlobal.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

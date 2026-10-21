@@ -3,7 +3,7 @@
 {{define "subject"}}Tous les tickets enfants sont résolus : {{.Ticket.Subject}}{{end}}
 {{define "body"}}Bonjour {{.RecipientName}},
 
-tous les tickets enfants de **#{{.Ticket.Number}} {{.Ticket.Subject}}** sont désormais résolus. Vous pouvez aussi résoudre le ticket parent.
+tous les tickets enfants de **{{.Ticket.Ref}} {{.Ticket.Subject}}** sont désormais résolus. Vous pouvez aussi résoudre le ticket parent.
 
 [Ouvrir le ticket]({{.Ticket.URL}})
 {{end}}

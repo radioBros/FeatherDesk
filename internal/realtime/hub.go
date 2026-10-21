@@ -107,7 +107,7 @@ func staffOnlyTopic(topic string) bool {
 	switch {
 	case topic == "counts", topic == "kb":
 		return true
-	case strings.HasPrefix(topic, "queue:"), strings.HasPrefix(topic, "admin:"):
+	case strings.HasPrefix(topic, "queue:"), strings.HasPrefix(topic, "admin:"), strings.HasPrefix(topic, "project:"):
 		return true
 	}
 	return false

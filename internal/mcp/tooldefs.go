@@ -50,7 +50,7 @@ func integer(desc string, minV, maxV, def int) map[string]any {
 }
 
 var (
-	ticketProp = str(`Ticket number (1042 or "#1042") or ticket id.`)
+	ticketProp = str(`Ticket reference ("WEB-12"), ticket number (1042 or "#1042") or ticket id.`)
 	limitProp  = integer("Page size.", 1, 100, 20)
 	cursorProp = str("next_cursor from a previous page; omit for the first page.")
 	bodyProp   = strLen("Message text in Markdown.", 1, 65536)
@@ -158,7 +158,7 @@ var staffTools = []*tool{
 		Name:  "search_tickets",
 		Title: "Search tickets",
 		Description: "Search the tickets you can see by free text (subject, replies and internal notes) and/or filters. " +
-			"Returns ticket summaries (number, subject, status, priority, tier, team, assignee, requester, SLA due dates) and next_cursor for the next page. " +
+			"Returns ticket summaries (ref, project, subject, status, priority, tier, team, assignee, requester, SLA due dates) and next_cursor for the next page. " +
 			"Use get_ticket to read a conversation, list_my_tickets for your own queue.",
 		Schema: object(map[string]any{
 			"query":    strLen("Words to search for. Omit to list by filters only.", 1, 200),
@@ -166,6 +166,7 @@ var staffTools = []*tool{
 			"priority": enumList("Only these priorities.", domain.Priorities),
 			"assignee": str(`"me", "none" (unassigned) or a staff user id.`),
 			"team_id":  str(`Team id (list_teams), or "none" for triage tickets without a team.`),
+			"project":  str(`Only tickets of this project: its key (e.g. "WEB") or id.`),
 			"sort":     map[string]any{"type": "string", "enum": []string{"attention", "-updated_at", "-created_at", "priority", "due", "-number"}, "description": "Order; default attention (most urgent first)."},
 			"limit":    limitProp,
 			"cursor":   cursorProp,
@@ -180,6 +181,7 @@ var staffTools = []*tool{
 				Priority []string `json:"priority"`
 				Assignee string   `json:"assignee"`
 				TeamID   string   `json:"team_id"`
+				Project  string   `json:"project"`
 				Sort     string   `json:"sort"`
 				Limit    int      `json:"limit"`
 				Cursor   string   `json:"cursor"`
@@ -194,7 +196,7 @@ var staffTools = []*tool{
 			if err := staffFilters(q, a.Status, a.Priority); err != nil {
 				return nil, err
 			}
-			for k, v := range map[string]string{"assignee": a.Assignee, "team_id": a.TeamID, "sort": a.Sort, "cursor": a.Cursor} {
+			for k, v := range map[string]string{"assignee": a.Assignee, "team_id": a.TeamID, "project": a.Project, "sort": a.Sort, "cursor": a.Cursor} {
 				if v != "" {
 					q.Set(k, v)
 				}
@@ -252,7 +254,7 @@ var staffTools = []*tool{
 		Schema:   object(map[string]any{"ticket": ticketProp, "max_messages": integer("Newest messages to return.", 1, 500, 50)}, "ticket"),
 		ReadOnly: true,
 		Scopes:   []string{domain.ScopeTicketsRead},
-		Ops:      []string{"GET /agent/tickets/{id}", "GET /agent/tickets/by-number/{n}"},
+		Ops:      []string{"GET /agent/tickets/{id}", "GET /agent/tickets/by-number/{n}", "GET /agent/tickets/by-ref/{ref}"},
 		run:      runGetTicket,
 	},
 	{
@@ -268,6 +270,7 @@ var staffTools = []*tool{
 			"requester_name":  str("Customer name, used when requester_email creates a new customer."),
 			"requester_id":    str("Existing customer user id (instead of requester_email)."),
 			"priority":        enum("Default normal.", domain.Priorities),
+			"project":         str(`Project key (e.g. "WEB") or id; default: the category's project, else the default project.`),
 			"category_id":     str("Category id (list_categories)."),
 			"team_id":         str("Team id (list_teams); default from the category."),
 			"assignee_id":     str(`Staff user id, or "me".`),
@@ -284,6 +287,7 @@ var staffTools = []*tool{
 				RequesterName  string   `json:"requester_name"`
 				RequesterID    string   `json:"requester_id"`
 				Priority       string   `json:"priority"`
+				Project        string   `json:"project"`
 				CategoryID     string   `json:"category_id"`
 				TeamID         string   `json:"team_id"`
 				AssigneeID     string   `json:"assignee_id"`
@@ -294,7 +298,7 @@ var staffTools = []*tool{
 			}
 			body := map[string]any{"subject": a.Subject, "body_md": a.BodyMD}
 			for k, v := range map[string]string{"requester_email": a.RequesterEmail, "requester_name": a.RequesterName,
-				"requester_id": a.RequesterID, "priority": a.Priority, "category_id": a.CategoryID, "team_id": a.TeamID} {
+				"requester_id": a.RequesterID, "priority": a.Priority, "project_id": a.Project, "category_id": a.CategoryID, "team_id": a.TeamID} {
 				if v != "" {
 					body[k] = v
 				}
@@ -326,7 +330,7 @@ var staffTools = []*tool{
 		}, "ticket", "body_md"),
 		OpenWorld: true,
 		Scopes:    []string{domain.ScopeTicketsWrite},
-		Ops:       []string{"POST /agent/tickets/{id}/messages", "GET /agent/tickets/by-number/{n}"},
+		Ops:       []string{"POST /agent/tickets/{id}/messages", "GET /agent/tickets/by-number/{n}", "GET /agent/tickets/by-ref/{ref}"},
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
 				Ticket    ticketArg `json:"ticket"`
@@ -350,7 +354,7 @@ var staffTools = []*tool{
 			"in customer emails or in customer API responses. Use it for findings, hand-over context and questions to colleagues.",
 		Schema:    object(map[string]any{"ticket": ticketProp, "body_md": bodyProp}, "ticket", "body_md"),
 		Scopes:    []string{domain.ScopeTicketsWrite},
-		Ops:       []string{"POST /agent/tickets/{id}/messages", "GET /agent/tickets/by-number/{n}"},
+		Ops:       []string{"POST /agent/tickets/{id}/messages", "GET /agent/tickets/by-number/{n}", "GET /agent/tickets/by-ref/{ref}"},
 		OpenWorld: false,
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
@@ -382,7 +386,7 @@ var staffTools = []*tool{
 		}, "ticket"),
 		Idempotent: true,
 		Scopes:     []string{domain.ScopeTicketsWrite},
-		Ops:        []string{"PATCH /agent/tickets/{id}", "GET /agent/tickets/by-number/{n}"},
+		Ops:        []string{"PATCH /agent/tickets/{id}", "GET /agent/tickets/by-number/{n}", "GET /agent/tickets/by-ref/{ref}"},
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
 				Ticket     ticketArg `json:"ticket"`
@@ -441,7 +445,7 @@ var staffTools = []*tool{
 			"Every part must be permitted to you, otherwise nothing changes.",
 		Schema: object(map[string]any{"ticket": ticketProp, "macro": strLen("Macro id or exact macro name.", 1, 200)}, "ticket", "macro"),
 		Scopes: []string{domain.ScopeTicketsWrite},
-		Ops:    []string{"POST /agent/tickets/{id}/macros/{macro_id}/apply", "GET /agent/macros", "GET /agent/tickets/by-number/{n}"},
+		Ops:    []string{"POST /agent/tickets/{id}/macros/{macro_id}/apply", "GET /agent/macros", "GET /agent/tickets/by-number/{n}", "GET /agent/tickets/by-ref/{ref}"},
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
 				Ticket ticketArg `json:"ticket"`
@@ -544,7 +548,7 @@ func escalation(name, title, desc, suffix string) *tool {
 			"target_team_id": str("Team id (list_teams) to move the ticket to; omit to keep the team."),
 		}, "ticket", "reason"),
 		Scopes: []string{domain.ScopeTicketsWrite},
-		Ops:    []string{"POST /agent/tickets/{id}" + suffix, "GET /agent/tickets/by-number/{n}"},
+		Ops:    []string{"POST /agent/tickets/{id}" + suffix, "GET /agent/tickets/by-number/{n}", "GET /agent/tickets/by-ref/{ref}"},
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
 				Ticket       ticketArg `json:"ticket"`
@@ -620,7 +624,7 @@ var customerTools = []*tool{
 		Name:  "search_tickets",
 		Title: "Search my tickets",
 		Description: "Search your tickets by free text in subjects and replies (organization managers also see their organization's tickets). " +
-			"Returns ticket summaries (number, subject, status, priority, dates) and next_cursor for the next page. Use get_ticket to read one.",
+			"Returns ticket summaries (ref, project, subject, status, priority, dates) and next_cursor for the next page. Use get_ticket to read one.",
 		Schema: object(map[string]any{
 			"query":  strLen("Words to search for. Omit to list all.", 1, 200),
 			"status": map[string]any{"type": "string", "enum": customerStatuses, "description": "Only this status."},
@@ -654,7 +658,7 @@ var customerTools = []*tool{
 		Schema:   object(map[string]any{"ticket": ticketProp, "max_messages": integer("Newest messages to return.", 1, 500, 50)}, "ticket"),
 		ReadOnly: true,
 		Scopes:   []string{domain.ScopeTicketsRead},
-		Ops:      []string{"GET /portal/tickets/{id}", "GET /portal/tickets/by-number/{n}"},
+		Ops:      []string{"GET /portal/tickets/{id}", "GET /portal/tickets/by-number/{n}", "GET /portal/tickets/by-ref/{ref}"},
 		run:      runGetTicket,
 	},
 	{
@@ -666,6 +670,7 @@ var customerTools = []*tool{
 			"subject":     strLen("Short summary.", 1, 200),
 			"body_md":     bodyProp,
 			"priority":    enum("Default normal.", domain.Priorities),
+			"project":     str(`Project key (e.g. "WEB") or id, when you can open tickets in several; default: the category's project.`),
 			"category_id": str("Category id (list_categories)."),
 		}, "subject", "body_md"),
 		Scopes: []string{domain.ScopeTicketsWrite},
@@ -675,6 +680,7 @@ var customerTools = []*tool{
 				Subject    string `json:"subject"`
 				BodyMD     string `json:"body_md"`
 				Priority   string `json:"priority"`
+				Project    string `json:"project"`
 				CategoryID string `json:"category_id"`
 			}
 			if err := decodeArgs(raw, &a); err != nil {
@@ -683,6 +689,9 @@ var customerTools = []*tool{
 			body := map[string]any{"subject": a.Subject, "body_md": a.BodyMD}
 			if a.Priority != "" {
 				body["priority"] = a.Priority
+			}
+			if a.Project != "" {
+				body["project_id"] = a.Project
 			}
 			if a.CategoryID != "" {
 				body["category_id"] = a.CategoryID
@@ -699,7 +708,7 @@ var customerTools = []*tool{
 			"ticket instead, and its id is returned as followup_ticket_id.",
 		Schema: object(map[string]any{"ticket": ticketProp, "body_md": bodyProp}, "ticket", "body_md"),
 		Scopes: []string{domain.ScopeTicketsWrite},
-		Ops:    []string{"POST /portal/tickets/{id}/messages", "GET /portal/tickets/by-number/{n}"},
+		Ops:    []string{"POST /portal/tickets/{id}/messages", "GET /portal/tickets/by-number/{n}", "GET /portal/tickets/by-ref/{ref}"},
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
 				Ticket ticketArg `json:"ticket"`
@@ -730,7 +739,7 @@ var customerTools = []*tool{
 		}, "ticket", "status"),
 		Idempotent: true,
 		Scopes:     []string{domain.ScopeTicketsWrite},
-		Ops:        []string{"POST /portal/tickets/{id}/resolve", "POST /portal/tickets/{id}/reopen", "GET /portal/tickets/by-number/{n}"},
+		Ops:        []string{"POST /portal/tickets/{id}/resolve", "POST /portal/tickets/{id}/reopen", "GET /portal/tickets/by-number/{n}", "GET /portal/tickets/by-ref/{ref}"},
 		run: func(ctx context.Context, c *caller, raw json.RawMessage) (any, error) {
 			var a struct {
 				Ticket ticketArg `json:"ticket"`

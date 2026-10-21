@@ -28,13 +28,14 @@ func insertTicket(ctx context.Context, tx *store.Tx, t *ticketRow) error {
 	_, err := tx.ExecContext(ctx, `INSERT INTO tickets (id, number, subject, status, priority, tier, team_id, category_id, assignee_id,
 		requester_id, organization_id, channel, first_response_due_at, resolution_due_at, first_responded_at, resolved_at, closed_at,
 		sla_paused_at, sla_paused_minutes, sla_state, last_customer_activity_at, last_staff_activity_at, followup_of_id,
-		csat_score, csat_comment, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		csat_score, csat_comment, created_at, updated_at, project_id, project_seq)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		t.ID, t.Number, t.Subject, string(t.Status), string(t.Priority), t.Tier, store.Nullable(t.TeamID), store.Nullable(t.CategoryID),
 		store.Nullable(t.AssigneeID), t.RequesterID, store.Nullable(t.OrganizationID), string(t.Channel),
 		nullTime(t.FirstResponseDueAt), nullTime(t.ResolutionDueAt), nullTime(t.FirstRespondedAt), nullTime(t.ResolvedAt), nullTime(t.ClosedAt),
 		nullTime(t.SLAPausedAt), t.SLAPausedMinutes, store.MustJSON(t.SLAState), t.LastCustomerActivityAt, nullTime(t.LastStaffActivityAt),
-		store.Nullable(t.FollowupOfID), nullableInt(t.CSATScore), store.Nullable(t.CSATComment), t.CreatedAt, t.UpdatedAt)
+		store.Nullable(t.FollowupOfID), nullableInt(t.CSATScore), store.Nullable(t.CSATComment), t.CreatedAt, t.UpdatedAt,
+		t.ProjectID, t.ProjectSeq)
 	if err != nil && strings.Contains(err.Error(), "requester_id must be a customer") {
 		return problems.Validation(problems.Field("requester_id", "customer", "the requester must be a customer"))
 	}
@@ -54,12 +55,12 @@ func (s *Service) saveTicket(ctx context.Context, tx *store.Tx, t *ticketRow) er
 	_, err := tx.ExecContext(ctx, `UPDATE tickets SET subject = ?, status = ?, priority = ?, tier = ?, team_id = ?, category_id = ?,
 		assignee_id = ?, organization_id = ?, first_response_due_at = ?, resolution_due_at = ?, first_responded_at = ?, resolved_at = ?,
 		closed_at = ?, sla_paused_at = ?, sla_paused_minutes = ?, sla_state = ?, last_customer_activity_at = ?,
-		last_staff_activity_at = ?, csat_score = ?, csat_comment = ?, updated_at = ? WHERE id = ?`,
+		last_staff_activity_at = ?, csat_score = ?, csat_comment = ?, updated_at = ?, project_id = ?, project_seq = ? WHERE id = ?`,
 		t.Subject, string(t.Status), string(t.Priority), t.Tier, store.Nullable(t.TeamID), store.Nullable(t.CategoryID),
 		store.Nullable(t.AssigneeID), store.Nullable(t.OrganizationID), nullTime(t.FirstResponseDueAt), nullTime(t.ResolutionDueAt),
 		nullTime(t.FirstRespondedAt), nullTime(t.ResolvedAt), nullTime(t.ClosedAt), nullTime(t.SLAPausedAt), t.SLAPausedMinutes,
 		store.MustJSON(t.SLAState), t.LastCustomerActivityAt, nullTime(t.LastStaffActivityAt), nullableInt(t.CSATScore),
-		store.Nullable(t.CSATComment), t.UpdatedAt, t.ID)
+		store.Nullable(t.CSATComment), t.UpdatedAt, t.ProjectID, t.ProjectSeq, t.ID)
 	return err
 }
 

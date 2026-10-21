@@ -13,7 +13,12 @@ type Principal struct {
 	Tier           int // staff only; 0 for customers
 	OrganizationID string
 	Teams          []string // staff team IDs
-	Locale         string
+	// Projects lists the staff user's project memberships (any role) and
+	// AdminProjects the subset where the role is project_admin (D-20).
+	// Admins and supervisors see every project whatever these say (I-11).
+	Projects      []string
+	AdminProjects []string
+	Locale        string
 	// Scopes is nil for session auth (full user permissions) and the PAT
 	// scope list otherwise. Effective permission = role ∩ scopes (I-6).
 	Scopes     []string
@@ -43,6 +48,34 @@ func (p *Principal) IsSupervisorOrAdmin() bool {
 func (p *Principal) IsAdmin() bool { return p.IsStaff() && p.Role == RoleAdmin }
 
 func (p *Principal) InTeam(teamID string) bool { return slices.Contains(p.Teams, teamID) }
+
+// SeesAllProjects: admins and supervisors are not limited by project
+// membership (D-20 I-11).
+func (p *Principal) SeesAllProjects() bool { return p.IsSupervisorOrAdmin() }
+
+// InProject reports whether staff user p may work in project id: admins and
+// supervisors always, agents when they are members (I-11).
+func (p *Principal) InProject(id string) bool {
+	if !p.IsStaff() {
+		return false
+	}
+	return p.SeesAllProjects() || slices.Contains(p.Projects, id)
+}
+
+// AdminsProject reports whether p may manage project id's configuration:
+// admins and supervisors always, agents with the project_admin role.
+func (p *Principal) AdminsProject(id string) bool {
+	if !p.IsStaff() {
+		return false
+	}
+	return p.SeesAllProjects() || slices.Contains(p.AdminProjects, id)
+}
+
+// IsProjectAdmin reports whether p administers at least one project (or is
+// a supervisor or admin): the guard of the project-admin route group.
+func (p *Principal) IsProjectAdmin() bool {
+	return p.IsStaff() && (p.SeesAllProjects() || len(p.AdminProjects) > 0)
+}
 
 // HasScope reports whether a PAT scope allows the action; session auth
 // (nil scopes) always passes. tickets:read implies kb:read.

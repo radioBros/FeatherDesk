@@ -452,6 +452,7 @@ func TestEmit_SnapshotMatchesTicketAfterChange(t *testing.T) {
 		ctx := context.Background()
 		check := func(name string) {
 			row, _ := lockFreeLoad(ctx, f.e.svc, f.id)
+			f.e.svc.fillKey(ctx, row)
 			evs, err := events.ForTicket(ctx, db.Read(), f.id)
 			if err != nil {
 				t.Fatal(err)

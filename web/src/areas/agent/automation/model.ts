@@ -18,7 +18,7 @@ export const EVENTS: RuleEvent[] = ['ticket.created', 'message.created', 'ticket
 export const TIME_FIELDS: Field[] = ['hours_since_update', 'hours_since_status']
 export const FIELDS: Field[] = [
   'subject', 'body', 'channel', 'priority', 'status', 'tier', 'category_id', 'team_id', 'organization_id',
-  'requester_domain', 'tag', 'custom_field', 'business_hours', 'hours_since_update', 'hours_since_status',
+  'requester_domain', 'project', 'tag', 'custom_field', 'business_hours', 'hours_since_update', 'hours_since_status',
 ]
 export const ACTIONS: ActionType[] = [
   'set_priority', 'set_team', 'set_category', 'set_status', 'set_tier', 'add_tag', 'remove_tag', 'assign',
@@ -42,6 +42,7 @@ const OPS: Record<Field, Op[]> = {
   team_id: ['is', 'is_not'],
   organization_id: ['is', 'is_not'],
   requester_domain: ['is', 'is_not'],
+  project: ['is', 'is_not'],
   tag: ['present', 'absent'],
   custom_field: ['equals', 'contains'],
   business_hours: ['is'],
@@ -69,6 +70,7 @@ export function valueKind(f: Field): ValueKind {
     case 'category_id':
     case 'team_id':
     case 'organization_id':
+    case 'project':
       return 'multi'
     case 'tier':
       return 'tier'

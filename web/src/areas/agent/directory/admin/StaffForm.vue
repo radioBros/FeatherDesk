@@ -1,5 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import { optionOf } from '@/components/projectOption'
+import SelectionChips from '@/components/SelectionChips.vue'
 import PasswordField from '@/components/PasswordField.vue'
 /**
  * Create local staff / edit staff (FE-027). For an `idp_managed` user the role
@@ -15,9 +17,12 @@ import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import { useConfigStore } from '@/stores/config'
 import type { components } from '@/api/schema'
+import type { ProjectOption } from '@/components/ProjectSelect.vue'
+import ProjectChip from '@/components/ProjectChip.vue'
+import { mdiClose, mdiPlus } from '@mdi/js'
 
 type S = components['schemas']
-const props = defineProps<{ staff?: S['User'] | null; teams?: S['Team'][] }>()
+const props = defineProps<{ staff?: S['User'] | null; teams?: S['Team'][]; projects?: ProjectOption[] }>()
 const emit = defineEmits<{ saved: [S['User']]; cancel: [] }>()
 const { t } = useI18n()
 const config = useConfigStore()
@@ -36,7 +41,19 @@ const model = reactive({
   break_glass: props.staff?.break_glass ?? false,
   password: '',
   send_invite: false,
+  memberships: (props.staff?.projects ?? []).map((m) => ({ project_id: m.project_id as string, role: (m.role ?? 'member') as S['ProjectRole'] })),
 })
+const initialMemberships = JSON.stringify(model.memberships)
+const PROJECT_ROLES: S['ProjectRole'][] = ['member', 'project_admin']
+const roleOptions = computed(() => PROJECT_ROLES.map((r) => ({ value: r, title: t(`projects.config.${r}`) })))
+/** Projects not yet used by another row (plus the row's own). */
+const projectChoices = (own: string) => (props.projects ?? []).filter((p) => p.id === own || !model.memberships.some((m) => m.project_id === p.id))
+function addMembership() {
+  const free = (props.projects ?? []).find((p) => !model.memberships.some((m) => m.project_id === p.id))
+  if (free) model.memberships.push({ project_id: free.id, role: 'member' })
+}
+const memberships = () => model.memberships.filter((m) => m.project_id)
+const membershipsChanged = () => JSON.stringify(model.memberships) !== initialMemberships
 const tierItems = computed(() => [1, 2, 3].map((n) => ({ value: n, title: config.tierLabel(n) })))
 const roleItems = computed(() => ROLES.map((r) => ({ value: r, title: t(`agent.staff.roles.${r}`) })))
 const { formRef, submit, fieldErrors, formError, submitting } = useForm()
@@ -54,6 +71,8 @@ const onSave = submit(async () => {
       status: model.status,
       break_glass: model.break_glass,
     }
+    // Replaces the list: sent only when the editor changed it.
+    if (membershipsChanged()) body.projects = memberships()
     if (!managed.value) {
       body.role = model.role
       body.tier = model.tier
@@ -69,6 +88,7 @@ const onSave = submit(async () => {
       break_glass: model.break_glass,
       send_invite: model.send_invite,
     }
+    if (memberships().length) body.projects = memberships()
     if (model.password) body.password = model.password
     saved = await unwrap(api.POST('/admin/staff', { body }))
   }
@@ -134,11 +154,46 @@ const onSave = submit(async () => {
       :label="$t('agent.staff.teams')"
       :error-messages="fieldErrors.team_ids"
       multiple
-      chips
-      closable-chips
       class="mt-2"
-      data-testid="staff-teams"
-    />
+      data-testid="staff-teams">
+      <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.team_ids ?? []).length" /></template>
+    </v-select>
+    <fieldset v-if="projects?.length" class="st-memberships mt-2" data-testid="staff-projects">
+      <legend class="text-subtitle-2">{{ $t('projects.config.memberships') }}</legend>
+      <div class="text-caption text-medium-emphasis mb-2">{{ $t('projects.config.membershipsHint') }}</div>
+      <div v-if="!model.memberships.length" class="text-body-2 text-medium-emphasis mb-2">{{ $t('projects.config.noMemberships') }}</div>
+      <div v-for="(m, i) in model.memberships" :key="i" class="d-flex align-center ga-2" data-testid="staff-membership">
+        <v-select
+          v-model="m.project_id"
+          :items="projectChoices(m.project_id)"
+          item-title="name"
+          item-value="id"
+          :label="$t('projects.config.project')"
+          density="compact"
+          :rules="[validations.required.any]"
+          data-testid="staff-membership-project"
+        >
+          <template #item="{ props: ip, item }">
+            <v-list-item v-bind="ip" :title="optionOf(item).name"><template #prepend><ProjectChip :project="optionOf(item)" size="small" class="mr-2" /></template></v-list-item>
+          </template>
+        </v-select>
+        <v-select
+          v-model="m.role"
+          :items="roleOptions"
+          :label="$t('projects.config.role')"
+          density="compact"
+          :rules="[validations.required.select]"
+          data-testid="staff-membership-role"
+        />
+        <v-btn :icon="mdiClose" variant="text" size="small" :aria-label="$t('projects.config.removeMembership')" data-testid="staff-membership-remove" @click="model.memberships.splice(i, 1)" />
+      </div>
+      <v-btn size="small" variant="text" :prepend-icon="mdiPlus" :disabled="model.memberships.length >= projects.length" data-testid="staff-membership-add" @click="addMembership">
+        {{ $t('projects.config.addMembership') }}
+      </v-btn>
+      <div v-for="(msgs, key) in fieldErrors" :key="key">
+        <div v-if="String(key).startsWith('projects')" class="text-caption text-error">{{ msgs.join(' ') }}</div>
+      </div>
+    </fieldset>
     <v-select
       v-if="editing"
       v-model="model.status"

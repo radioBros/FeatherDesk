@@ -4,6 +4,8 @@ package tickets
 
 import (
 	"time"
+
+	"github.com/radioBros/SimpleTickets/internal/directory"
 )
 
 // Staff DTOs follow the OpenAPI Ticket/TicketSummary/Message schemas.
@@ -48,6 +50,7 @@ type customerMessageDTO struct {
 type ticketRefDTO struct {
 	ID      string `json:"id"`
 	Number  int64  `json:"number"`
+	Ref     string `json:"ref"`
 	Subject string `json:"subject"`
 	Status  string `json:"status"`
 }
@@ -62,27 +65,30 @@ type linkDTO struct {
 }
 
 type ticketSummaryDTO struct {
-	ID                     string         `json:"id"`
-	Number                 int64          `json:"number"`
-	Subject                string         `json:"subject"`
-	Status                 string         `json:"status"`
-	Priority               string         `json:"priority"`
-	Tier                   int            `json:"tier"`
-	TeamID                 *string        `json:"team_id"`
-	CategoryID             *string        `json:"category_id"`
-	Assignee               *userRef       `json:"assignee"`
-	Requester              userRef        `json:"requester"`
-	OrganizationID         *string        `json:"organization_id"`
-	Channel                string         `json:"channel"`
-	Tags                   []string       `json:"tags"`
-	FirstResponseDueAt     *time.Time     `json:"first_response_due_at"`
-	ResolutionDueAt        *time.Time     `json:"resolution_due_at"`
-	SLABreached            bool           `json:"sla_breached"`
-	LastCustomerActivityAt *time.Time     `json:"last_customer_activity_at"`
-	LastStaffActivityAt    *time.Time     `json:"last_staff_activity_at"`
-	CustomFields           map[string]any `json:"custom_fields"`
-	CreatedAt              time.Time      `json:"created_at"`
-	UpdatedAt              time.Time      `json:"updated_at"`
+	ID                     string               `json:"id"`
+	Number                 int64                `json:"number"`
+	Ref                    string               `json:"ref"`
+	ProjectID              string               `json:"project_id"`
+	Project                directory.ProjectRef `json:"project"`
+	Subject                string               `json:"subject"`
+	Status                 string               `json:"status"`
+	Priority               string               `json:"priority"`
+	Tier                   int                  `json:"tier"`
+	TeamID                 *string              `json:"team_id"`
+	CategoryID             *string              `json:"category_id"`
+	Assignee               *userRef             `json:"assignee"`
+	Requester              userRef              `json:"requester"`
+	OrganizationID         *string              `json:"organization_id"`
+	Channel                string               `json:"channel"`
+	Tags                   []string             `json:"tags"`
+	FirstResponseDueAt     *time.Time           `json:"first_response_due_at"`
+	ResolutionDueAt        *time.Time           `json:"resolution_due_at"`
+	SLABreached            bool                 `json:"sla_breached"`
+	LastCustomerActivityAt *time.Time           `json:"last_customer_activity_at"`
+	LastStaffActivityAt    *time.Time           `json:"last_staff_activity_at"`
+	CustomFields           map[string]any       `json:"custom_fields"`
+	CreatedAt              time.Time            `json:"created_at"`
+	UpdatedAt              time.Time            `json:"updated_at"`
 }
 
 type ticketDTO struct {
@@ -103,25 +109,31 @@ type ticketDTO struct {
 }
 
 type customerTicketSummaryDTO struct {
-	ID             string         `json:"id"`
-	Number         int64          `json:"number"`
-	Subject        string         `json:"subject"`
-	Status         string         `json:"status"`
-	Priority       string         `json:"priority"`
-	CategoryID     *string        `json:"category_id"`
-	Requester      userRef        `json:"requester"`
-	OrganizationID *string        `json:"organization_id"`
-	Channel        string         `json:"channel"`
-	CustomFields   map[string]any `json:"custom_fields"`
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
-	ResolvedAt     *time.Time     `json:"resolved_at"`
-	ClosedAt       *time.Time     `json:"closed_at"`
+	ID             string               `json:"id"`
+	Number         int64                `json:"number"`
+	Ref            string               `json:"ref"`
+	ProjectID      string               `json:"project_id"`
+	Project        directory.ProjectRef `json:"project"`
+	Subject        string               `json:"subject"`
+	Status         string               `json:"status"`
+	Priority       string               `json:"priority"`
+	CategoryID     *string              `json:"category_id"`
+	Requester      userRef              `json:"requester"`
+	OrganizationID *string              `json:"organization_id"`
+	Channel        string               `json:"channel"`
+	CustomFields   map[string]any       `json:"custom_fields"`
+	CreatedAt      time.Time            `json:"created_at"`
+	UpdatedAt      time.Time            `json:"updated_at"`
+	ResolvedAt     *time.Time           `json:"resolved_at"`
+	ClosedAt       *time.Time           `json:"closed_at"`
 }
 
 type customerTicketDTO struct {
 	ID             string               `json:"id"`
 	Number         int64                `json:"number"`
+	Ref            string               `json:"ref"`
+	ProjectID      string               `json:"project_id"`
+	Project        directory.ProjectRef `json:"project"`
 	Subject        string               `json:"subject"`
 	Status         string               `json:"status"`
 	Priority       string               `json:"priority"`
@@ -157,7 +169,8 @@ type pageDTO[T any] struct {
 // summary builds the staff summary of a row (refs, tags and fields filled by the caller).
 func (t *ticketRow) summary(now time.Time) ticketSummaryDTO {
 	d := ticketSummaryDTO{
-		ID: t.ID, Number: t.Number, Subject: t.Subject, Status: string(t.Status), Priority: string(t.Priority),
+		ID: t.ID, Number: t.Number, Ref: t.Ref(), ProjectID: t.ProjectID, Project: directory.ProjectRef{ID: t.ProjectID, Key: t.ProjectKey, Name: t.ProjectKey},
+		Subject: t.Subject, Status: string(t.Status), Priority: string(t.Priority),
 		Tier: t.Tier, TeamID: strOrNil(t.TeamID), CategoryID: strOrNil(t.CategoryID), OrganizationID: strOrNil(t.OrganizationID),
 		Channel: string(t.Channel), Tags: []string{}, SLABreached: t.slaBreached(now), CustomFields: map[string]any{},
 		LastCustomerActivityAt: timePtr(t.LastCustomerActivityAt), CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
@@ -178,7 +191,8 @@ func (t *ticketRow) summary(now time.Time) ticketSummaryDTO {
 // customerSummary builds the portal summary (no tier, team, assignee, SLA).
 func (t *ticketRow) customerSummary() customerTicketSummaryDTO {
 	d := customerTicketSummaryDTO{
-		ID: t.ID, Number: t.Number, Subject: t.Subject, Status: CustomerStatus(t.Status), Priority: string(t.Priority),
+		ID: t.ID, Number: t.Number, Ref: t.Ref(), ProjectID: t.ProjectID, Project: directory.ProjectRef{ID: t.ProjectID, Key: t.ProjectKey, Name: t.ProjectKey},
+		Subject: t.Subject, Status: CustomerStatus(t.Status), Priority: string(t.Priority),
 		CategoryID: strOrNil(t.CategoryID), OrganizationID: strOrNil(t.OrganizationID), Channel: string(t.Channel),
 		CustomFields: map[string]any{}, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 		Requester: userRef{ID: t.RequesterID, Kind: "customer"},

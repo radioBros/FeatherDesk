@@ -102,7 +102,7 @@ npx @modelcontextprotocol/inspector --cli https://help.example.com/mcp --transpo
 
 ## 3. Tools
 
-Staff and customers get different tool sets. Every tool that takes `ticket` accepts a number (`1042` or `"#1042"`) or a ticket id.
+Staff and customers get different tool sets. Every tool that takes `ticket` accepts a reference (`"WEB-12"`, [projects](projects.md)), a number (`1042` or `"#1042"`) or a ticket id.
 
 | Tool | Staff | Customers | What it does | Token scope |
 |---|---|---|---|---|
@@ -138,7 +138,7 @@ exist for the caller, such as a staff-only tool called with a customer token, is
 
 | URI | Content |
 |---|---|
-| `ticket://{number}` | The ticket as `get_ticket` returns it (JSON), all messages |
+| `ticket://{ref}` | The ticket as `get_ticket` returns it (JSON), all messages, e.g. `ticket://WEB-12`. `ticket://{number}` still resolves |
 | `kb://{slug}` | The article as Markdown, title first |
 
 `resources/list` returns the 20 most recently updated tickets the caller can see and the 20 newest articles they may read;

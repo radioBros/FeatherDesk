@@ -37,6 +37,7 @@ const rule: S['AutomationRule'] = {
   actions: [{ type: 'assign', strategy: 'least_busy' }, { type: 'add_tag', value: 'vip' }],
   enabled: true,
   stop_processing: true,
+  project_id: null,
   position: 1,
   created_at: fx.iso,
   updated_at: fx.iso,

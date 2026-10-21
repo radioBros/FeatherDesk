@@ -18,7 +18,8 @@ import (
 const ticketCols = `t.id, t.number, t.subject, t.status, t.priority, t.tier, t.team_id, t.category_id, t.assignee_id,
 	t.requester_id, t.organization_id, t.channel, t.first_response_due_at, t.resolution_due_at, t.first_responded_at,
 	t.resolved_at, t.closed_at, t.sla_paused_at, t.sla_paused_minutes, t.sla_state, t.last_customer_activity_at,
-	t.last_staff_activity_at, t.followup_of_id, t.csat_score, t.csat_comment, t.created_at, t.updated_at`
+	t.last_staff_activity_at, t.followup_of_id, t.csat_score, t.csat_comment, t.created_at, t.updated_at,
+	t.project_id, t.project_seq`
 
 // ticketRow is one tickets row plus its watchers.
 type ticketRow struct {
@@ -49,9 +50,18 @@ type ticketRow struct {
 	CSATComment            string
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
+	ProjectID              string // D-20
+	ProjectSeq             int64
+	// ProjectKey is filled from the directory by Service.fillKey (never read
+	// in SQL: a sorted list would compute it for every candidate row). Keys
+	// are immutable once a project has tickets.
+	ProjectKey string
 
 	Watchers []string // staff and customer watchers (V1)
 }
+
+// Ref is the display reference KEY-123 (D-20).
+func (t *ticketRow) Ref() string { return domain.TicketRef(t.ProjectKey, t.ProjectSeq) }
 
 type scanner interface{ Scan(...any) error }
 
@@ -63,7 +73,7 @@ func scanTicket(r scanner) (*ticketRow, error) {
 	err := r.Scan(&t.ID, &t.Number, &t.Subject, &t.Status, &t.Priority, &t.Tier, &team, &cat, &asg,
 		&t.RequesterID, &org, &t.Channel, &t.FirstResponseDueAt, &t.ResolutionDueAt, &t.FirstRespondedAt,
 		&t.ResolvedAt, &t.ClosedAt, &t.SLAPausedAt, &t.SLAPausedMinutes, &state, &t.LastCustomerActivityAt,
-		&t.LastStaffActivityAt, &follow, &csat, &comment, &t.CreatedAt, &t.UpdatedAt)
+		&t.LastStaffActivityAt, &follow, &csat, &comment, &t.CreatedAt, &t.UpdatedAt, &t.ProjectID, &t.ProjectSeq)
 	if err != nil {
 		return nil, store.NotFound(err)
 	}
@@ -86,7 +96,7 @@ func scanTicket(r scanner) (*ticketRow, error) {
 func (t *ticketRow) view(pol authz.TicketPolicy, now time.Time) authz.TicketView {
 	v := authz.TicketView{
 		ID: t.ID, Status: t.Status, Priority: t.Priority, Tier: t.Tier, TeamID: t.TeamID, AssigneeID: t.AssigneeID,
-		RequesterID: t.RequesterID, OrganizationID: t.OrganizationID, Watchers: t.Watchers, CSATScore: t.CSATScore,
+		RequesterID: t.RequesterID, OrganizationID: t.OrganizationID, ProjectID: t.ProjectID, Watchers: t.Watchers, CSATScore: t.CSATScore,
 		Policy: pol, Now: now,
 	}
 	if t.ResolvedAt.Valid {
@@ -101,6 +111,7 @@ func (t *ticketRow) snapshot() events.Snapshot {
 		Number: t.Number, Subject: t.Subject, Status: string(t.Status), Priority: string(t.Priority), Tier: t.Tier,
 		TeamID: t.TeamID, CategoryID: t.CategoryID, AssigneeID: t.AssigneeID, RequesterID: t.RequesterID,
 		OrganizationID: t.OrganizationID, Watchers: append([]string(nil), t.Watchers...), Channel: string(t.Channel),
+		ProjectID: t.ProjectID, Ref: t.Ref(),
 	}
 }
 

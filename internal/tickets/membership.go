@@ -44,7 +44,7 @@ func (s *Service) revalidateMembership(ctx context.Context, tx *store.Tx, actor,
 			}
 			staff[t.AssigneeID] = st
 		}
-		if st != nil && satisfiesM4(*st, t.TeamID, t.Tier) {
+		if st != nil && satisfiesM4(*st, t) {
 			continue
 		}
 		m := &mutation{t: t}

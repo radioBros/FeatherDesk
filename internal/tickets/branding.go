@@ -59,6 +59,9 @@ func (m *Module) mountBranding(g server.Groups) {
 	up := g.Admin.With(server.MaxBody(MaxBrandingAsset + 64<<10))
 	up.Method(http.MethodPost, "/branding/assets/{slot}", handler(m.uploadBrandingAsset))
 	g.Admin.Method(http.MethodDelete, "/branding/assets/{slot}", handler(m.resetBrandingAsset))
+	// D-20: the portal logo of a project (/p/{key}), project admins too.
+	g.ProjectAdmin.With(server.MaxBody(MaxBrandingAsset+64<<10)).Method(http.MethodPost, "/projects/{id}/logo", handler(m.uploadProjectLogo))
+	g.ProjectAdmin.Method(http.MethodDelete, "/projects/{id}/logo", handler(m.deleteProjectLogo))
 }
 
 type colorSet struct {
@@ -389,9 +392,23 @@ func (m *Module) uploadBrandingAsset(w http.ResponseWriter, r *http.Request) err
 	if !slices.Contains(brandingSlots, slot) {
 		return problems.Validation(problems.Field("slot", "enum", "unknown slot"))
 	}
+	data, err := readUpload(r)
+	if err != nil {
+		return err
+	}
+	a, err := m.svc.storeBrandingAsset(r.Context(), slot, data, principal(r).UserID)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusCreated, a)
+	return nil
+}
+
+// readUpload reads the `file` part of a multipart upload (≤ MaxBrandingAsset).
+func readUpload(r *http.Request) ([]byte, error) {
 	mr, err := r.MultipartReader()
 	if err != nil {
-		return problems.Validation(problems.Field("file", "required", "multipart/form-data with a file part"))
+		return nil, problems.Validation(problems.Field("file", "required", "multipart/form-data with a file part"))
 	}
 	var data []byte
 	for {
@@ -399,9 +416,9 @@ func (m *Module) uploadBrandingAsset(w http.ResponseWriter, r *http.Request) err
 		if err != nil {
 			var mbe *http.MaxBytesError
 			if errors.As(err, &mbe) {
-				return problems.PayloadTooLarge()
+				return nil, problems.PayloadTooLarge()
 			}
-			return problems.Validation(problems.Field("file", "required", "a file part is required"))
+			return nil, problems.Validation(problems.Field("file", "required", "a file part is required"))
 		}
 		if part.FormName() != "file" {
 			_ = part.Close()
@@ -413,20 +430,115 @@ func (m *Module) uploadBrandingAsset(w http.ResponseWriter, r *http.Request) err
 		if err != nil {
 			var mbe *http.MaxBytesError
 			if errors.As(err, &mbe) {
-				return problems.PayloadTooLarge()
+				return nil, problems.PayloadTooLarge()
 			}
-			return err
+			return nil, err
 		}
 		break
 	}
 	if len(data) > MaxBrandingAsset {
-		return problems.PayloadTooLarge()
+		return nil, problems.PayloadTooLarge()
 	}
-	a, err := m.svc.storeBrandingAsset(r.Context(), slot, data, principal(r).UserID)
+	return data, nil
+}
+
+// adminProjectOf loads {id} for a caller who may change its portal settings
+// (D-20): unknown projects and projects the caller does not administer are
+// 404, a PAT without the admin scope 403.
+func (m *Module) adminProjectOf(r *http.Request) (string, error) {
+	p := principal(r)
+	pr, err := m.svc.dir.Project(r.Context(), chi.URLParam(r, "id"))
+	if err != nil || !p.AdminsProject(pr.ID) {
+		return "", problems.NotFound()
+	}
+	if authz.CanProjectConfig(p, authz.PCPortal, pr.ID) != nil {
+		return "", problems.Forbidden("token lacks admin")
+	}
+	return pr.ID, nil
+}
+
+// uploadProjectLogo stores the project's portal logo like the logo_light
+// brand asset, as branding_assets variant "project:<id>".
+func (m *Module) uploadProjectLogo(w http.ResponseWriter, r *http.Request) error {
+	id, err := m.adminProjectOf(r)
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusCreated, a)
+	data, err := readUpload(r)
+	if err != nil {
+		return err
+	}
+	assets, err := prepareAsset("logo_light", data)
+	if err != nil {
+		return err
+	}
+	a := assets[0]
+	ctx := r.Context()
+	s := m.svc
+	sum := sha256.Sum256(a.data)
+	sha := hex.EncodeToString(sum[:])
+	key := "branding/" + sha + "." + a.ext
+	if _, err := s.blob.Put(ctx, key, bytes.NewReader(a.data), int64(len(a.data)), a.ctype); err != nil {
+		return err
+	}
+	variant := "project:" + id
+	var old []string
+	err = s.db.Tx(ctx, func(tx *store.Tx) error {
+		var prev string
+		if err := tx.QueryRowContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = 'logo_light' AND variant = ?`, variant).Scan(&prev); err == nil {
+			old = append(old, prev)
+		}
+		var assetID string
+		if err := tx.QueryRowContext(ctx, `INSERT INTO branding_assets (id, slot, variant, blob_key, content_type, width, height, size_bytes, sha256, created_at)
+			VALUES (?, 'logo_light', ?, ?, ?, ?, ?, ?, ?, ?)
+			ON CONFLICT (slot, variant) DO UPDATE SET blob_key = excluded.blob_key, content_type = excluded.content_type, width = excluded.width,
+				height = excluded.height, size_bytes = excluded.size_bytes, sha256 = excluded.sha256, created_at = excluded.created_at
+			RETURNING id`, store.NewID(), variant, key, a.ctype, a.w, a.h, len(a.data), sha, store.Now()).Scan(&assetID); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE projects SET logo_asset_id = ?, updated_at = ? WHERE id = ?`, assetID, store.Now(), id)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	s.dir.Invalidate()
+	s.deleteUnreferencedBlobs(ctx, old)
+	out, err := s.dir.ProjectAdminJSON(ctx, id)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusCreated, out)
+	return nil
+}
+
+// deleteProjectLogo removes the project's logo: the portal falls back to the
+// global one.
+func (m *Module) deleteProjectLogo(w http.ResponseWriter, r *http.Request) error {
+	id, err := m.adminProjectOf(r)
+	if err != nil {
+		return err
+	}
+	ctx := r.Context()
+	s := m.svc
+	var keys []string
+	err = s.db.Tx(ctx, func(tx *store.Tx) error {
+		var k string
+		if err := tx.QueryRowContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = 'logo_light' AND variant = ?`, "project:"+id).Scan(&k); err == nil {
+			keys = append(keys, k)
+		}
+		if _, err := tx.ExecContext(ctx, `UPDATE projects SET logo_asset_id = NULL, updated_at = ? WHERE id = ?`, store.Now(), id); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `DELETE FROM branding_assets WHERE slot = 'logo_light' AND variant = ?`, "project:"+id)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	s.dir.Invalidate()
+	s.deleteUnreferencedBlobs(ctx, keys)
+	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
 
@@ -533,7 +645,7 @@ func (s *Service) storeBrandingAsset(ctx context.Context, slot string, data []by
 	var main *brandingAssetDTO
 	var oldKeys []string
 	err = s.db.Tx(ctx, func(tx *store.Tx) error {
-		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ?`, slot)
+		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%'`, slot)
 		if err != nil {
 			return err
 		}
@@ -609,7 +721,7 @@ func (m *Module) resetBrandingAsset(w http.ResponseWriter, r *http.Request) erro
 	s := m.svc
 	var keys []string
 	err := s.db.Tx(ctx, func(tx *store.Tx) error {
-		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ?`, slot)
+		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%'`, slot)
 		if err != nil {
 			return err
 		}
@@ -619,7 +731,7 @@ func (m *Module) resetBrandingAsset(w http.ResponseWriter, r *http.Request) erro
 			keys = append(keys, k)
 		}
 		rows.Close()
-		_, err = tx.ExecContext(ctx, `DELETE FROM branding_assets WHERE slot = ?`, slot)
+		_, err = tx.ExecContext(ctx, `DELETE FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%'`, slot)
 		return err
 	})
 	if err != nil {

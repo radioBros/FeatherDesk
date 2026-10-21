@@ -15,7 +15,7 @@ import { onColor } from '@/utils/color'
 
 export type Hue =
   | 'blue' | 'teal' | 'purple' | 'amber' | 'indigo' | 'orange' | 'green'
-  | 'cyan' | 'pink' | 'deepPurple' | 'lightBlue' | 'blueGrey' | 'red'
+  | 'cyan' | 'pink' | 'deepPurple' | 'lightBlue' | 'blueGrey' | 'red' | 'brown'
 
 /** Light-theme variant is deep (text on white and on tints), dark-theme variant is pale. */
 export const HUES: Record<Hue, { light: string; dark: string }> = {
@@ -32,6 +32,7 @@ export const HUES: Record<Hue, { light: string; dark: string }> = {
   lightBlue: { light: '#01579b', dark: '#81d4fa' },
   blueGrey: { light: '#455a64', dark: '#bccad2' },
   red: { light: '#b71c1c', dark: '#f5a8a8' },
+  brown: { light: '#6d4c41', dark: '#d7b9ab' },
 }
 
 /** App section -> hue. */
@@ -50,6 +51,7 @@ export const SECTION_HUE = {
   system: 'blueGrey',
   queue: 'blueGrey',
   danger: 'red',
+  projects: 'brown',
 } as const satisfies Record<string, Hue>
 
 export type Section = keyof typeof SECTION_HUE

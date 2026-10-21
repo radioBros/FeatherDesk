@@ -7,20 +7,22 @@ import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import type { components } from '@/api/schema'
+import ProjectSelect, { type ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
-const props = defineProps<{ canned?: S['CannedResponse'] | null; teams?: S['Team'][] }>()
+const props = defineProps<{ canned?: S['CannedResponse'] | null; teams?: S['Team'][]; projects?: ProjectOption[]; canGlobal?: boolean }>()
 const emit = defineEmits<{ saved: [S['CannedResponse']]; cancel: [] }>()
 
 const model = reactive({
   title: props.canned?.title ?? '',
   body_md: props.canned?.body_md ?? '',
   team_id: props.canned?.team_id ?? null,
+  project_id: (props.canned?.project_id ?? null) as string | null,
 })
 const { formRef, submit, fieldErrors, formError, submitting } = useForm()
 
 const onSave = submit(async () => {
-  const body: S['CannedCreate'] = { title: model.title.trim(), body_md: model.body_md, team_id: model.team_id }
+  const body: S['CannedCreate'] = { title: model.title.trim(), body_md: model.body_md, team_id: model.team_id, ...(props.projects?.length ? { project_id: model.project_id } : {}) }
   const saved = props.canned
     ? await unwrap(api.PATCH('/admin/canned-responses/{id}', { params: { path: { id: props.canned.id } }, body }))
     : await unwrap(api.POST('/admin/canned-responses', { body }))
@@ -49,6 +51,18 @@ const onSave = submit(async () => {
       clearable
       class="mb-2"
       data-testid="canned-team"
+    />
+    <ProjectSelect
+      v-if="projects?.length"
+      v-model="model.project_id"
+      :projects="projects"
+      :nullable="canGlobal !== false"
+      :null-label="$t('projects.config.global')"
+      :label="$t('projects.config.project')"
+      :hint="$t('projects.config.scopeHint')"
+      :rules="canGlobal === false ? [validations.required.any] : []"
+      :error-messages="fieldErrors.project_id"
+      testid="canned-project"
     />
     <MarkdownEditor v-model="model.body_md" :label="$t('agent.canned.body')" required :error-messages="fieldErrors.body_md" />
     <div class="text-caption text-medium-emphasis mb-3" data-testid="canned-variables">

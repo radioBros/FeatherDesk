@@ -2,7 +2,7 @@
 {{define "subject"}}Escalated: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hello {{.RecipientName}},
 
-{{.ActorName}} escalated the ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** from {{.FromTier}} to {{.ToTier}}.{{with .Reason}}
+{{.ActorName}} escalated the ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** from {{.FromTier}} to {{.ToTier}}.{{with .Reason}}
 
 **Reason:** {{.}}{{end}}
 

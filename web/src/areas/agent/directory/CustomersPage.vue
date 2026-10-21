@@ -6,6 +6,9 @@ import { useRouter } from 'vue-router'
 import { mdiMagnify, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { useI18n } from 'vue-i18n'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import CustomerForm from './CustomerForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useCursorList } from '../shared/useCursorList'
@@ -41,6 +44,14 @@ function onSaved(c: S['User']) {
   dialog.value = false
   void router.push(`/agent/customers/${c.id}`)
 }
+const { t } = useI18n()
+const cols = useTableColumns('agent-customers', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'email', label: t('agent.common.email') },
+  { key: 'organization', label: t('agent.customers.organization'), lowPriority: true },
+  { key: 'role', label: t('agent.customers.role'), lowPriority: true },
+  { key: 'status', label: t('agent.common.status'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -66,31 +77,34 @@ function onSaved(c: S['User']) {
     <v-card border flat>
       <v-progress-linear v-if="list.loading.value" indeterminate />
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.customers.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="customer-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="customer-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.common.email') }}</th>
-            <th>{{ $t('agent.customers.organization') }}</th>
-            <th>{{ $t('agent.customers.role') }}</th>
-            <th>{{ $t('agent.common.status') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('email')">{{ $t('agent.common.email') }}</th>
+            <th v-if="cols.show('organization')">{{ $t('agent.customers.organization') }}</th>
+            <th v-if="cols.show('role')">{{ $t('agent.customers.role') }}</th>
+            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in list.items.value" :key="c.id" class="st-row" data-testid="customer-row" @click="router.push(`/agent/customers/${c.id}`)">
-            <td>
+            <td v-if="cols.show('name')">
               <div class="d-flex align-center ga-2">
                 <UserAvatar :name="c.name" :size="28" />
                 <router-link :to="`/agent/customers/${c.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ c.name }}</router-link>
               </div>
             </td>
-            <td>{{ c.email }}</td>
-            <td>{{ orgName(c.organization_id) || '—' }}</td>
-            <td>{{ $t(`agent.customers.roles.${c.role === 'org_manager' ? 'org_manager' : 'requester'}`) }}</td>
-            <td><v-chip size="small" label :color="c.status === 'active' ? 'success' : undefined">{{ $t(`agent.customers.statuses.${c.status}`) }}</v-chip></td>
+            <td v-if="cols.show('email')">{{ c.email }}</td>
+            <td v-if="cols.show('organization')">{{ orgName(c.organization_id) || '—' }}</td>
+            <td v-if="cols.show('role')">{{ $t(`agent.customers.roles.${c.role === 'org_manager' ? 'org_manager' : 'requester'}`) }}</td>
+            <td v-if="cols.show('status')"><v-chip size="small" label :color="c.status === 'active' ? 'success' : undefined">{{ $t(`agent.customers.statuses.${c.status}`) }}</v-chip></td>
           </tr>
         </tbody>
       </v-table>
+      </template>
       <div v-if="list.next.value" class="pa-2 text-center">
         <v-btn variant="text" :loading="list.loading.value" data-testid="load-more" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
       </div>

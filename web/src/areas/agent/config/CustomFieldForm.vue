@@ -14,10 +14,12 @@ import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import LocalizedTextFields from '../shared/LocalizedTextFields.vue'
 import type { components } from '@/api/schema'
+import ProjectMultiSelect from '@/components/ProjectMultiSelect.vue'
+import type { ProjectOption } from '@/components/ProjectSelect.vue'
 import { FIELD_TYPES } from './constants'
 
 type S = components['schemas']
-const props = defineProps<{ field?: S['CustomFieldDef'] | null; categories?: S['Category'][] }>()
+const props = defineProps<{ field?: S['CustomFieldDef'] | null; categories?: S['Category'][]; projects?: ProjectOption[] }>()
 const emit = defineEmits<{ saved: [S['CustomFieldDef']]; cancel: [] }>()
 const { t } = useI18n()
 
@@ -35,6 +37,7 @@ const model = reactive({
   customer_editable: props.field?.customer_editable ?? false,
   category_ids: [...(props.field?.category_ids ?? [])] as string[],
   sort: String(props.field?.sort ?? 0),
+  project_ids: [...(props.field?.project_ids ?? [])] as string[],
 })
 const editing = computed(() => !!props.field)
 const needsOptions = computed(() => model.type === 'select' || model.type === 'multiselect')
@@ -63,6 +66,7 @@ const onSave = submit(async () => {
     customer_visible: model.customer_visible,
     customer_editable: model.customer_visible && model.customer_editable,
     category_ids: model.category_ids.length ? model.category_ids : null,
+    ...(props.projects?.length ? { project_ids: model.project_ids.length ? model.project_ids : null } : {}),
     sort: Number(model.sort) || 0,
   }
   const saved = props.field
@@ -142,6 +146,16 @@ const onSave = submit(async () => {
       closable-chips
       class="mb-2"
       data-testid="cf-categories"
+    />
+    <ProjectMultiSelect
+      v-if="projects?.length"
+      v-model="model.project_ids"
+      :projects="projects"
+      :label="$t('projects.config.projects')"
+      :hint="$t('projects.config.fieldHint')"
+      :error-messages="fieldErrors.project_ids"
+      class="mb-2"
+      testid="cf-projects"
     />
     <v-text-field
       v-model="model.sort"

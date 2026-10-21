@@ -91,6 +91,7 @@ export const errorCodes = {
   url: 'validation.url',
   uuid: 'validation.invalid',
   webmail: 'validation.webmail',
+  wrong_project: 'validation.wrongProject',
 } as const
 export type ErrorCode = keyof typeof errorCodes
 
@@ -107,6 +108,7 @@ export const ruleCodes = {
   select: 'validation.select',
   integer: 'validation.integer',
   https_url: 'validation.httpsUrl',
+  project_key: 'validation.projectKey',
   time_of_day: 'validation.timeOfDay',
   time_range_order: 'validation.timeRangeOrder',
   time_zone: 'validation.timeZone',
@@ -123,6 +125,8 @@ const HOSTNAME = /^(?=.{1,253}$)(?!-)[a-zA-Z0-9-]{1,63}(?<!-)(\.(?!-)[a-zA-Z0-9-
 const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
 const DOMAIN = /^(?=.{1,253}$)((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$/
 const HEX = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/
+/** Project keys (D-20): 2-10 characters, an upper-case letter, then upper-case letters or digits. The form upper-cases first, like the server. */
+const PROJECT_KEY = /^[A-Z][A-Z0-9]{1,9}$/
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 /** Custom-field keys, as the API defines them (`CustomFieldDef.key`): used in `cf.<key>` filters. */
 const FIELD_KEY = /^[a-z][a-z0-9_]{0,62}$/
@@ -278,6 +282,8 @@ export const validations = {
   integer: optional((v) => Number.isInteger(toNumber(v)), msg('integer')),
   /** Webhook targets: https only (pair with `url` when private http targets are allowed). */
   httpsUrl: optional((v) => isUrl(v) && str(v).startsWith('https://'), msg('https_url')),
+  /** Project key (`WEB`, `IT2`): checked after upper-casing, as the server does. */
+  projectKey: optional((v) => PROJECT_KEY.test(str(v).toUpperCase()), msg('project_key')),
   /** KB article / category slugs: a slug of at most 100 characters. */
   kbSlug: optional((v) => SLUG.test(str(v)) && str(v).length <= 100, msg('slug')),
   /** Custom-field keys: a lowercase letter, then letters, digits or `_` (63 max), as the API requires. */

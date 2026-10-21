@@ -563,7 +563,7 @@ func FixtureData(key, portalURL, agentURL string) branded {
 	const id = "0192f000-0000-7000-8000-000000000001"
 	switch {
 	case strings.HasPrefix(key, "customer."):
-		d := &CustomerData{RecipientName: "Ada Lovelace", Ticket: CustomerTicketView{Number: 1042, Subject: "Printer on floor 3 is offline", URL: portalURL + "/tickets/" + id}}
+		d := &CustomerData{RecipientName: "Ada Lovelace", Ticket: CustomerTicketView{Number: 1042, Ref: "HD-1042", Subject: "Printer on floor 3 is offline", URL: portalURL + "/tickets/" + id}}
 		if key == TplCustomerReply {
 			d.Message = CustomerMessageView{AuthorName: "Grace Hopper", Body: "We restarted the print server. Could you try again?\n\n- step one\n- step two"}
 			d.Signature = "Grace Hopper  \nSupport Team"
@@ -574,7 +574,7 @@ func FixtureData(key, portalURL, agentURL string) branded {
 		return d
 	case strings.HasPrefix(key, "staff.") && key != TplStaffWebhookDisabled:
 		return &StaffData{RecipientName: "Grace Hopper", ActorName: "Alan Turing",
-			Ticket:   StaffTicketView{ID: id, Number: 1042, Subject: "Printer on floor 3 is offline", Priority: "high", Status: "open", TierLabel: "L2", TeamName: "IT", RequesterName: "Ada Lovelace", URL: agentURL + "/tickets/" + id},
+			Ticket:   StaffTicketView{ID: id, Number: 1042, Ref: "HD-1042", Subject: "Printer on floor 3 is offline", Priority: "high", Status: "open", TierLabel: "L2", TeamName: "IT", RequesterName: "Ada Lovelace", URL: agentURL + "/tickets/" + id},
 			Messages: []StaffMessageView{{AuthorName: "Ada Lovelace", Body: "The printer shows **error 42** since this morning."}},
 			Reason:   "Needs network access", FromTier: "L1", ToTier: "L2", SLAWhich: "first_response", SLADue: "2026-10-20 10:00", SLABreached: key == TplStaffSLA}
 	default:

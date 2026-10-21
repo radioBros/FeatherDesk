@@ -6,6 +6,7 @@
  * topic (any event or resync refetches); a manual refresh otherwise. No timers.
  */
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { mdiAlertOctagonOutline, mdiRefresh, mdiTimerSandEmpty, mdiTimerSyncOutline } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -13,7 +14,10 @@ import StatCard from '@/components/StatCard.vue'
 import { api, unwrap } from '@/api/client'
 import { useRealtime } from '@/composables/useRealtime'
 import type { components } from '@/api/schema'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 
+const { t } = useI18n()
 const q = ref<components['schemas']['QueueStatus'] | null>(null)
 const loading = ref(true)
 const failed = ref(false)
@@ -39,6 +43,14 @@ onMounted(load)
 useRealtime(['admin:system'], { onEvent: () => void load(), onResync: () => void load() })
 
 const pct = (depth: number, cap: number) => (cap > 0 ? Math.min(100, Math.round((depth / cap) * 100)) : 0)
+
+const cols = useTableColumns('queue', () => [
+  { key: 'name', label: t('agent.queue.name'), locked: true },
+  { key: 'depth', label: t('agent.queue.depth') },
+  { key: 'capacity', label: t('agent.queue.capacity'), lowPriority: true },
+  { key: 'workers', label: t('agent.queue.workers'), lowPriority: true },
+  { key: 'fill', label: t('agent.queue.fill') },
+])
 </script>
 
 <template>
@@ -73,23 +85,24 @@ const pct = (depth: number, cap: number) => (cap > 0 ? Math.min(100, Math.round(
         <EmptyState v-if="!q.queues.length" :title="$t('agent.queue.empty')" body="" />
         <!-- On a narrow screen the table scrolls sideways: the scroll region is keyboard-reachable (FE-032). -->
         <div v-else class="st-scroll" tabindex="0" role="region" :aria-label="$t('agent.admin.nav.queue')">
+          <ColumnsMenu :cols="cols" />
           <v-table density="comfortable" data-testid="queue-table">
             <thead>
               <tr>
-                <th>{{ $t('agent.queue.name') }}</th>
-                <th>{{ $t('agent.queue.depth') }}</th>
-                <th>{{ $t('agent.queue.capacity') }}</th>
-                <th>{{ $t('agent.queue.workers') }}</th>
-                <th style="width: 30%">{{ $t('agent.queue.fill') }}</th>
+                <th v-if="cols.show('name')">{{ $t('agent.queue.name') }}</th>
+                <th v-if="cols.show('depth')">{{ $t('agent.queue.depth') }}</th>
+                <th v-if="cols.show('capacity')">{{ $t('agent.queue.capacity') }}</th>
+                <th v-if="cols.show('workers')">{{ $t('agent.queue.workers') }}</th>
+                <th style="width: 30%" v-if="cols.show('fill')">{{ $t('agent.queue.fill') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="row in q.queues" :key="row.name" data-testid="queue-row">
-                <td class="font-weight-medium">{{ row.name }}</td>
-                <td>{{ row.depth }}</td>
-                <td>{{ row.capacity }}</td>
-                <td>{{ row.workers ?? '—' }}</td>
-                <td>
+                <td class="font-weight-medium" v-if="cols.show('name')">{{ row.name }}</td>
+                <td v-if="cols.show('depth')">{{ row.depth }}</td>
+                <td v-if="cols.show('capacity')">{{ row.capacity }}</td>
+                <td v-if="cols.show('workers')">{{ row.workers ?? '—' }}</td>
+                <td v-if="cols.show('fill')">
                   <v-progress-linear
                     :model-value="pct(row.depth, row.capacity)"
                     :color="pct(row.depth, row.capacity) >= 80 ? 'error' : 'primary'"

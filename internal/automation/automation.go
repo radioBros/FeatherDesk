@@ -44,6 +44,7 @@ const (
 	FieldTier             = "tier"
 	FieldCategory         = "category_id"
 	FieldTeam             = "team_id"
+	FieldProject          = "project" // D-20: the ticket's project id
 	FieldOrganization     = "organization_id"
 	FieldRequesterDomain  = "requester_domain"
 	FieldTag              = "tag"
@@ -109,6 +110,7 @@ var fieldOps = map[string][]string{
 	FieldTier:             {OpIs, OpIsNot, OpGte, OpLte},
 	FieldCategory:         {OpIs, OpIsNot},
 	FieldTeam:             {OpIs, OpIsNot},
+	FieldProject:          {OpIs, OpIsNot},
 	FieldOrganization:     {OpIs, OpIsNot},
 	FieldRequesterDomain:  {OpIs, OpIsNot},
 	FieldTag:              {OpPresent, OpAbsent},
@@ -191,8 +193,10 @@ type Rule struct {
 	Enabled        bool        `json:"enabled"`
 	StopProcessing bool        `json:"stop_processing"`
 	Position       int         `json:"position"`
-	CreatedAt      time.Time   `json:"created_at"`
-	UpdatedAt      time.Time   `json:"updated_at"`
+	// ProjectID scopes the rule to one project (D-20); nil = every project.
+	ProjectID *string   `json:"project_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // Facts is what conditions see about one ticket.
@@ -205,6 +209,7 @@ type Facts struct {
 	Tier             int
 	CategoryID       string
 	TeamID           string
+	ProjectID        string // D-20
 	OrganizationID   string
 	RequesterDomain  string
 	Tags             []string
@@ -477,6 +482,9 @@ var tagRe = regexp.MustCompile(`^[a-z0-9-]{1,40}$`)
 // A rule without conditions always matches.
 func (r *Rule) Evaluate(f Facts) (bool, []bool) {
 	res := make([]bool, len(r.Conditions))
+	if !r.InScope(f) {
+		return false, res
+	}
 	if len(r.Conditions) == 0 {
 		return true, res
 	}
@@ -490,6 +498,12 @@ func (r *Rule) Evaluate(f Facts) (bool, []bool) {
 		return anyOK, res
 	}
 	return allOK, res
+}
+
+// InScope reports whether the ticket of f is in the rule's project scope
+// (D-20): a project rule never runs on tickets of other projects.
+func (r *Rule) InScope(f Facts) bool {
+	return r.ProjectID == nil || *r.ProjectID == f.ProjectID
 }
 
 // Match evaluates one prepared condition.
@@ -512,6 +526,8 @@ func (c *Condition) Match(f Facts) bool {
 		return c.in(f.CategoryID)
 	case FieldTeam:
 		return c.in(f.TeamID)
+	case FieldProject:
+		return c.in(f.ProjectID)
 	case FieldOrganization:
 		return c.in(f.OrganizationID)
 	case FieldRequesterDomain:

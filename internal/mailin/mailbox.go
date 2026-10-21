@@ -66,6 +66,7 @@ type mailbox struct {
 	Name          string
 	Kind          string // imap | webhook
 	TeamID        string
+	ProjectID     string // D-20: new tickets from this mailbox join this project
 	Address       string
 	IMAP          IMAPConfig // effective (env overlaid when EnvManaged)
 	Stored        IMAPConfig // as stored
@@ -79,13 +80,13 @@ type mailbox struct {
 	LockedByEnv   []string
 }
 
-const mailboxCols = `id, name, kind, team_id, address, imap, webhook_token_hash, hmac_secret_enc, active, last_ok_at, last_error, created_at, updated_at`
+const mailboxCols = `id, name, kind, team_id, address, imap, webhook_token_hash, hmac_secret_enc, active, last_ok_at, last_error, created_at, updated_at, project_id`
 
 func (m *Module) scanMailbox(row interface{ Scan(...any) error }) (*mailbox, error) {
 	var mb mailbox
 	var team, tok sql.NullString
 	var imapRaw store.RawJSON
-	if err := row.Scan(&mb.ID, &mb.Name, &mb.Kind, &team, &mb.Address, &imapRaw, &tok, &mb.HMACSecretEnc, &mb.Active, &mb.LastOKAt, &mb.LastError, &mb.CreatedAt, &mb.UpdatedAt); err != nil {
+	if err := row.Scan(&mb.ID, &mb.Name, &mb.Kind, &team, &mb.Address, &imapRaw, &tok, &mb.HMACSecretEnc, &mb.Active, &mb.LastOKAt, &mb.LastError, &mb.CreatedAt, &mb.UpdatedAt, &mb.ProjectID); err != nil {
 		return nil, err
 	}
 	mb.TeamID, mb.TokenHash = team.String, tok.String

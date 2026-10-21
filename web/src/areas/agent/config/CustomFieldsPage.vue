@@ -6,11 +6,15 @@ import { useI18n } from 'vue-i18n'
 import { mdiArchiveArrowDown, mdiArchiveArrowUp, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import CustomFieldForm from './CustomFieldForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfigStore } from '@/stores/config'
 import { localized } from '@/utils/localized'
 import { useLookupsStore } from '../shared/lookups'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 
@@ -18,6 +22,7 @@ type S = components['schemas']
 const { t, locale } = useI18n()
 const config = useConfigStore()
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
 const { run } = useAction()
 const items = ref<S['CustomFieldDef'][]>([])
 const loading = ref(true)
@@ -70,6 +75,15 @@ async function setActive(f: S['CustomFieldDef'], active: boolean) {
     lookups.invalidate('customFields')
   }
 }
+const cols = useTableColumns('config-custom-fields', () => [
+  { key: 'key', label: t('agent.customFields.key'), locked: true },
+  { key: 'label', label: t('agent.customFields.label') },
+  { key: 'type', label: t('agent.customFields.type'), lowPriority: true },
+  { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
+  { key: 'categories', label: t('agent.customFields.categories'), lowPriority: true },
+  { key: 'flags', label: t('agent.customFields.flags'), lowPriority: true },
+  { key: 'status', label: t('agent.common.status') },
+])
 </script>
 
 <template>
@@ -84,30 +98,34 @@ async function setActive(f: S['CustomFieldDef'], active: boolean) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !shown.length" :title="$t('agent.customFields.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="cf-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="cf-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.customFields.key') }}</th>
-            <th>{{ $t('agent.customFields.label') }}</th>
-            <th>{{ $t('agent.customFields.type') }}</th>
-            <th>{{ $t('agent.customFields.categories') }}</th>
-            <th>{{ $t('agent.customFields.flags') }}</th>
-            <th>{{ $t('agent.common.status') }}</th>
+            <th v-if="cols.show('key')">{{ $t('agent.customFields.key') }}</th>
+            <th v-if="cols.show('label')">{{ $t('agent.customFields.label') }}</th>
+            <th v-if="cols.show('type')">{{ $t('agent.customFields.type') }}</th>
+            <th v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
+            <th v-if="cols.show('categories')">{{ $t('agent.customFields.categories') }}</th>
+            <th v-if="cols.show('flags')">{{ $t('agent.customFields.flags') }}</th>
+            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="f in shown" :key="f.id" data-testid="cf-row">
-            <td><code>{{ f.key }}</code></td>
-            <td>{{ label(f) }}</td>
-            <td>{{ $t(`agent.customFields.types.${f.type}`) }}</td>
-            <td class="text-caption">{{ categoryNames(f) }}</td>
-            <td>
+            <td v-if="cols.show('key')"><code>{{ f.key }}</code></td>
+            <td v-if="cols.show('label')">{{ label(f) }}</td>
+            <td v-if="cols.show('type')">{{ $t(`agent.customFields.types.${f.type}`) }}</td>
+            <td v-if="cols.show('projects')"><ProjectCell :ids="f.project_ids ?? []" /></td>
+            <td v-if="cols.show('categories')" class="text-caption">{{ categoryNames(f) }}</td>
+            <td v-if="cols.show('flags')">
               <v-chip v-if="f.required" size="x-small" label class="mr-1">{{ $t('agent.customFields.required') }}</v-chip>
               <v-chip v-if="f.customer_visible" size="x-small" label color="info" class="mr-1">{{ $t('agent.customFields.visibleChip') }}</v-chip>
               <v-chip v-if="f.customer_editable" size="x-small" label color="info">{{ $t('agent.customFields.editableChip') }}</v-chip>
             </td>
-            <td>
+            <td v-if="cols.show('status')">
               <v-chip size="small" label :color="f.active ? 'success' : undefined">{{ f.active ? $t('agent.common.active') : $t('agent.customFields.archivedChip') }}</v-chip>
             </td>
             <td class="text-right text-no-wrap">
@@ -134,12 +152,13 @@ async function setActive(f: S['CustomFieldDef'], active: boolean) {
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="720" scrollable>
       <v-card :title="editing ? $t('agent.customFields.edit') : $t('agent.customFields.new')">
         <v-card-text>
-          <CustomFieldForm v-if="dialog" :field="editing" :categories="lookups.categories" @saved="onSaved" @cancel="dialog = false" />
+          <CustomFieldForm v-if="dialog" :field="editing" :categories="lookups.categories" :projects="cp.options.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

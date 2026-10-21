@@ -55,6 +55,8 @@ tags:
     description: "Customer portal (customers only)"
   - name: Tickets
     description: "Staff ticket work (staff only)"
+  - name: Projects
+    description: "Projects (D-20): keys and ticket refs, membership, team mapping, per-project SLA and portal branding"
   - name: Directory
     description: "Customers, organizations, teams, staff lookups"
   - name: Reports
@@ -482,6 +484,13 @@ paths:
 
         Phase: CORE.
       security: []
+      parameters:
+        - name: project
+          in: query
+          schema:
+            type: string
+            maxLength: 36
+          description: "D-20: a project key (the `/p/{key}` portal entry); adds `project` to the response"
       x-phase: CORE
       responses:
         "200":
@@ -1733,6 +1742,7 @@ paths:
           schema:
             type: boolean
           description: "org_manager: only tickets I requested"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "tickets:read"
       x-phase: CORE
@@ -1808,6 +1818,31 @@ paths:
           schema:
             type: integer
             minimum: 1
+      x-scopes:
+        - "tickets:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerTicket"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /portal/tickets/by-ref/{ref}:
+    get:
+      operationId: getPortalTicketByRef
+      summary: My ticket by reference
+      tags:
+        - Portal
+      description: "The `getPortalTicket` view (public messages only, I-2) addressed by its `KEY-123` reference (D-20). Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/TicketRefPath"
       x-scopes:
         - "tickets:read"
       x-phase: V1
@@ -2124,6 +2159,35 @@ paths:
           $ref: "#/components/responses/NotFound"
         "416":
           description: "Range not satisfiable (`Content-Range: bytes */<size>`)"
+  /portal/projects:
+    get:
+      operationId: listPortalProjects
+      summary: Projects I can open tickets in
+      tags:
+        - Portal
+      description: |-
+        Active, portal-visible projects, limited to the organization's projects when it has a list (D-20). The new-ticket
+        form shows a project picker when more than one is returned.
+
+        Phase: V1.
+      x-scopes:
+        - "tickets:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PortalProject"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /portal/categories:
     get:
       operationId: listPortalCategories
@@ -2131,6 +2195,8 @@ paths:
       tags:
         - Portal
       description: "Phase: CORE."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "tickets:read"
       x-phase: CORE
@@ -2149,6 +2215,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /portal/custom-fields:
     get:
       operationId: listPortalCustomFields
@@ -2164,6 +2232,7 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/Id"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-phase: V1
       responses:
         "200":
@@ -2180,6 +2249,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /portal/organization/members:
     get:
       operationId: listOrgMembers
@@ -2369,6 +2440,7 @@ paths:
           in: query
           schema:
             type: boolean
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "tickets:read"
       x-phase: CORE
@@ -2418,6 +2490,13 @@ paths:
                   value:
                     id: "0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f"
                     number: 1042
+                    ref: HD-1042
+                    project_id: "00000000-0000-7000-8000-000000000001"
+                    project:
+                      id: "00000000-0000-7000-8000-000000000001"
+                      key: HD
+                      name: Help Desk
+                      color: ""
                     subject: Printer on 2nd floor is offline
                     status: new
                     priority: normal
@@ -2461,6 +2540,8 @@ paths:
       tags:
         - Tickets
       description: "Phase: CORE."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "tickets:read"
       x-phase: CORE
@@ -2477,6 +2558,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /agent/tickets/by-number/{n}:
     get:
       operationId: getAgentTicketByNumber
@@ -2494,6 +2577,31 @@ paths:
       x-scopes:
         - "tickets:read"
       x-phase: CORE
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ticket"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /agent/tickets/by-ref/{ref}:
+    get:
+      operationId: getAgentTicketByRef
+      summary: Ticket by reference
+      tags:
+        - Tickets
+      description: "The `getAgentTicket` view addressed by its `KEY-123` reference (D-20), like `getAgentTicketByNumber` (no `ETag`). 404 outside the caller's visibility (I-4, I-11). Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/TicketRefPath"
+      x-scopes:
+        - "tickets:read"
+      x-phase: V1
       responses:
         "200":
           description: OK
@@ -3121,6 +3229,37 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /agent/projects:
+    get:
+      operationId: listAgentProjects
+      summary: My projects
+      tags:
+        - Projects
+      description: |-
+        The projects the caller works in (D-20): every project for supervisors and admins, the memberships for agents
+        (I-11). Inactive projects are included (`active: false`) so chips of old tickets render. Feeds the project switcher,
+        which is hidden while only one active project exists.
+
+        Phase: V1.
+      x-scopes:
+        - "tickets:read"
+        - "directory:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AgentProject"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /agent/teams:
     get:
       operationId: listAgentTeams
@@ -3128,6 +3267,8 @@ paths:
       tags:
         - Directory
       description: "Phase: CORE."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "directory:read"
       x-phase: CORE
@@ -3146,6 +3287,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /agent/categories:
     get:
       operationId: listAgentCategories
@@ -3153,6 +3296,8 @@ paths:
       tags:
         - Directory
       description: "Phase: CORE."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "directory:read"
       x-phase: CORE
@@ -3171,6 +3316,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /agent/staff:
     get:
       operationId: listAgentStaff
@@ -3180,6 +3327,7 @@ paths:
       description: "Phase: CORE."
       parameters:
         - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "directory:read"
       x-phase: CORE
@@ -3198,6 +3346,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /agent/tags:
     get:
       operationId: listAgentTags
@@ -3237,6 +3387,7 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/Id"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "tickets:read"
       x-phase: V1
@@ -3255,6 +3406,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /agent/customers:
     get:
       operationId: listCustomers
@@ -3506,6 +3659,7 @@ paths:
       description: "Phase: V1."
       parameters:
         - $ref: "#/components/parameters/Q"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-phase: V1
       responses:
         "200":
@@ -3522,6 +3676,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createAgentCanned
       summary: Create a canned response for one of my teams
@@ -3805,6 +3961,7 @@ paths:
           in: query
           schema:
             $ref: "#/components/schemas/CalendarMode"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-phase: V1
       responses:
         "200":
@@ -3819,6 +3976,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
   /agent/kb/articles:
     get:
       operationId: listKbArticlesForEditor
@@ -3839,6 +3998,7 @@ paths:
           schema:
             $ref: "#/components/schemas/Id"
         - $ref: "#/components/parameters/LocaleQ"
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "kb:read"
       x-phase: V1
@@ -3855,6 +4015,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createKbArticle
       summary: Create a draft article
@@ -4127,6 +4289,7 @@ paths:
           schema:
             type: string
           description: ETag of a cached copy (304 when unchanged)
+        - $ref: "#/components/parameters/ProjectFilter"
       x-phase: V1
       responses:
         "200":
@@ -4153,6 +4316,8 @@ paths:
             "application/problem+json":
               schema:
                 $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/Validation"
       security:
         - cookieAuth: []
         - bearerAuth: []
@@ -4180,6 +4345,7 @@ paths:
           schema:
             type: string
           description: ETag of a cached copy (304 when unchanged)
+        - $ref: "#/components/parameters/ProjectFilter"
       x-phase: V1
       responses:
         "200":
@@ -4204,6 +4370,8 @@ paths:
             "application/problem+json":
               schema:
                 $ref: "#/components/schemas/Problem"
+        "422":
+          $ref: "#/components/responses/Validation"
       security:
         - cookieAuth: []
         - bearerAuth: []
@@ -4531,6 +4699,409 @@ paths:
           $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/Validation"
+  /admin/projects:
+    get:
+      operationId: listProjects
+      summary: Projects
+      tags:
+        - Projects
+      description: |-
+        D-20. Supervisors and admins get every project; a project admin gets the projects they administer. Agents
+        without a `project_admin` membership get 403.
+
+        Phase: V1.
+      x-scopes:
+        - admin
+        - "directory:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createProject
+      summary: Create a project
+      tags:
+        - Projects
+      description: |-
+        Supervisors and admins. The key must be unique (422 `unique`). The project starts with no members (supervisors and
+        admins see it anyway) and its ticket sequence at 1.
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreate"
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+  /admin/projects/{id}:
+    get:
+      operationId: getProject
+      summary: Project
+      tags:
+        - Projects
+      description: "D-20. Supervisors, admins and the project's admins; anyone else gets 404. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      x-scopes:
+        - admin
+        - "directory:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: patchProject
+      summary: Update a project
+      tags:
+        - Projects
+      description: "D-20. Project admins edit name, description, colour, icon, default team and the portal settings; `key`, `active` and `sort` need a supervisor or admin (403). Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectPatch"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+    delete:
+      operationId: deleteProject
+      summary: Delete an unused project
+      tags:
+        - Projects
+      description: |-
+        Supervisors and admins. 409 while tickets, categories, inbound mailboxes or KB categories belong to the project, and
+        for the last active project; deactivate it instead. Rules, macros, canned responses, SLA overrides, memberships and
+        team/organization mappings of the project are deleted with it.
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /admin/projects/{id}/members:
+    get:
+      operationId: listProjectMembers
+      summary: Project members
+      tags:
+        - Projects
+      description: "Supervisors, admins and the project's admins. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      x-scopes:
+        - admin
+        - "directory:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectMember"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: putProjectMembers
+      summary: Replace the project's members
+      tags:
+        - Projects
+      description: |-
+        Supervisors and admins. Agents see only tickets of the projects they are members of (I-11); staff removed here lose
+        access at once and their tickets in the project are unassigned (M-4).
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectMembersPut"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectMember"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+  /admin/projects/{id}/teams:
+    get:
+      operationId: getProjectTeams
+      summary: Teams serving the project
+      tags:
+        - Projects
+      description: "Supervisors, admins and the project's admins. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      x-scopes:
+        - admin
+        - "directory:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTeams"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: putProjectTeams
+      summary: Replace the teams serving the project
+      tags:
+        - Projects
+      description: "Supervisors, admins and the project's admins. Tickets of the project can only be routed, transferred or assigned to teams serving it. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectTeams"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTeams"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+  /admin/projects/{id}/sla-policies:
+    get:
+      operationId: getProjectSlaPolicies
+      summary: Effective SLA policies of the project
+      tags:
+        - Projects
+      description: "One entry per priority: the project's override, or the global default (`inherited: true`). Supervisors, admins and the project's admins. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      x-scopes:
+        - admin
+        - "directory:read"
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectSlaPolicy"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      operationId: putProjectSlaPolicies
+      summary: Replace the project's SLA overrides
+      tags:
+        - Projects
+      description: "Supervisors, admins and the project's admins. New tickets (and priority changes, resumes) use the override, else the global default. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectSlaPoliciesPut"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectSlaPolicy"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+  /admin/projects/{id}/logo:
+    post:
+      operationId: uploadProjectLogo
+      summary: Upload the project's portal logo
+      tags:
+        - Projects
+      description: |-
+        PNG/JPEG/SVG ≤ 1 MB, processed like the `logo_light` brand asset. Shown on `/p/{key}` instead of the global logo.
+        Supervisors, admins and the project's admins.
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/FileUpload"
+      responses:
+        "201":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/TooLarge"
+        "422":
+          $ref: "#/components/responses/Validation"
+    delete:
+      operationId: deleteProjectLogo
+      summary: Remove the project's portal logo
+      tags:
+        - Projects
+      description: "The portal falls back to the global logo. Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "204":
+          description: Removed
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/teams:
     get:
       operationId: listTeams
@@ -4772,6 +5343,8 @@ paths:
       tags:
         - Administration
       description: "Phase: CORE."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - admin
       x-phase: CORE
@@ -4790,6 +5363,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createCategory
       summary: Create a category
@@ -4862,7 +5437,7 @@ paths:
       summary: Canned responses
       tags:
         - Administration
-      description: "Phase: V1."
+      description: "Supervisors and admins get every canned response; project admins those of their projects (D-20). Phase: V1."
       x-scopes:
         - admin
       x-phase: V1
@@ -4886,7 +5461,7 @@ paths:
       summary: Create a canned response
       tags:
         - Administration
-      description: "Phase: V1."
+      description: "Without `team_id` and `project_id`: supervisors and admins. With `project_id` only: that project's admins too. With `team_id`: members of the team (D-20: agents must also work in the project). Phase: V1."
       parameters:
         - $ref: "#/components/parameters/CsrfToken"
       x-scopes:
@@ -5041,9 +5616,12 @@ paths:
       tags:
         - Administration
       description: |-
-        Supervisor or admin. Every trigger and time-based rule, in execution order (`position`).
+        Supervisor or admin: every trigger and time-based rule, in execution order (`position`). A project admin gets the rules of
+        their projects (D-20). `project` narrows to one project's rules.
 
         Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - admin
       x-phase: V1
@@ -5062,13 +5640,16 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createAutomationRule
       summary: Create an automation rule
       tags:
         - Administration
       description: |-
-        Supervisor or admin. The new rule is appended at the end of the order. Conditions `hours_since_update` and
+        Supervisor or admin; a project admin may create rules with the `project_id` of one of their projects (D-20, a project rule
+        only runs on tickets of that project). The new rule is appended at the end of the order. Conditions `hours_since_update` and
         `hours_since_status` are only valid for `event: time`, and a `time` rule needs at least one of them.
 
         Phase: V1.
@@ -5105,7 +5686,8 @@ paths:
       tags:
         - Administration
       description: |-
-        Supervisor or admin. `ids` must list every rule exactly once; the rules run in that order.
+        Supervisor or admin (project admins: 403, the order is shared by every project). `ids` must list every rule exactly once;
+        the rules run in that order.
 
         Phase: V1.
       parameters:
@@ -5142,7 +5724,7 @@ paths:
       summary: One automation rule
       tags:
         - Administration
-      description: "Supervisor or admin. Phase: V1."
+      description: "Supervisor or admin, or a project admin for a rule of their projects (others: 404). Phase: V1."
       parameters:
         - $ref: "#/components/parameters/Id"
       x-scopes:
@@ -5259,7 +5841,9 @@ paths:
       summary: Shared macros
       tags:
         - Administration
-      description: "Supervisor or admin. Phase: V1."
+      description: "Supervisors and admins get every shared macro; project admins the shared macros of their projects (D-20). Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - admin
       x-phase: V1
@@ -5278,12 +5862,14 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createSharedMacro
       summary: Create a shared macro
       tags:
         - Administration
-      description: "Supervisor or admin. Shared macros are offered to every agent. Phase: V1."
+      description: "Supervisor or admin, or a project admin for a macro with the `project_id` of one of their projects (D-20). Shared macros are offered to every agent (of that project). Phase: V1."
       parameters:
         - $ref: "#/components/parameters/CsrfToken"
       x-scopes:
@@ -5371,7 +5957,9 @@ paths:
       summary: My macros and the shared ones
       tags:
         - Tickets
-      description: "The caller's personal macros plus every shared macro, sorted by name. Phase: V1."
+      description: "The caller's personal macros plus every shared macro, sorted by name, limited to unscoped macros and those of the projects the caller works in (D-20). Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - "tickets:read"
       x-phase: V1
@@ -5390,6 +5978,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createMacro
       summary: Create a personal macro
@@ -5847,6 +6437,8 @@ paths:
       tags:
         - Administration
       description: "Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/ProjectFilter"
       x-scopes:
         - admin
       x-phase: V1
@@ -5865,6 +6457,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
     post:
       operationId: createKbCategory
       summary: Create a KB category
@@ -8375,6 +8969,19 @@ components:
       required: true
       schema:
         $ref: "#/components/schemas/Id"
+    ProjectFilter:
+      name: project
+      in: query
+      schema:
+        type: string
+        maxLength: 36
+      description: "D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`."
+    TicketRefPath:
+      name: ref
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/TicketRefCode"
     Cursor:
       name: cursor
       in: query
@@ -8672,6 +9279,7 @@ components:
         - ticket.linked
         - ticket.unlinked
         - ticket.children_resolved
+        - ticket.project_changed
     TimelineEventType:
       type: string
       enum:
@@ -8700,7 +9308,8 @@ components:
         - message.edited
         - ticket.watchers_changed
         - ticket.automation_applied
-      description: "Every stored event type that `GET /agent/tickets/{id}/events` returns: `EventType` plus edits of the subject, message edits, watcher changes and `ticket.automation_applied` (a rule applied; actor id `automation`, data `AutomationApplied`)."
+        - ticket.project_changed
+      description: "Every stored event type that `GET /agent/tickets/{id}/events` returns: `EventType` plus edits of the subject, message edits, watcher changes, `ticket.project_changed` and `ticket.automation_applied` (a rule applied; actor id `automation`, data `AutomationApplied`)."
     ProblemSlug:
       type: string
       enum:
@@ -8873,6 +9482,7 @@ components:
         - url
         - uuid
         - webmail
+        - wrong_project
       description: |-
         Machine-readable reason of a field error. The SPA maps known codes to localised messages (`validations.fromServer`)
         and falls back to `invalid`. Notable codes: `required`, `length`/`max_length`, `enum`, `range`, `email`, `unique`
@@ -8988,6 +9598,16 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectMembership"
+          description: "Staff only: project memberships (D-20). Admins and supervisors see every project regardless."
+        current_project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "Staff only: the agent panel's project switcher (null = all projects)"
       required:
         - id
         - kind
@@ -9079,6 +9699,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "Projects the organization may open tickets in (D-20). Empty = every portal-visible project. Its members still see all their own tickets."
       required:
         - id
         - name
@@ -9113,6 +9738,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "Projects the team serves (D-20)"
       required:
         - id
         - name
@@ -9161,11 +9791,422 @@ components:
           type: boolean
         sort:
           type: integer
+        project_id:
+          $ref: "#/components/schemas/Id"
       required:
         - id
         - name
         - active
         - sort
+        - project_id
+    ProjectKey:
+      type: string
+      pattern: "^[A-Z][A-Z0-9]{1,9}$"
+      description: "2–10 characters: an upper-case letter, then upper-case letters or digits. Immutable once the project has tickets."
+    TicketRefCode:
+      type: string
+      pattern: "^[A-Za-z][A-Za-z0-9]{1,9}-[1-9][0-9]{0,11}$"
+      description: "A ticket reference `KEY-123` (D-20): the project key and the per-project sequence. The key is matched case-insensitively."
+      examples:
+        - HD-1042
+    ProjectRole:
+      type: string
+      enum:
+        - member
+        - project_admin
+      description: "A staff user's role in one project. `project_admin` manages that project's categories, team mapping, SLA, KB categories, automation rules, macros, canned responses and portal settings."
+    ProjectRef:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        key:
+          $ref: "#/components/schemas/ProjectKey"
+        name:
+          type: string
+        color:
+          type: string
+          description: "`#RRGGBB` or empty"
+      required:
+        - id
+        - key
+        - name
+        - color
+      additionalProperties: false
+      description: "The project chip shown next to a ticket."
+    ProjectMembership:
+      type: object
+      properties:
+        project_id:
+          $ref: "#/components/schemas/Id"
+        role:
+          $ref: "#/components/schemas/ProjectRole"
+      required:
+        - project_id
+      description: "One project membership of a staff user. In requests `project_id` also accepts the key and `role` defaults to `member`."
+    ProjectBase:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        key:
+          $ref: "#/components/schemas/ProjectKey"
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+          description: "`#RRGGBB` or empty"
+        icon:
+          type: string
+          description: "Free icon name (the SPA uses Material Design Icons names, e.g. `mdi-web`) or empty"
+        active:
+          type: boolean
+        default_team_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "Team of new tickets that name no category (or whose category has no default team serving the project); null = triage"
+        portal_visible:
+          type: boolean
+          description: "Customers can open tickets in it and pick it in the portal"
+        portal_title:
+          type:
+            - string
+            - "null"
+          description: "Portal title override for `/p/{key}`; null = the global branding"
+        portal_intro_md:
+          type:
+            - string
+            - "null"
+          description: "Portal introduction (Markdown) override; null = the global branding"
+        logo_asset_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+        logo_url:
+          type:
+            - string
+            - "null"
+          description: "Portal logo override (`/branding/<sha>.<ext>`); null = the global logo"
+        primary_color:
+          type:
+            - string
+            - "null"
+          description: "Portal primary colour override (`#RRGGBB`); null = the global colour"
+        sort:
+          type: integer
+        team_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "Teams serving the project (routing, transfer, assignment, automation)"
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+      required:
+        - id
+        - key
+        - name
+        - description
+        - color
+        - icon
+        - active
+        - default_team_id
+        - portal_visible
+        - portal_title
+        - portal_intro_md
+        - logo_asset_id
+        - logo_url
+        - primary_color
+        - sort
+        - team_ids
+        - created_at
+        - updated_at
+    Project:
+      allOf:
+        - $ref: "#/components/schemas/ProjectBase"
+        - type: object
+          properties:
+            key_locked:
+              type: boolean
+              description: "True once the project has tickets: the key can no longer change"
+            member_count:
+              type: integer
+            ticket_count:
+              type: integer
+          required:
+            - key_locked
+            - member_count
+            - ticket_count
+      description: "Administration view of a project."
+    AgentProject:
+      allOf:
+        - $ref: "#/components/schemas/ProjectBase"
+        - type: object
+          properties:
+            my_role:
+              oneOf:
+                - $ref: "#/components/schemas/ProjectRole"
+                - type: "null"
+              description: "The caller's membership role; null for supervisors and admins without a membership row (they see every project)"
+            can_admin:
+              type: boolean
+              description: "The caller may manage this project's configuration (supervisor, admin or project_admin)"
+          required:
+            - my_role
+            - can_admin
+      description: "A project the caller works in (the agent panel's project switcher)."
+    PortalProject:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        key:
+          $ref: "#/components/schemas/ProjectKey"
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+        icon:
+          type: string
+        portal_title:
+          type:
+            - string
+            - "null"
+        portal_intro_md:
+          type:
+            - string
+            - "null"
+        logo_url:
+          type:
+            - string
+            - "null"
+        primary_color:
+          type:
+            - string
+            - "null"
+      required:
+        - id
+        - key
+        - name
+        - description
+        - color
+        - icon
+        - portal_title
+        - portal_intro_md
+        - logo_url
+        - primary_color
+      additionalProperties: false
+      description: "What customers (and the anonymous `/p/{key}` entry) see of a project: no routing, no membership. Null overrides fall back to the global branding."
+    ProjectCreate:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 2
+          maxLength: 10
+          description: "Upper-cased by the server, then checked against `ProjectKey`"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+        color:
+          type: string
+          description: "`#RRGGBB` or empty"
+        icon:
+          type: string
+          maxLength: 64
+        active:
+          type: boolean
+        default_team_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "Added to `team_ids` when missing"
+        portal_visible:
+          type: boolean
+        portal_title:
+          type:
+            - string
+            - "null"
+          maxLength: 120
+        portal_intro_md:
+          type:
+            - string
+            - "null"
+          maxLength: 20000
+        primary_color:
+          type:
+            - string
+            - "null"
+        sort:
+          type: integer
+        team_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+      required:
+        - key
+        - name
+    ProjectPatch:
+      type: object
+      properties:
+        key:
+          type: string
+          minLength: 2
+          maxLength: 10
+          description: "Supervisors and admins; 422 `immutable` once the project has tickets"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+        color:
+          type: string
+        icon:
+          type: string
+          maxLength: 64
+        active:
+          type: boolean
+          description: "Supervisors and admins; the last active project cannot be deactivated (422 `not_allowed`)"
+        default_team_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "Must serve the project (422 `wrong_project`)"
+        portal_visible:
+          type: boolean
+        portal_title:
+          type:
+            - string
+            - "null"
+          maxLength: 120
+        portal_intro_md:
+          type:
+            - string
+            - "null"
+          maxLength: 20000
+        primary_color:
+          type:
+            - string
+            - "null"
+        sort:
+          type: integer
+          description: "Supervisors and admins"
+      minProperties: 1
+      description: "Project admins may change everything except `key`, `active` and `sort` (403). Team mapping has its own route."
+    ProjectMember:
+      type: object
+      properties:
+        user_id:
+          $ref: "#/components/schemas/Id"
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        staff_role:
+          $ref: "#/components/schemas/StaffRole"
+        tier:
+          $ref: "#/components/schemas/Tier"
+        role:
+          $ref: "#/components/schemas/ProjectRole"
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+      required:
+        - user_id
+        - name
+        - email
+        - staff_role
+        - tier
+        - role
+        - created_at
+    ProjectMembersPut:
+      type: object
+      properties:
+        members:
+          type: array
+          maxItems: 5000
+          items:
+            type: object
+            properties:
+              user_id:
+                $ref: "#/components/schemas/Id"
+              role:
+                $ref: "#/components/schemas/ProjectRole"
+            required:
+              - user_id
+      required:
+        - members
+      description: "The complete member list. Staff who leave lose access to the project's tickets at once (I-11); tickets they own there are unassigned."
+    ProjectTeams:
+      type: object
+      properties:
+        team_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+      required:
+        - team_ids
+      description: "The complete list of teams serving the project. The project's default team must stay in it."
+    ProjectSlaPolicy:
+      allOf:
+        - $ref: "#/components/schemas/SlaPolicy"
+        - type: object
+          properties:
+            inherited:
+              type: boolean
+              description: "True when the project has no override for this priority and the global default applies"
+          required:
+            - inherited
+    ProjectSlaPoliciesPut:
+      type: object
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlaPolicy"
+          minItems: 0
+          maxItems: 4
+      required:
+        - policies
+      description: "The project's overrides: listed priorities override the global defaults, the others inherit them. `[]` removes every override."
+    ProjectCounts:
+      type: object
+      properties:
+        mine:
+          type: integer
+        unassigned:
+          type: integer
+        triage:
+          type: integer
+        breached:
+          type: integer
+        tier:
+          type: object
+          properties:
+            "1":
+              type: integer
+            "2":
+              type: integer
+            "3":
+              type: integer
+      required:
+        - mine
+        - unassigned
+        - triage
+        - breached
+        - tier
     CustomFieldValue:
       description: "Typed per definition: text/textarea/select → string, number → number, date → `YYYY-MM-DD`, multiselect → string[], checkbox → boolean"
       oneOf:
@@ -9289,6 +10330,8 @@ components:
           $ref: "#/components/schemas/Id"
         number:
           type: integer
+        ref:
+          $ref: "#/components/schemas/TicketRefCode"
         subject:
           type: string
         status:
@@ -9298,6 +10341,7 @@ components:
         - number
         - subject
         - status
+        - ref
     TicketLink:
       type: object
       properties:
@@ -9326,7 +10370,13 @@ components:
           $ref: "#/components/schemas/Id"
         number:
           type: integer
-          description: "Human-facing number, shown as `#1042`"
+          description: "Global human number (kept for compatibility, `/by-number/{n}`); the UI shows `ref`"
+        ref:
+          $ref: "#/components/schemas/TicketRefCode"
+        project_id:
+          $ref: "#/components/schemas/Id"
+        project:
+          $ref: "#/components/schemas/ProjectRef"
         subject:
           type: string
         status:
@@ -9394,6 +10444,9 @@ components:
         - channel
         - created_at
         - updated_at
+        - ref
+        - project_id
+        - project
     Ticket:
       allOf:
         - $ref: "#/components/schemas/TicketSummary"
@@ -9456,6 +10509,12 @@ components:
           $ref: "#/components/schemas/Id"
         number:
           type: integer
+        ref:
+          $ref: "#/components/schemas/TicketRefCode"
+        project_id:
+          $ref: "#/components/schemas/Id"
+        project:
+          $ref: "#/components/schemas/ProjectRef"
         subject:
           type: string
         status:
@@ -9497,6 +10556,9 @@ components:
         - requester
         - created_at
         - updated_at
+        - ref
+        - project_id
+        - project
       additionalProperties: false
       description: "Customer list item. No tier, team, assignee or staff-only fields (I-9)."
     CustomerTicket:
@@ -9506,6 +10568,12 @@ components:
           $ref: "#/components/schemas/Id"
         number:
           type: integer
+        ref:
+          $ref: "#/components/schemas/TicketRefCode"
+        project_id:
+          $ref: "#/components/schemas/Id"
+        project:
+          $ref: "#/components/schemas/ProjectRef"
         subject:
           type: string
         status:
@@ -9571,6 +10639,9 @@ components:
         - allowed_actions
         - created_at
         - updated_at
+        - ref
+        - project_id
+        - project
       additionalProperties: false
       description: "Customer view of a ticket: public messages only (I-2), customer-visible fields only (I-9)."
     TicketUpdateResult:
@@ -9629,6 +10700,11 @@ components:
               type: integer
             "3":
               type: integer
+        by_project:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ProjectCounts"
+          description: "The same buckets per project id, over the projects the caller works in (D-20). The project switcher picks one; the totals above are all projects (or the `project` filter)."
       required:
         - mine
         - unassigned
@@ -9682,6 +10758,13 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_ids:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "D-20: null = applies to every project"
       required:
         - id
         - key
@@ -9838,6 +10921,7 @@ components:
         - tier
         - category_id
         - team_id
+        - project
         - organization_id
         - requester_domain
         - tag
@@ -9957,6 +11041,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: the rule only runs for tickets of this project; null = every project (supervisors and admins only)"
       required:
         - id
         - name
@@ -9969,6 +11058,7 @@ components:
         - position
         - created_at
         - updated_at
+        - project_id
     AutomationRuleCreate:
       type: object
       properties:
@@ -9995,6 +11085,11 @@ components:
           type: boolean
         stop_processing:
           type: boolean
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: the rule only runs for tickets of this project; null = every project (supervisors and admins only)"
       required:
         - name
         - event
@@ -10025,6 +11120,11 @@ components:
           type: boolean
         stop_processing:
           type: boolean
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: the rule only runs for tickets of this project; null = every project (supervisors and admins only)"
     AutomationReorder:
       type: object
       properties:
@@ -10137,7 +11237,7 @@ components:
             - internal
         reply_md:
           type: string
-          description: "Placeholders as canned responses: `{{customer.name}}`, `{{ticket.number}}`, `{{agent.name}}`"
+          description: "Placeholders as canned responses: `{{customer.name}}`, `{{ticket.number}}`, `{{ticket.ref}}`, `{{agent.name}}`"
         status:
           oneOf:
             - $ref: "#/components/schemas/TicketStatus"
@@ -10163,6 +11263,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: the macro applies only to tickets of this project (422 `wrong_project` elsewhere); null = every project. Shared project macros are managed by the project's admins."
       required:
         - id
         - name
@@ -10177,6 +11282,7 @@ components:
         - assignee
         - created_at
         - updated_at
+        - project_id
     MacroCreate:
       type: object
       properties:
@@ -10214,6 +11320,11 @@ components:
           type:
             - string
             - "null"
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: the macro applies only to tickets of this project (422 `wrong_project` elsewhere); null = every project. Shared project macros are managed by the project's admins."
       required:
         - name
     CannedResponse:
@@ -10237,6 +11348,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: offered only on tickets of this project; null = every project"
       required:
         - id
         - title
@@ -10264,7 +11380,7 @@ components:
           type: object
           properties: {}
           additionalProperties: true
-          description: "Same keys as the `/agent/tickets` query parameters"
+          description: "Same keys as the `/agent/tickets` query parameters, including `project` (D-20)"
         shared:
           type: boolean
         user_id:
@@ -10305,6 +11421,11 @@ components:
           $ref: "#/components/schemas/Timestamp"
         updated_at:
           $ref: "#/components/schemas/Timestamp"
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "D-20: deliver only events of tickets in these projects; empty = every project"
       required:
         - id
         - url
@@ -10406,6 +11527,11 @@ components:
           $ref: "#/components/schemas/KbVisibility"
         article_count:
           type: integer
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "Owning project (D-20); null = global"
       required:
         - id
         - slug
@@ -10585,6 +11711,8 @@ components:
           oneOf:
             - $ref: "#/components/schemas/Id"
             - type: "null"
+        project_id:
+          $ref: "#/components/schemas/Id"
         address:
           type: string
           format: email
@@ -10620,6 +11748,7 @@ components:
         - kind
         - address
         - active
+        - project_id
     InboundMessage:
       type: object
       properties:
@@ -11142,6 +12271,11 @@ components:
           $ref: "#/components/schemas/Locale"
         version:
           type: string
+        project:
+          oneOf:
+            - $ref: "#/components/schemas/PortalProject"
+            - type: "null"
+          description: "With `?project=KEY`: the portal view of that active, portal-visible project for the `/p/{key}` entry (title, intro, logo and colour overrides); null when unknown or hidden"
       required:
         - staff
         - customer
@@ -11577,6 +12711,32 @@ components:
                 - "null"
             count:
               type: integer
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "The `project` filter applied (null = all projects)"
+        by_project:
+          type: array
+          items:
+            type: object
+            properties:
+              project_id:
+                $ref: "#/components/schemas/Id"
+              key:
+                $ref: "#/components/schemas/ProjectKey"
+              name:
+                type: string
+              created:
+                type: integer
+              resolved:
+                type: integer
+            required:
+              - project_id
+              - key
+              - name
+              - created
+              - resolved
       required:
         - from
         - to
@@ -11791,7 +12951,7 @@ components:
             - topic
             - state
           additionalProperties: false
-      description: "Client → server frame (≤ 4 KB, ≤ 20/s burst 40). Topics: `tickets`, `ticket:<id>`, `counts` (staff), `me`, `queue:<team_id>` (staff), `kb` (staff), `admin:system` (admin)."
+      description: "Client → server frame (≤ 4 KB, ≤ 20/s burst 40). Topics: `tickets`, `ticket:<id>`, `counts` (staff), `me`, `queue:<team_id>` (staff), `project:<project_id>` (staff working in the project, D-20), `kb` (staff), `admin:system` (admin)."
     WsServerFrame:
       oneOf:
         - type: object
@@ -12438,6 +13598,11 @@ components:
             type: string
         notification_prefs:
           $ref: "#/components/schemas/NotificationPrefsPatch"
+        current_project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "Staff only: persist the project switcher (a project the caller works in, or null for all projects)"
     TokenCreate:
       type: object
       properties:
@@ -12486,6 +13651,10 @@ components:
           description: "org_manager only: a colleague in the same organization"
         custom_fields:
           $ref: "#/components/schemas/CustomFieldValues"
+        project_id:
+          type: string
+          maxLength: 36
+          description: "Project id or key (D-20). Omitted: the category's project, else (customers) the only project open to them, else the default project. Customers need a portal-visible project their organization may use; agents need a membership (422 `not_allowed`)."
       required:
         - subject
         - body_md
@@ -12563,6 +13732,10 @@ components:
           type: array
           items:
             type: string
+        project_id:
+          type: string
+          maxLength: 36
+          description: "Project id or key (D-20). Omitted: the category's project, else (customers) the only project open to them, else the default project. Customers need a portal-visible project their organization may use; agents need a membership (422 `not_allowed`)."
       required:
         - subject
         - body_md
@@ -12596,6 +13769,10 @@ components:
             type: string
         custom_fields:
           $ref: "#/components/schemas/CustomFieldValues"
+        project_id:
+          type: string
+          maxLength: 36
+          description: "Move the ticket to another project (id or key, D-20). Needs `transfer`; agents must be members of the target. The ticket gets the next ref of the target project (the old ref no longer resolves; `number` is unchanged), a category of the old project is cleared, a team not serving the target is replaced by the target's default team (or triage), and the SLA is recomputed with the target's policies. Writes `ticket.project_changed`."
       minProperties: 1
     AgentMessageCreate:
       type: object
@@ -12732,6 +13909,11 @@ components:
             type: string
         notes:
           type: string
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "Projects the organization may open tickets in (D-20). Empty = every portal-visible project. Its members still see all their own tickets."
       required:
         - name
     OrganizationPatch:
@@ -12750,6 +13932,11 @@ components:
           enum:
             - active
             - archived
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "Projects the organization may open tickets in (D-20). Empty = every portal-visible project. Its members still see all their own tickets."
       minProperties: 1
     OrgMemberInvite:
       type: object
@@ -12818,6 +14005,11 @@ components:
           type: boolean
         send_invite:
           type: boolean
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectMembership"
+          description: "Project memberships (D-20), replacing the current ones. Omitted on create: member of the default project."
       required:
         - email
         - name
@@ -12839,6 +14031,11 @@ components:
             $ref: "#/components/schemas/Id"
         break_glass:
           type: boolean
+        projects:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectMembership"
+          description: "Project memberships (D-20), replacing the current ones. Omitted on create: member of the default project."
       minProperties: 1
     TeamCreate:
       type: object
@@ -12862,6 +14059,11 @@ components:
             - type: "null"
         assignment_strategy:
           $ref: "#/components/schemas/AssignmentStrategy"
+        project_ids:
+          type: array
+          items:
+            type: string
+          description: "Projects the team serves (ids or keys). Omitted on create: the default project; omitted on PATCH: unchanged."
       required:
         - name
     CategoryCreate:
@@ -12883,6 +14085,10 @@ components:
           type: boolean
         sort:
           type: integer
+        project_id:
+          type: string
+          maxLength: 36
+          description: "Project id or key (D-20). Omitted on create: the default project. A category with tickets cannot move (422 `immutable`). The default team must serve the project (422 `wrong_project`)."
       required:
         - name
     CannedPreview:
@@ -12914,6 +14120,11 @@ components:
           oneOf:
             - $ref: "#/components/schemas/Id"
             - type: "null"
+        project_id:
+          oneOf:
+            - $ref: "#/components/schemas/Id"
+            - type: "null"
+          description: "D-20: offered only on tickets of this project; null = every project"
       required:
         - title
         - body_md
@@ -12954,6 +14165,11 @@ components:
           type: boolean
         include_internal:
           type: boolean
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "D-20: deliver only events of tickets in these projects; empty = every project"
       required:
         - url
         - events
@@ -12973,6 +14189,11 @@ components:
           type: boolean
         rotate_secret:
           type: boolean
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "D-20: deliver only events of tickets in these projects; empty = every project"
       minProperties: 1
     WebhookTestResult:
       type: object
@@ -13061,6 +14282,12 @@ components:
           type: integer
         visibility:
           $ref: "#/components/schemas/KbVisibility"
+        project_id:
+          oneOf:
+            - type: string
+              maxLength: 36
+            - type: "null"
+          description: "Project id or key; null or omitted = global (supervisors and admins only). Project admins manage the KB categories of their projects."
       required:
         - slug
         - title
@@ -13093,6 +14320,13 @@ components:
             $ref: "#/components/schemas/Id"
         sort:
           type: integer
+        project_ids:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "D-20: null = applies to every project"
       required:
         - key
         - label
@@ -13122,6 +14356,13 @@ components:
           type: integer
         active:
           type: boolean
+        project_ids:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "D-20: null = applies to every project"
       minProperties: 1
     CalendarCreate:
       type: object
@@ -13188,6 +14429,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/Id"
             - type: "null"
+        project_id:
+          type: string
+          maxLength: 36
+          description: "Project of the tickets this mailbox opens (id or key, D-20). Omitted on create: the default project. The team must serve it (422 `wrong_project`)."
         address:
           type: string
           format: email

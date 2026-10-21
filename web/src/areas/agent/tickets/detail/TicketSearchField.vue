@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
-/** Ticket picker by `#number` or subject (link and merge dialogs, FE-055). */
+/** Ticket picker by ref (`WEB-12`), `#number` or subject (link and merge dialogs, FE-055). */
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { searchTickets } from './ticketApi'
 import type { Rule } from '@/constants/validations'
@@ -13,7 +13,7 @@ const q = ref('')
 const items = ref<S['TicketSummary'][]>([])
 const loading = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null
-const title = (t: S['TicketSummary']) => `#${t.number} · ${t.subject}`
+const title = (t: S['TicketSummary']) => `${t.ref ?? `#${t.number}`} · ${t.subject}`
 
 watch(q, (v) => {
   if (timer) clearTimeout(timer)

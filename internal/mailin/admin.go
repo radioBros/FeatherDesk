@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/problems"
 	"github.com/radioBros/SimpleTickets/internal/server"
 	"github.com/radioBros/SimpleTickets/internal/settings"
@@ -49,6 +50,7 @@ type mailboxDTO struct {
 	Name        string     `json:"name"`
 	Kind        string     `json:"kind"`
 	TeamID      *string    `json:"team_id"`
+	ProjectID   string     `json:"project_id"`
 	Address     string     `json:"address"`
 	Active      bool       `json:"active"`
 	IMAP        *imapDTO   `json:"imap"`
@@ -60,7 +62,7 @@ type mailboxDTO struct {
 }
 
 func (m *Module) mailboxDTO(ctx context.Context, mb *mailbox) mailboxDTO {
-	d := mailboxDTO{ID: mb.ID, Name: mb.Name, Kind: mb.Kind, Address: mb.Address, Active: mb.Active, LockedByEnv: mb.LockedByEnv, CreatedAt: mb.CreatedAt.UTC()}
+	d := mailboxDTO{ID: mb.ID, Name: mb.Name, Kind: mb.Kind, ProjectID: mb.ProjectID, Address: mb.Address, Active: mb.Active, LockedByEnv: mb.LockedByEnv, CreatedAt: mb.CreatedAt.UTC()}
 	if t := m.effectiveTeam(ctx, mb); t != "" {
 		d.TeamID = &t
 	}
@@ -89,6 +91,7 @@ type mailboxIn struct {
 	Kind              *string `json:"kind"`
 	TeamID            *string `json:"team_id"`
 	teamSet           bool    // team_id key present (null clears)
+	ProjectID         *string `json:"project_id"` // D-20: id or key; omitted on create = the default project
 	Address           *string `json:"address"`
 	Active            *bool   `json:"active"`
 	IMAP              *imapIn `json:"imap"`
@@ -178,6 +181,23 @@ func (m *Module) apply(ctx context.Context, mb *mailbox, in *mailboxIn, create b
 				}
 			}
 			mb.TeamID = t
+		}
+	}
+	if in.ProjectID != nil && *in.ProjectID != "" {
+		var id string
+		err := m.d.DB.Read().QueryRowContext(ctx, `SELECT id FROM projects WHERE id = ? OR key = ?`, *in.ProjectID, strings.ToUpper(*in.ProjectID)).Scan(&id)
+		if err != nil {
+			fe = append(fe, problems.Field("project_id", "not_found", "unknown project"))
+		} else {
+			mb.ProjectID = id
+		}
+	} else if create || mb.ProjectID == "" {
+		mb.ProjectID = m.defaultProject(ctx)
+	}
+	if t := m.effectiveTeam(ctx, mb); t != "" && mb.ProjectID != "" {
+		var one int
+		if e := m.d.DB.Read().QueryRowContext(ctx, `SELECT 1 FROM project_teams WHERE project_id = ? AND team_id = ?`, mb.ProjectID, t).Scan(&one); e != nil {
+			fe = append(fe, problems.Field("team_id", "wrong_project", "the team does not serve the mailbox's project"))
 		}
 	}
 	if mb.Kind == "imap" && in.IMAP != nil {
@@ -381,8 +401,8 @@ func (m *Module) handleCreateMailbox(w http.ResponseWriter, r *http.Request) {
 		imapDoc = store.MustJSON(mb.Stored)
 	}
 	err = m.d.DB.Tx(ctx, func(tx *store.Tx) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO inbound_mailboxes (id, name, kind, team_id, address, imap, webhook_token_hash, hmac_secret_enc, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			mb.ID, mb.Name, mb.Kind, store.Nullable(mb.TeamID), mb.Address, imapDoc, store.Nullable(mb.TokenHash), mb.HMACSecretEnc, mb.Active, now, now)
+		_, err := tx.ExecContext(ctx, `INSERT INTO inbound_mailboxes (id, name, kind, team_id, address, imap, webhook_token_hash, hmac_secret_enc, active, project_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			mb.ID, mb.Name, mb.Kind, store.Nullable(mb.TeamID), mb.Address, imapDoc, store.Nullable(mb.TokenHash), mb.HMACSecretEnc, mb.Active, mb.ProjectID, now, now)
 		return err
 	})
 	if err != nil {
@@ -436,8 +456,8 @@ func (m *Module) handlePatchMailbox(w http.ResponseWriter, r *http.Request) {
 		imapDoc = store.MustJSON(mb.Stored)
 	}
 	err = m.d.DB.Tx(ctx, func(tx *store.Tx) error {
-		_, err := tx.ExecContext(ctx, `UPDATE inbound_mailboxes SET name = ?, team_id = ?, address = ?, imap = ?, hmac_secret_enc = ?, active = ?, updated_at = ? WHERE id = ?`,
-			mb.Name, store.Nullable(mb.TeamID), mb.Address, imapDoc, mb.HMACSecretEnc, mb.Active, store.Now(), mb.ID)
+		_, err := tx.ExecContext(ctx, `UPDATE inbound_mailboxes SET name = ?, team_id = ?, address = ?, imap = ?, hmac_secret_enc = ?, active = ?, project_id = ?, updated_at = ? WHERE id = ?`,
+			mb.Name, store.Nullable(mb.TeamID), mb.Address, imapDoc, mb.HMACSecretEnc, mb.Active, mb.ProjectID, store.Now(), mb.ID)
 		return err
 	})
 	if err != nil {
@@ -461,6 +481,9 @@ func changedKeys(in *mailboxIn) []string {
 	}
 	if in.teamSet {
 		k = append(k, "team_id")
+	}
+	if in.ProjectID != nil {
+		k = append(k, "project_id")
 	}
 	if in.Address != nil {
 		k = append(k, "address")
@@ -632,4 +655,16 @@ func (m *Module) auditTarget(ctx context.Context, r *http.Request, action, typ, 
 			store.NewID(), store.Nullable(actor), action, typ, id, server.ClientIP(r), store.Now())
 		return err
 	})
+}
+
+// defaultProject is the project of a mailbox created without one (D-20):
+// the Default project while active, else the first active project.
+func (m *Module) defaultProject(ctx context.Context) string {
+	var id string
+	err := m.d.DB.Read().QueryRowContext(ctx, `SELECT id FROM projects WHERE active ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, sort, lower(name), id LIMIT 1`,
+		domain.DefaultProjectID).Scan(&id)
+	if err != nil {
+		return domain.DefaultProjectID
+	}
+	return id
 }

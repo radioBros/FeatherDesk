@@ -11,6 +11,7 @@ const KNOWN = new Set<string>([
   'ticket.escalated', 'ticket.deescalated', 'ticket.category_changed', 'ticket.tags_changed', 'ticket.fields_changed',
   'message.created', 'note.created', 'sla.warning', 'sla.breached', 'ticket.csat', 'ticket.followup_created',
   'ticket.merged', 'ticket.split', 'ticket.linked', 'ticket.unlinked', 'ticket.children_resolved',
+  'ticket.project_changed',
 ])
 
 export function eventLabel(type: string): string {
@@ -56,7 +57,7 @@ export function eventDetail(e: Pick<S['TicketEvent'], 'type' | 'data'>): string 
     case 'ticket.linked':
     case 'ticket.unlinked':
     case 'ticket.followup_created':
-      return d.number || d.other_number ? `#${d.number ?? d.other_number}` : ''
+      return d.ref || d.other_ref ? String(d.ref ?? d.other_ref) : d.number || d.other_number ? `#${d.number ?? d.other_number}` : ''
     case AUTOMATION: {
       const actions = Array.isArray(d.actions) ? (d.actions as { type?: string; outcome?: string; detail?: string }[]) : []
       const parts = actions.map((a) => {
@@ -67,6 +68,8 @@ export function eventDetail(e: Pick<S['TicketEvent'], 'type' | 'data'>): string 
       const tail = d.truncated ? ` · ${t('automation.timeline.truncated')}` : ''
       return [head, parts.join(', ')].filter(Boolean).join(': ') + tail
     }
+    case 'ticket.project_changed':
+      return `${str(d.from_ref)} → ${str(d.to_ref)}`
     case 'ticket.csat':
       return d.score !== undefined ? `${d.score}/5` : ''
     default:

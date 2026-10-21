@@ -2,6 +2,8 @@
 
 package notify
 
+import "strconv"
+
 // Template data types. Customer templates only ever receive CustomerData,
 // whose fields cannot carry internal content (I-7): no internal notes, no
 // escalation reason, no tier, team or assignee. TestCustomerViewAllowList
@@ -11,6 +13,7 @@ package notify
 // CustomerTicketView is the public view of a ticket for customer mail.
 type CustomerTicketView struct {
 	Number  int64
+	Ref     string // D-20 reference "KEY-123" ("#n" for events written before projects)
 	Subject string
 	URL     string // portal deep link ST_PORTAL_URL/tickets/<id>
 }
@@ -31,13 +34,14 @@ type CustomerData struct {
 	CSATURL       string              // customer.resolved one-click rating link ("" = off)
 }
 
-func (d *CustomerData) setBrand(b Brand)    { d.Brand = b }
-func (d *CustomerData) ticketNumber() int64 { return d.Ticket.Number }
+func (d *CustomerData) setBrand(b Brand)  { d.Brand = b }
+func (d *CustomerData) ticketRef() string { return viewRef(d.Ticket.Ref, d.Ticket.Number) }
 
 // StaffTicketView is the staff view of a ticket.
 type StaffTicketView struct {
 	ID            string
 	Number        int64
+	Ref           string // D-20 reference "KEY-123" ("#n" for events written before projects)
 	Subject       string
 	Priority      string
 	Status        string
@@ -68,8 +72,8 @@ type StaffData struct {
 	SLABreached   bool
 }
 
-func (d *StaffData) setBrand(b Brand)    { d.Brand = b }
-func (d *StaffData) ticketNumber() int64 { return d.Ticket.Number }
+func (d *StaffData) setBrand(b Brand)  { d.Brand = b }
+func (d *StaffData) ticketRef() string { return viewRef(d.Ticket.Ref, d.Ticket.Number) }
 
 // GenericData is the data of auth.* and other non-ticket templates.
 type GenericData struct {
@@ -78,5 +82,17 @@ type GenericData struct {
 	Vars          map[string]string
 }
 
-func (d *GenericData) setBrand(b Brand)    { d.Brand = b }
-func (d *GenericData) ticketNumber() int64 { return 0 }
+func (d *GenericData) setBrand(b Brand)  { d.Brand = b }
+func (d *GenericData) ticketRef() string { return "" }
+
+// viewRef is the subject tag of a ticket mail: the D-20 reference, or "#n"
+// when an event predates projects ("" = not a ticket mail).
+func viewRef(ref string, n int64) string {
+	switch {
+	case ref != "":
+		return ref
+	case n > 0:
+		return "#" + strconv.FormatInt(n, 10)
+	}
+	return ""
+}

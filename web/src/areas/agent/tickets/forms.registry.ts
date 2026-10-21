@@ -2,7 +2,7 @@
 
 import type { FormEntry } from '@/forms/registry'
 
-const ticket = { id: 't-1', number: 1042, tier: 1, team_id: null, allowed_actions: ['reply', 'note', 'set_status'] }
+const ticket = { id: 't-1', number: 1042, ref: 'WEB-42', tier: 1, team_id: null, allowed_actions: ['reply', 'note', 'set_status'] }
 
 /** Forms of the agent ticket detail and new-ticket views (FE-005; aggregated by src/forms/registry.agent.ts). */
 export const forms: FormEntry[] = [
@@ -10,6 +10,7 @@ export const forms: FormEntry[] = [
   { file: 'areas/agent/tickets/detail/EscalateForm.vue', load: () => import('./detail/EscalateForm.vue'), props: { ticket, direction: 'escalate', teams: [] }, required: ['agent.ticket.escalate.reason'] },
   { file: 'areas/agent/tickets/detail/LinkForm.vue', load: () => import('./detail/LinkForm.vue'), props: { ticketId: 't-1' }, required: ['agent.ticket.links.target', 'agent.ticket.links.typeLabel'] },
   { file: 'areas/agent/tickets/detail/MergeForm.vue', load: () => import('./detail/MergeForm.vue'), props: { ticket }, required: ['agent.ticket.merge.target'] },
+  { file: 'areas/agent/tickets/detail/MoveProjectForm.vue', load: () => import('./detail/MoveProjectForm.vue'), props: { ticket: { id: 't-1', ref: 'WEB-1', project_id: 'p-web' } }, required: ['projects.ticket.move.target'] },
   { file: 'areas/agent/tickets/detail/SplitForm.vue', load: () => import('./detail/SplitForm.vue'), props: { ticketId: 't-1', selected: [] }, required: ['agent.ticket.split.subject', 'selected messages'] },
   { file: 'areas/agent/tickets/detail/EditNoteForm.vue', load: () => import('./detail/EditNoteForm.vue'), props: { ticketId: 't-1', message: { id: 'm-1', body_md: '' } }, required: ['body'] },
   {

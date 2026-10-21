@@ -400,7 +400,7 @@ func (s *seeder) scenarios() []scenario {
 			if err := st("sup").cl.post("/agent/tickets/"+t.id+"/split", map[string]any{"message_ids": []string{invoiceMsg}, "subject": "Copy of the September invoice"}, &child); err != nil {
 				return fmt.Errorf("split: %w", err)
 			}
-			c := &tk{subject: "Copy of the September invoice", req: cu("uma"), created: s.cur()}
+			c := &tk{subject: "Copy of the September invoice", req: cu("uma"), created: s.cur(), project: "web"}
 			s.track(c, child)
 			s.tickets = append(s.tickets, c)
 			s.wait(20*min, time.Hour)
@@ -521,7 +521,7 @@ func (s *seeder) scenarios() []scenario {
 			if err := st("sup").cl.get("/agent/tickets/"+id, &r); err != nil {
 				return err
 			}
-			f := &tk{subject: "follow-up", req: cu("chloe"), cat: "general", created: s.cur()}
+			f := &tk{subject: "follow-up", req: cu("chloe"), cat: "general", created: s.cur(), project: "web"}
 			s.track(f, r)
 			s.tickets = append(s.tickets, f)
 			s.wait(time.Hour, 5*time.Hour)

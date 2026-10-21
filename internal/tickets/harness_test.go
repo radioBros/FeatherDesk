@@ -134,7 +134,9 @@ func (e *env) staff(role domain.Role, tier int, teams ...string) *domain.Princip
 	if tier == 0 {
 		tier = 1
 	}
-	return e.register(&domain.Principal{UserID: id, Kind: domain.KindStaff, Role: role, Tier: tier, Teams: teams, SessionID: "s-" + id})
+	// storetest.CreateStaff makes the user a member of the Default project (D-20).
+	return e.register(&domain.Principal{UserID: id, Kind: domain.KindStaff, Role: role, Tier: tier, Teams: teams,
+		Projects: []string{domain.DefaultProjectID}, SessionID: "s-" + id})
 }
 
 // customer creates a customer and returns its session principal.

@@ -94,6 +94,7 @@ func (m *Module) Mount(g server.Groups) {
 		r.With(idem).Method(http.MethodPost, "/", handler(m.agentCreate))
 		r.Method(http.MethodGet, "/counts", handler(m.agentCounts))
 		r.Method(http.MethodGet, "/by-number/{n}", handler(m.agentByNumber))
+		r.Method(http.MethodGet, "/by-ref/{ref}", handler(m.agentByRef))
 		r.Method(http.MethodGet, "/{id}", handler(m.agentGet))
 		r.Method(http.MethodPatch, "/{id}", handler(m.agentPatch))
 		r.Method(http.MethodDelete, "/{id}", handler(m.agentDelete))
@@ -135,6 +136,7 @@ func (m *Module) Mount(g server.Groups) {
 		r.Method(http.MethodGet, "/", handler(m.portalList))
 		r.With(idem).Method(http.MethodPost, "/", handler(m.portalCreate))
 		r.Method(http.MethodGet, "/by-number/{n}", handler(m.portalByNumber))
+		r.Method(http.MethodGet, "/by-ref/{ref}", handler(m.portalByRef))
 		r.Method(http.MethodGet, "/{id}", handler(m.portalGet))
 		r.With(idem).Method(http.MethodPost, "/{id}/messages", handler(m.portalReply))
 		r.Method(http.MethodPost, "/{id}/resolve", m.portalStatus(func(s *Service, r *http.Request) error {
@@ -159,7 +161,7 @@ func (m *Module) Mount(g server.Groups) {
 	g.Portal.With(upload).Method(http.MethodPost, "/attachments", handler(m.uploadAttachment))
 	g.Portal.Method(http.MethodGet, "/attachments/{id}", handler(m.downloadAttachment))
 
-	g.Support.Route("/canned-responses", func(r chi.Router) {
+	g.ProjectAdmin.Route("/canned-responses", func(r chi.Router) {
 		r.Method(http.MethodGet, "/", handler(m.adminListCanned))
 		r.Method(http.MethodPost, "/", handler(m.adminCreateCanned))
 		r.Method(http.MethodPatch, "/{id}", handler(m.adminUpdateCanned))

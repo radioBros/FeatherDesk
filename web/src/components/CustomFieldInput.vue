@@ -7,6 +7,7 @@
  */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import SelectionChips from '@/components/SelectionChips.vue'
 import { validations, type Rule } from '@/constants/validations'
 import { useConfigStore } from '@/stores/config'
 import { localized } from '@/utils/localized'
@@ -17,7 +18,7 @@ type Value = components['schemas']['CustomFieldValue']
 
 const props = withDefaults(
   defineProps<{ def: Def; modelValue?: Value; disabled?: boolean; density?: 'default' | 'comfortable' | 'compact'; errorMessages?: string[]; noRules?: boolean }>(),
-  { modelValue: null, density: 'default' },
+  { modelValue: null, density: undefined },
 )
 const emit = defineEmits<{ 'update:modelValue': [Value] }>()
 const { locale } = useI18n()
@@ -47,6 +48,7 @@ const testid = computed(() => `cf-${props.def.key}`)
     :rules="fieldRules"
     :disabled="disabled"
     :density="density"
+    :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     :data-testid="testid"
     @update:model-value="(v: boolean | null) => emit('update:modelValue', !!v)"
@@ -57,15 +59,19 @@ const testid = computed(() => `cf-${props.def.key}`)
     :items="options"
     :label="label"
     :multiple="def.type === 'multiselect'"
-    :chips="def.type === 'multiselect'"
     :clearable="!def.required"
     :rules="fieldRules"
     :disabled="disabled"
     :density="density"
+    :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     :data-testid="testid"
     @update:model-value="(v: Value) => emit('update:modelValue', v ?? (def.type === 'multiselect' ? [] : null))"
-  />
+  >
+    <template v-if="def.type === 'multiselect'" #selection="{ item, index }">
+      <SelectionChips :item="item" :index="index" :total="Array.isArray(modelValue) ? modelValue.length : 0" />
+    </template>
+  </v-select>
   <v-textarea
     v-else-if="def.type === 'textarea'"
     :model-value="(modelValue as string) ?? ''"
@@ -73,9 +79,10 @@ const testid = computed(() => `cf-${props.def.key}`)
     :rules="fieldRules"
     :disabled="disabled"
     :density="density"
+    :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     auto-grow
-    rows="2"
+    rows="1"
     :data-testid="testid"
     @update:model-value="(v: string) => emit('update:modelValue', v)"
   />
@@ -87,6 +94,7 @@ const testid = computed(() => `cf-${props.def.key}`)
     :rules="fieldRules"
     :disabled="disabled"
     :density="density"
+    :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     :data-testid="testid"
     @update:model-value="setNumber"
@@ -99,6 +107,7 @@ const testid = computed(() => `cf-${props.def.key}`)
     :rules="fieldRules"
     :disabled="disabled"
     :density="density"
+    :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     :data-testid="testid"
     @update:model-value="(v: string) => emit('update:modelValue', v || null)"
@@ -110,6 +119,7 @@ const testid = computed(() => `cf-${props.def.key}`)
     :rules="fieldRules"
     :disabled="disabled"
     :density="density"
+    :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     :data-testid="testid"
     @update:model-value="(v: string) => emit('update:modelValue', v)"

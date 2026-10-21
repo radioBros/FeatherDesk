@@ -19,6 +19,22 @@ body {
   font-family: inherit;
 }
 /*
+ * Input density (FE-032): fields are compact and equal in height. A checkbox or switch that shares a
+ * row with inputs gets the same 40px control row and centres on it; hit targets stay >= 24px (WCAG 2.2).
+ */
+.v-input--density-compact.v-checkbox > .v-input__control,
+.v-input--density-compact.v-switch > .v-input__control {
+  min-height: 40px;
+  align-items: center;
+}
+/* A one-row textarea is as tall as a text field and grows with its content. */
+.v-textarea.v-input--density-compact .v-field__input {
+  min-height: 40px;
+}
+.v-textarea.v-input--density-compact textarea {
+  line-height: 1.5;
+}
+/*
  * Tonal controls in a brand colour: the label is the brand colour on its own 12 % tint, which falls
  * under 4.5:1 for light brand colours. Mixing 25 % toward the text colour keeps the hue and passes AA
  * in both themes (the section hues in theme/palette.ts are already AA and are left alone).

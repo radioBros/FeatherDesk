@@ -64,11 +64,11 @@ func (m *Module) principalOf(ctx context.Context, u userRow) (*domain.Principal,
 	p := &domain.Principal{UserID: u.ID, Kind: u.Kind, Role: u.Role, Locale: u.Locale, IDPManaged: u.IDPManaged}
 	if u.Kind == domain.KindStaff {
 		p.Tier = int(u.Tier.Int64)
-		teams, err := userTeams(ctx, m.d.DB, u.ID)
+		e, err := userTeams(ctx, m.d.DB, u.ID)
 		if err != nil {
 			return nil, err
 		}
-		p.Teams = teams
+		p.Teams, p.Projects, p.AdminProjects = e.teams, e.projects, e.adminProjects
 	} else {
 		p.OrganizationID = u.OrgID.String
 	}
@@ -281,11 +281,13 @@ func sessionOnly(method, path string) bool {
 	return false
 }
 
-// ---- team cache (≤ 30 s, explicit invalidation) ----
+// ---- team and project cache (≤ 30 s, explicit invalidation) ----
 
 type teamEntry struct {
-	teams []string
-	exp   time.Time
+	teams         []string
+	projects      []string // project memberships, any role (D-20)
+	adminProjects []string // project_admin memberships
+	exp           time.Time
 }
 
 var teamCache = struct {
@@ -298,43 +300,71 @@ const (
 	teamCacheMax = 10_000
 )
 
-// InvalidateTeams drops the cached team list of userID (call after changing
-// team membership so the next request sees it immediately).
+// InvalidateTeams drops the cached team and project lists of userID (call
+// after changing team or project membership so the next request sees it
+// immediately).
 func InvalidateTeams(userID string) {
 	teamCache.mu.Lock()
 	delete(teamCache.m, userID)
 	teamCache.mu.Unlock()
 }
 
-func userTeams(ctx context.Context, db *store.DB, userID string) ([]string, error) {
+// InvalidateAllTeams drops every cached entry (a project was deleted).
+func InvalidateAllTeams() {
+	teamCache.mu.Lock()
+	teamCache.m = map[string]teamEntry{}
+	teamCache.mu.Unlock()
+}
+
+func userTeams(ctx context.Context, db *store.DB, userID string) (teamEntry, error) {
 	now := time.Now()
 	teamCache.mu.Lock()
 	if e, ok := teamCache.m[userID]; ok && now.Before(e.exp) {
 		teamCache.mu.Unlock()
-		return e.teams, nil
+		return e, nil
 	}
 	teamCache.mu.Unlock()
+	e := teamEntry{teams: []string{}, projects: []string{}, adminProjects: []string{}, exp: now.Add(teamCacheTTL)}
 	rows, err := db.Read().QueryContext(ctx, `SELECT team_id FROM team_members WHERE user_id = ? ORDER BY team_id`, userID)
 	if err != nil {
-		return nil, err
+		return e, err
 	}
-	defer rows.Close()
-	teams := []string{}
 	for rows.Next() {
 		var t string
 		if err := rows.Scan(&t); err != nil {
-			return nil, err
+			rows.Close()
+			return e, err
 		}
-		teams = append(teams, t)
+		e.teams = append(e.teams, t)
 	}
+	rows.Close()
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return e, err
+	}
+	rows, err = db.Read().QueryContext(ctx, `SELECT project_id, role FROM project_members WHERE user_id = ? ORDER BY project_id`, userID)
+	if err != nil {
+		return e, err
+	}
+	for rows.Next() {
+		var pid, role string
+		if err := rows.Scan(&pid, &role); err != nil {
+			rows.Close()
+			return e, err
+		}
+		e.projects = append(e.projects, pid)
+		if role == string(domain.ProjectAdmin) {
+			e.adminProjects = append(e.adminProjects, pid)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return e, err
 	}
 	teamCache.mu.Lock()
 	if len(teamCache.m) >= teamCacheMax {
 		teamCache.m = map[string]teamEntry{}
 	}
-	teamCache.m[userID] = teamEntry{teams: teams, exp: now.Add(teamCacheTTL)}
+	teamCache.m[userID] = e
 	teamCache.mu.Unlock()
-	return teams, nil
+	return e, nil
 }

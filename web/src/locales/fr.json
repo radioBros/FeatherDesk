@@ -23,7 +23,14 @@
     "themeDark": "Sombre",
     "themeSystem": "Système",
     "yes": "Oui",
-    "no": "Non"
+    "no": "Non",
+    "columns": {
+      "button": "Colonnes",
+      "title": "Choisir les colonnes",
+      "locked": "Toujours affichée",
+      "reset": "Rétablir par défaut"
+    },
+    "moreCount": "+{n} de plus"
   },
   "validation": {
     "required": "Ce champ est obligatoire",
@@ -104,7 +111,9 @@
     "type": "Cette valeur n'est pas du bon type",
     "unknown": "Ce champ est inconnu",
     "unknownTeam": "Cette équipe n'existe pas",
-    "webmail": "Les domaines de messagerie publics ne peuvent pas être utilisés"
+    "webmail": "Les domaines de messagerie publics ne peuvent pas être utilisés",
+    "projectKey": "De 2 à 10 caractères : une lettre, puis des lettres ou des chiffres (par exemple WEB)",
+    "wrongProject": "N'appartient pas au projet sélectionné"
   },
   "errors": {
     "generic": "Une erreur s'est produite. Veuillez réessayer.",

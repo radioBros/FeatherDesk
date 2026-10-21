@@ -121,6 +121,7 @@ func TestEnumsMatchSchema(t *testing.T) {
 		{"kb_articles", "status", strs([]domain.KBStatus{domain.KBDraft, domain.KBPublished, domain.KBArchived})},
 		{"kb_article_translations", "locale", append([]string(nil), domain.Locales...)},
 		{"sessions", "audience", []string{"customer", "staff"}},
+		{"project_members", "role", strs(domain.ProjectRoles)},
 	}
 	storetest.Engines(t, func(t *testing.T, db *store.DB) {
 		for _, c := range cases {

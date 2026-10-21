@@ -1,10 +1,10 @@
-Subject: [#1042] SLA incumplido: Printer on floor 3 is offline
+Subject: [HD-1042] SLA incumplido: Printer on floor 3 is offline
 
 ##- Responda por encima de esta línea -##
 
 Hola Grace Hopper,
 
-El objetivo de primera respuesta del ticket **#1042 Printer on floor 3 is offline** se ha incumplido a las 2026-10-20 10:00 (UTC).
+El objetivo de primera respuesta del ticket **HD-1042 Printer on floor 3 is offline** se ha incumplido a las 2026-10-20 10:00 (UTC).
 
 - **Asunto:** Printer on floor 3 is offline
 - **Prioridad:** high

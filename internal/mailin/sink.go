@@ -35,6 +35,7 @@ type EmailTicket struct {
 	InboundMessageID string // inbound_messages.id (stored as ticket_messages.inbound_message_id)
 	MailboxID        string
 	TeamID           string // "" = triage
+	ProjectID        string // the mailbox's project (D-20)
 	RequesterID      string // customer user id (already resolved/created by mailin)
 	CCUserIDs        []string
 	Subject          string

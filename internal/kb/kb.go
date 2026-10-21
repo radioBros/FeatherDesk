@@ -135,10 +135,11 @@ func (m *Module) Mount(g server.Groups) {
 	g.Agent.With(server.MaxBody(maxUpload+64<<10)).Post("/kb/assets", m.handleUploadAsset)
 
 	// Category admin (supervisor or admin).
-	g.Support.Get("/kb/categories", m.handleAdminCategories)
-	g.Support.Post("/kb/categories", m.handleCreateCategory)
-	g.Support.Patch("/kb/categories/{id}", m.handleUpdateCategory)
-	g.Support.Delete("/kb/categories/{id}", m.handleDeleteCategory)
+	// D-20: project admins manage the KB categories of their projects.
+	g.ProjectAdmin.Get("/kb/categories", m.handleAdminCategories)
+	g.ProjectAdmin.Post("/kb/categories", m.handleCreateCategory)
+	g.ProjectAdmin.Patch("/kb/categories/{id}", m.handleUpdateCategory)
+	g.ProjectAdmin.Delete("/kb/categories/{id}", m.handleDeleteCategory)
 
 	// Root: sitemap (KB-009).
 	g.Root.Get("/kb/sitemap.xml", m.handleSitemap)

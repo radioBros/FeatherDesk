@@ -151,6 +151,14 @@
       "enable": "Enable",
       "disabled": "Disabled",
       "pending": "Invitation pending"
+    },
+    "projects": {
+      "project": "Project",
+      "ref": "Ref",
+      "allProjects": "All projects",
+      "newTicket": "Open a ticket",
+      "notFoundTitle": "This project does not exist",
+      "notFoundBody": "The project was not found or is not open for new tickets. Check the link, or go to the start page."
     }
   }
 }

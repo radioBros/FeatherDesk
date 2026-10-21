@@ -540,8 +540,13 @@ func (m *Module) handleEditorList(w http.ResponseWriter, r *http.Request) {
 		problems.Write(w, r, err)
 		return
 	}
+	project, err := m.projectParam(r)
+	if err != nil {
+		problems.Write(w, r, err)
+		return
+	}
 	page, err := m.list(r.Context(), listQuery{
-		Aud: audStaff, Statuses: statuses, Q: q.Get("q"), Category: q.Get("category_id"),
+		Aud: audStaff, Statuses: statuses, Q: q.Get("q"), Category: q.Get("category_id"), Project: project,
 		Locale: q.Get("locale"), Limit: limit, Offset: decodeCursor(q.Get("cursor")), Order: "updated",
 	})
 	if err != nil {

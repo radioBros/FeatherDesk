@@ -178,7 +178,7 @@ func (e *env) seed() {
 	e.exec(`UPDATE users SET name = ?, email = ? WHERE id = ?`, ottoName, ottoEmail, w.other)
 	e.who["admin"] = &domain.Principal{UserID: w.admin, Kind: domain.KindStaff, Role: domain.RoleAdmin, Tier: 3, TokenID: "t-admin"}
 	e.who["admin2"] = &domain.Principal{UserID: w.admin2, Kind: domain.KindStaff, Role: domain.RoleAdmin, Tier: 3, TokenID: "t-admin2"}
-	e.who["agent"] = &domain.Principal{UserID: w.agent, Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1, TokenID: "t-agent"}
+	e.who["agent"] = &domain.Principal{UserID: w.agent, Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1, Projects: []string{domain.DefaultProjectID}, TokenID: "t-agent"}
 	e.who["cust"] = &domain.Principal{UserID: w.cust, Kind: domain.KindCustomer, Role: domain.RoleRequester, OrganizationID: w.org, TokenID: "t-cust"}
 	e.who["other"] = &domain.Principal{UserID: w.other, Kind: domain.KindCustomer, Role: domain.RoleRequester, OrganizationID: w.org, TokenID: "t-other"}
 	pat := *e.who["cust"]

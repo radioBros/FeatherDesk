@@ -238,6 +238,9 @@ export const fx = {
     return {
       id: 't-1',
       number: 1042,
+      ref: `WEB-${extra.number ?? 1042}`,
+      project_id: 'p-web',
+      project: { id: 'p-web', key: 'WEB', name: 'Web App', color: '#1976d2' },
       subject: 'Printer on fire',
       status: 'open',
       priority: 'normal',
@@ -267,6 +270,9 @@ export const fx = {
     return {
       id: 't-1',
       number: 1042,
+      ref: `WEB-${extra.number ?? 1042}`,
+      project_id: 'p-web',
+      project: { id: 'p-web', key: 'WEB', name: 'Web App', color: '#1976d2' },
       subject: 'Printer on fire',
       status: 'open',
       priority: 'normal',
@@ -284,7 +290,7 @@ export const fx = {
     return { id: 'team-1', name: 'Support', notify_mode: 'agents', created_at: ISO, updated_at: ISO, ...extra }
   },
   category(extra: Partial<S['Category']> = {}): S['Category'] {
-    return { id: 'cat-1', name: 'Billing', active: true, sort: 1, ...extra }
+    return { id: 'cat-1', name: 'Billing', active: true, sort: 1, project_id: 'p-web', ...extra }
   },
   staffRef(extra: Partial<S['StaffRef']> = {}): S['StaffRef'] {
     return { id: 'u-2', name: 'Bob Builder', role: 'agent', tier: 2, team_ids: ['team-1'], ...extra }
@@ -301,6 +307,13 @@ export const fx = {
       created_at: ISO,
       updated_at: ISO,
       ...extra,
+    }
+  },
+  project(extra: Partial<S['AgentProject']> = {}): S['AgentProject'] {
+    return {
+      id: 'p-web', key: 'WEB', name: 'Web App', description: '', color: '#1976d2', icon: '', active: true, sort: 0,
+      portal_visible: true, portal_title: null, portal_intro_md: null, logo_url: null, logo_asset_id: null, primary_color: null,
+      default_team_id: null, team_ids: ['team-1'], created_at: ISO, updated_at: ISO, my_role: 'member', can_admin: false, ...extra,
     }
   },
   page<T>(items: T[], next_cursor: string | null = null) {

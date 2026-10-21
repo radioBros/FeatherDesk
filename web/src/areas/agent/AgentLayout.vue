@@ -45,6 +45,8 @@ import NavItem from '@/components/NavItem.vue'
 import NavHeader from '@/components/NavHeader.vue'
 import ConnectionBanner from '@/components/ConnectionBanner.vue'
 import { useCountsStore } from './counts'
+import { useProjectsStore } from '@/stores/projects'
+import ProjectSwitcher from './ProjectSwitcher.vue'
 import { useViewsStore } from './tickets/list/views'
 import { useShortcuts } from './shared/useShortcuts'
 import { useBarCollapsed } from '@/composables/useAppPrefs'
@@ -59,6 +61,7 @@ const NotificationBell = defineAsyncComponent(() => import('@/notifications/Noti
 const session = useSessionStore()
 const config = useConfigStore()
 const counts = useCountsStore()
+const projects = useProjectsStore()
 const views = useViewsStore()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
@@ -70,7 +73,7 @@ const help = ref(false)
 useRealtime(['counts'], { onCounts: counts.apply, onResync: () => void counts.load() })
 useRealtime(['me'], { essential: true })
 onMounted(() => {
-  void counts.load()
+  void projects.load().then(() => counts.load())
   if (!views.loaded) void views.load()
 })
 
@@ -105,8 +108,9 @@ function onSearch() {
   const q = search.value.trim()
   if (!q) return
   const m = /^#?(\d+)$/.exec(q)
+  const ref = /^([A-Za-z][A-Za-z0-9]*-\d+)$/.exec(q)
   search.value = ''
-  void router.push(m ? `/agent/tickets/${m[1]}` : { path: '/agent/tickets', query: { q } })
+  void router.push(m ? `/agent/tickets/${m[1]}` : ref ? `/agent/tickets/${ref[1]!.toUpperCase()}` : { path: '/agent/tickets', query: { q } })
 }
 
 useShortcuts({ '?': () => (help.value = true) })
@@ -142,6 +146,7 @@ const SHORTCUTS = [
         @keydown.enter="onSearch"
       />
       <template #append>
+        <ProjectSwitcher />
         <v-btn v-if="mdAndUp" :icon="mdiKeyboardOutline" variant="text" color="nav-system" :aria-label="$t('agent.nav.shortcuts')" data-testid="shortcuts-open" @click="help = true" />
         <template v-if="!barCollapsed">
           <LocaleSwitcher />

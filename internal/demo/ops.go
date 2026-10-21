@@ -14,6 +14,7 @@ type tk struct {
 	subject string
 	req     *person
 	cat     string // category key ("" = none)
+	project string // project key (D-20; "web" for tickets without a category)
 	team    string // team key ("" = triage)
 	tier    int
 	handler *person // current assignee (nil = unassigned)
@@ -145,7 +146,7 @@ func (s *seeder) portalOpen(c *person, sp spec) (*tk, error) {
 	if err := c.cl.post("/portal/tickets", body, &r); err != nil {
 		return nil, fmt.Errorf("portal ticket %q: %w", sp.subject, err)
 	}
-	t := &tk{subject: sp.subject, req: c, cat: sp.cat, created: s.cur()}
+	t := &tk{subject: sp.subject, req: c, cat: sp.cat, created: s.cur(), project: s.projectOf(sp.cat)}
 	if sp.cat != "" {
 		t.team = s.cats[sp.cat].Team
 	}
@@ -184,7 +185,7 @@ func (s *seeder) agentOpen(by *client, byPerson *person, c *person, sp spec, ass
 	if err := by.post("/agent/tickets", body, &r); err != nil {
 		return nil, fmt.Errorf("agent ticket %q: %w", sp.subject, err)
 	}
-	t := &tk{subject: sp.subject, req: c, cat: sp.cat, created: s.cur()}
+	t := &tk{subject: sp.subject, req: c, cat: sp.cat, created: s.cur(), project: s.projectOf(sp.cat)}
 	if sp.cat != "" {
 		t.team = s.cats[sp.cat].Team
 	}
@@ -306,3 +307,12 @@ func (s *seeder) actor(t *tk) *person {
 }
 
 func (s *seeder) mention(p *person) string { return fmt.Sprintf("@[%s](%s)", p.name, p.id) }
+
+// projectOf is the project key of a category ("web" without one: the
+// default project).
+func (s *seeder) projectOf(cat string) string {
+	if c, ok := s.cats[cat]; ok && c.Project != "" {
+		return c.Project
+	}
+	return "web"
+}

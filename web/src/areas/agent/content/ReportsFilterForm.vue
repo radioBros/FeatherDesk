@@ -4,7 +4,7 @@
  * Report range form (FE-043): from/to dates (to ≥ from), optional team and
  * SLA calendar mode. Emits the validated filter; the page fetches.
  */
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from '@/composables/useForm'
 import { validations } from '@/constants/validations'
@@ -12,10 +12,11 @@ import type { components } from '@/api/schema'
 import type { ReportFilter } from './format'
 
 type S = components['schemas']
-const props = withDefaults(defineProps<{ initial?: Partial<ReportFilter>; teams?: S['Team'][]; showTeam?: boolean }>(), {
+const props = withDefaults(defineProps<{ initial?: Partial<ReportFilter>; teams?: S['Team'][]; showTeam?: boolean; projects?: { id: string; key: string; name: string }[] }>(), {
   initial: () => ({}),
   teams: () => [],
   showTeam: false,
+  projects: () => [],
 })
 const emit = defineEmits<{ apply: [ReportFilter] }>()
 const { t } = useI18n()
@@ -23,8 +24,11 @@ const model = reactive<ReportFilter>({
   from: props.initial.from ?? '',
   to: props.initial.to ?? '',
   team_id: props.initial.team_id ?? null,
+  project: props.initial.project ?? null,
   calendar_mode: props.initial.calendar_mode ?? null,
 })
+watch(() => props.initial.project, (p) => (model.project = p ?? null))
+const projectItems = computed(() => props.projects.map((p) => ({ value: p.id, title: `${p.key} · ${p.name}` })))
 const toRules = [validations.required.any, validations.date, validations.dateRangeOrder(() => model.from)]
 const modeItems = computed(() => (['24x7', 'team'] as const).map((m) => ({ value: m, title: t(`agent.reports.mode.${m === '24x7' ? 'always' : 'team'}`) })))
 
@@ -46,6 +50,18 @@ const onApply = submit(() => emit('apply', { ...model }))
       density="compact"
       clearable
       style="max-width: 220px"
+    />
+    <v-select
+      v-if="projects.length > 1"
+      v-model="model.project"
+      :items="projectItems"
+      :label="$t('projects.reports.project')"
+      :placeholder="$t('projects.switcher.all')"
+      persistent-placeholder
+      density="compact"
+      clearable
+      style="max-width: 240px"
+      data-testid="reports-project"
     />
     <v-select v-model="model.calendar_mode" :items="modeItems" :label="$t('agent.reports.calendarMode')" density="compact" clearable style="max-width: 220px" />
     <v-btn type="submit" color="primary" :loading="submitting" data-testid="reports-apply">{{ $t('agent.reports.apply') }}</v-btn>

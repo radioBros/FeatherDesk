@@ -65,7 +65,7 @@ const ssoHref = computed(() => {
 
     <div v-if="emailOn && !challenge" class="d-flex justify-space-between flex-wrap ga-2 mt-4 text-body-2">
       <router-link v-if="auth.local" to="/forgot-password" data-testid="forgot-link">{{ $t('auth.forgot') }}</router-link>
-      <router-link v-if="auth.self_registration" to="/register" data-testid="register-link">{{ $t('auth.register') }}</router-link>
+      <router-link v-if="auth.self_registration" :to="{ path: '/register', query: route.query.redirect ? { redirect: String(route.query.redirect) } : {} }" data-testid="register-link">{{ $t('auth.register') }}</router-link>
     </div>
 
     <template #below>

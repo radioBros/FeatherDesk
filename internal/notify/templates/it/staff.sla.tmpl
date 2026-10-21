@@ -2,7 +2,7 @@
 {{define "subject"}}{{if .SLABreached}}SLA violato{{else}}Avviso SLA{{end}}: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Ciao {{.RecipientName}},
 
-L'obiettivo di {{if eq .SLAWhich "first_response"}}prima risposta{{else}}risoluzione{{end}} del ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** {{if .SLABreached}}è stato superato{{else}}scade{{end}} alle {{.SLADue}} (UTC).
+L'obiettivo di {{if eq .SLAWhich "first_response"}}prima risposta{{else}}risoluzione{{end}} del ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** {{if .SLABreached}}è stato superato{{else}}scade{{end}} alle {{.SLADue}} (UTC).
 
 - **Oggetto:** {{.Ticket.Subject}}
 - **Priorità:** {{.Ticket.Priority}}

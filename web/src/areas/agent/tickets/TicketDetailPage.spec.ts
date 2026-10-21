@@ -228,7 +228,7 @@ describe('TicketDetailPage — properties (FE-023, FE-045)', () => {
   })
 
   it('resolving a parent with an open child shows a non-blocking warning and still PATCHes', async () => {
-    const link = { id: 'l1', type: 'parent_of', from_ticket_id: 't-1', to_ticket_id: 't-2', created_at: fx.iso, to_ticket: { id: 't-2', number: 1043, subject: 'Child', status: 'open' } } as const
+    const link = { id: 'l1', type: 'parent_of', from_ticket_id: 't-1', to_ticket_id: 't-2', created_at: fx.iso, to_ticket: { id: 't-2', number: 1043, ref: 'WEB-1043', subject: 'Child', status: 'open' } } as const
     const h = await open(fx.ticket({ links: [link] }), { 'PATCH /agent/tickets/t-1': { ticket: fx.ticket({ status: 'resolved', links: [link] }), visible: true } })
     expect(byTestId('badge-parent')).toBeTruthy()
     panel(h).vm.$emit('patch', { status: 'resolved' })

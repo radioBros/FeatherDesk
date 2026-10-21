@@ -3,7 +3,7 @@
 {{define "subject"}}Escalado: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hola {{.RecipientName}},
 
-{{.ActorName}} ha escalado el ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** de {{.FromTier}} a {{.ToTier}}.{{with .Reason}}
+{{.ActorName}} ha escalado el ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** de {{.FromTier}} a {{.ToTier}}.{{with .Reason}}
 
 **Motivo:** {{.}}{{end}}
 

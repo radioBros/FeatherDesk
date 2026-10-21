@@ -112,6 +112,7 @@ var specEvents = map[string]bool{
 	"ticket.watchers_changed":   false,
 	"ticket.deleted":            false,
 	"ticket.automation_applied": false,
+	"ticket.project_changed":    false,
 }
 
 // TestEventsCustomerVisibility (CON-009, I-7): every event type has a
@@ -175,6 +176,7 @@ var emittedData = map[string]string{
 	"ticket.watchers_changed":   `{"added":["u1","u2"]}`,
 	"ticket.deleted":            `{}`,
 	"ticket.automation_applied": `{"rule_id":"r","rule_name":"n","trigger":"ticket.created","source_event_id":"e","actions":[{"type":"add_tag","outcome":"applied","detail":"d"}],"truncated":true}`,
+	"ticket.project_changed":    `{"from":"p1","to":"p2","from_ref":"HD-7","to_ref":"WEB-1"}`,
 }
 
 // TestEventDataStructs (CON-009): every type has a data struct that decodes

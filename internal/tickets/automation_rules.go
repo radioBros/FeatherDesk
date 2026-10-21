@@ -4,10 +4,13 @@ package tickets
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
 
+	"github.com/radioBros/SimpleTickets/internal/authz"
 	"github.com/radioBros/SimpleTickets/internal/automation"
 	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/problems"
@@ -26,15 +29,17 @@ type rulesCache struct {
 	rules  []*automation.Rule
 }
 
-const ruleCols = `id, name, event, match_mode, conditions, actions, enabled, stop_processing, position, created_at, updated_at`
+const ruleCols = `id, name, event, match_mode, conditions, actions, enabled, stop_processing, position, created_at, updated_at, project_id`
 
 func scanRule(r scanner) (*automation.Rule, error) {
 	var x automation.Rule
 	var conds store.JSON[[]automation.Condition]
 	var acts store.JSON[[]automation.Action]
-	if err := r.Scan(&x.ID, &x.Name, &x.Event, &x.Match, &conds, &acts, &x.Enabled, &x.StopProcessing, &x.Position, &x.CreatedAt, &x.UpdatedAt); err != nil {
+	var project sql.NullString
+	if err := r.Scan(&x.ID, &x.Name, &x.Event, &x.Match, &conds, &acts, &x.Enabled, &x.StopProcessing, &x.Position, &x.CreatedAt, &x.UpdatedAt, &project); err != nil {
 		return nil, store.NotFound(err)
 	}
+	x.ProjectID = strPtrOf(project)
 	x.Conditions, x.Actions = conds.V, acts.V
 	if x.Conditions == nil {
 		x.Conditions = []automation.Condition{}
@@ -116,6 +121,7 @@ type ruleIn struct {
 	Actions        *[]automation.Action    `json:"actions"`
 	Enabled        *bool                   `json:"enabled"`
 	StopProcessing *bool                   `json:"stop_processing"`
+	ProjectID      optStr                  `json:"project_id"` // D-20: id or key; null = global
 }
 
 func (in ruleIn) apply(r *automation.Rule) {
@@ -140,13 +146,58 @@ func (in ruleIn) apply(r *automation.Rule) {
 	if in.StopProcessing != nil {
 		r.StopProcessing = *in.StopProcessing
 	}
+	if in.ProjectID.Set {
+		r.ProjectID = in.ProjectID.Val
+		if r.ProjectID != nil && *r.ProjectID == "" {
+			r.ProjectID = nil
+		}
+	}
 }
 
 // validateRule checks the structure, then every reference an action or a
 // custom-field condition makes (teams, categories, staff, canned responses,
 // custom field keys).
 func (s *Service) validateRule(ctx context.Context, r *automation.Rule) error {
-	errs := r.Validate()
+	var errs []problems.FieldError
+	project := ""
+	if r.ProjectID != nil {
+		if pr, err := s.dir.ResolveProject(ctx, *r.ProjectID); err != nil {
+			errs = append(errs, problems.Field("project_id", "not_found", "unknown project"))
+		} else {
+			project = pr.ID
+			r.ProjectID = &project
+		}
+	}
+	// A `project` condition names projects by id or key; store ids.
+	for i := range r.Conditions {
+		c := &r.Conditions[i]
+		if c.Field != automation.FieldProject {
+			continue
+		}
+		var vals []any
+		switch v := c.Value.(type) {
+		case string:
+			vals = []any{v}
+		case []any:
+			vals = v
+		}
+		ids := make([]any, 0, len(vals))
+		for _, v := range vals {
+			str, _ := v.(string)
+			pr, err := s.dir.ResolveProject(ctx, str)
+			if err != nil {
+				errs = append(errs, problems.Field(fmt.Sprintf("conditions[%d].value", i), "not_found", "unknown project"))
+				break
+			}
+			ids = append(ids, pr.ID)
+		}
+		if _, single := c.Value.(string); single && len(ids) == 1 {
+			c.Value = ids[0]
+		} else if len(ids) > 0 {
+			c.Value = ids
+		}
+	}
+	errs = append(errs, r.Validate()...)
 	for i, c := range r.Conditions {
 		if c.Field == automation.FieldCustomField && c.Key != "" {
 			if _, ok := s.dir.FieldByKey(ctx, c.Key); !ok {
@@ -162,12 +213,16 @@ func (s *Service) validateRule(ctx context.Context, r *automation.Rule) error {
 			if v := a.Str(); v != "" {
 				if _, err := s.dir.Team(ctx, v); err != nil {
 					errs = append(errs, problems.Field(path+".value", "not_found", "unknown team"))
+				} else if project != "" && !s.dir.TeamServesProject(ctx, v, project) {
+					errs = append(errs, problems.Field(path+".value", "wrong_project", "the team does not serve the rule's project"))
 				}
 			}
 		case automation.ActSetCategory:
 			if v := a.Str(); v != "" {
-				if _, err := s.dir.Category(ctx, v); err != nil {
+				if c, err := s.dir.Category(ctx, v); err != nil {
 					errs = append(errs, problems.Field(path+".value", "not_found", "unknown category"))
+				} else if project != "" && c.ProjectID != project {
+					errs = append(errs, problems.Field(path+".value", "wrong_project", "the category belongs to another project"))
 				}
 			}
 		case automation.ActAssign, automation.ActAddWatcher:
@@ -190,12 +245,16 @@ func (s *Service) validateRule(ctx context.Context, r *automation.Rule) error {
 				errs = append(errs, problems.Field(path+".canned_response_id", "not_found", "unknown canned response"))
 				continue
 			}
-			var n int
-			if err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM canned_responses WHERE id = ?`, a.CannedResponseID).Scan(&n); err != nil {
-				return err
-			}
-			if n == 0 {
+			var cannedProject sql.NullString
+			err := q.QueryRowContext(ctx, `SELECT project_id FROM canned_responses WHERE id = ?`, a.CannedResponseID).Scan(&cannedProject)
+			switch {
+			case errors.Is(err, sql.ErrNoRows):
 				errs = append(errs, problems.Field(path+".canned_response_id", "not_found", "unknown canned response"))
+			case err != nil:
+				return err
+			case cannedProject.Valid && cannedProject.String != project:
+				// D-20: a project's response is only offered in that project.
+				errs = append(errs, problems.Field(path+".canned_response_id", "wrong_project", "the canned response belongs to another project"))
 			}
 		}
 	}
@@ -216,11 +275,30 @@ func (s *Service) loadRule(ctx context.Context, q store.Querier, id string) (*au
 	return r, nil
 }
 
+// ruleScope checks that p may manage rules of project ("" = global rules,
+// supervisors and admins only), D-20.
+func ruleScope(p *domain.Principal, project *string) error {
+	pid := ""
+	if project != nil {
+		pid = *project
+	}
+	if authz.CanProjectConfig(p, authz.PCAutomation, pid) != nil {
+		if pid == "" {
+			return problems.Forbidden("global rules need a supervisor or admin")
+		}
+		return problems.Forbidden("not a project admin of the rule's project")
+	}
+	return nil
+}
+
 // CreateRule appends a rule at the end of the order.
 func (s *Service) CreateRule(ctx context.Context, p *domain.Principal, in ruleIn) (*automation.Rule, error) {
 	r := &automation.Rule{Match: "all", Enabled: true}
 	in.apply(r)
 	if err := s.validateRule(ctx, r); err != nil {
+		return nil, err
+	}
+	if err := ruleScope(p, r.ProjectID); err != nil {
 		return nil, err
 	}
 	id, now := store.NewID(), s.clock()
@@ -229,8 +307,9 @@ func (s *Service) CreateRule(ctx context.Context, p *domain.Principal, in ruleIn
 		if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(position), 0) + 1 FROM automation_rules`).Scan(&pos); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO automation_rules (`+ruleCols+`, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			id, r.Name, r.Event, r.Match, store.MustJSON(r.Conditions), store.MustJSON(r.Actions), r.Enabled, r.StopProcessing, pos, now, now, store.Nullable(p.UserID))
+		_, err := tx.ExecContext(ctx, `INSERT INTO automation_rules (`+ruleCols+`, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, r.Name, r.Event, r.Match, store.MustJSON(r.Conditions), store.MustJSON(r.Actions), r.Enabled, r.StopProcessing, pos, now, now,
+			r.ProjectID, store.Nullable(p.UserID))
 		tx.AfterCommit(s.invalidateRules)
 		return err
 	})
@@ -241,8 +320,8 @@ func (s *Service) CreateRule(ctx context.Context, p *domain.Principal, in ruleIn
 }
 
 // UpdateRule changes the given fields of a rule.
-func (s *Service) UpdateRule(ctx context.Context, id string, in ruleIn) (*automation.Rule, error) {
-	r, err := s.loadRule(ctx, s.db.Read(), id)
+func (s *Service) UpdateRule(ctx context.Context, p *domain.Principal, id string, in ruleIn) (*automation.Rule, error) {
+	r, err := s.visibleRule(ctx, p, id)
 	if err != nil {
 		return nil, err
 	}
@@ -250,10 +329,13 @@ func (s *Service) UpdateRule(ctx context.Context, id string, in ruleIn) (*automa
 	if err := s.validateRule(ctx, r); err != nil {
 		return nil, err
 	}
+	if err := ruleScope(p, r.ProjectID); err != nil {
+		return nil, err
+	}
 	err = s.db.Tx(ctx, func(tx *store.Tx) error {
 		res, err := tx.ExecContext(ctx, `UPDATE automation_rules SET name = ?, event = ?, match_mode = ?, conditions = ?, actions = ?, enabled = ?,
-			stop_processing = ?, updated_at = ? WHERE id = ?`,
-			r.Name, r.Event, r.Match, store.MustJSON(r.Conditions), store.MustJSON(r.Actions), r.Enabled, r.StopProcessing, s.clock(), r.ID)
+			stop_processing = ?, project_id = ?, updated_at = ? WHERE id = ?`,
+			r.Name, r.Event, r.Match, store.MustJSON(r.Conditions), store.MustJSON(r.Actions), r.Enabled, r.StopProcessing, r.ProjectID, s.clock(), r.ID)
 		if err != nil {
 			return err
 		}
@@ -269,10 +351,27 @@ func (s *Service) UpdateRule(ctx context.Context, id string, in ruleIn) (*automa
 	return s.loadRule(ctx, s.db.Read(), r.ID)
 }
 
+// visibleRule loads a rule the caller may manage: supervisors and admins
+// every rule, project admins those of their projects (others are 404).
+func (s *Service) visibleRule(ctx context.Context, p *domain.Principal, id string) (*automation.Rule, error) {
+	r, err := s.loadRule(ctx, s.db.Read(), id)
+	if err != nil {
+		return nil, err
+	}
+	if !p.IsSupervisorOrAdmin() && (r.ProjectID == nil || !p.AdminsProject(*r.ProjectID)) {
+		return nil, problems.NotFound()
+	}
+	return r, nil
+}
+
 // DeleteRule removes a rule (its time-rule markers cascade).
-func (s *Service) DeleteRule(ctx context.Context, id string) error {
-	if !validID(id) {
-		return problems.NotFound()
+func (s *Service) DeleteRule(ctx context.Context, p *domain.Principal, id string) error {
+	r, err := s.visibleRule(ctx, p, id)
+	if err != nil {
+		return err
+	}
+	if err := ruleScope(p, r.ProjectID); err != nil {
+		return err
 	}
 	return s.db.Tx(ctx, func(tx *store.Tx) error {
 		res, err := tx.ExecContext(ctx, `DELETE FROM automation_rules WHERE id = ?`, id)
@@ -332,19 +431,42 @@ func (s *Service) ReorderRules(ctx context.Context, ids []string) ([]*automation
 	return loadRules(ctx, s.db.Read())
 }
 
-// ---- HTTP (Support group: supervisor or admin) ----
+// ---- HTTP (ProjectAdmin group: supervisors, admins and project admins) ----
 
 func adminScope(r *http.Request) error { return requireScope(r, domain.ScopeAdmin) }
 
+// listRules: supervisors and admins see every rule, project admins the
+// rules of their projects; `project` narrows to one project (and its
+// global rules are left out).
 func (m *Module) listRules(w http.ResponseWriter, r *http.Request) error {
 	if err := adminScope(r); err != nil {
 		return err
+	}
+	p := principal(r)
+	filter := ""
+	if v := r.URL.Query().Get("project"); v != "" {
+		pid, err := m.svc.projectParam(r.Context(), v)
+		if err != nil {
+			return err
+		}
+		filter = pid
 	}
 	rules, err := loadRules(r.Context(), m.svc.db.Read())
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, rules)
+	out := make([]*automation.Rule, 0, len(rules))
+	for _, rule := range rules {
+		pid := ""
+		if rule.ProjectID != nil {
+			pid = *rule.ProjectID
+		}
+		if (filter != "" && pid != filter) || (!p.IsSupervisorOrAdmin() && (pid == "" || !p.AdminsProject(pid))) {
+			continue
+		}
+		out = append(out, rule)
+	}
+	writeJSON(w, http.StatusOK, out)
 	return nil
 }
 
@@ -352,7 +474,7 @@ func (m *Module) getRule(w http.ResponseWriter, r *http.Request) error {
 	if err := adminScope(r); err != nil {
 		return err
 	}
-	rule, err := m.svc.loadRule(r.Context(), m.svc.db.Read(), urlParam(r, "id"))
+	rule, err := m.svc.visibleRule(r.Context(), principal(r), urlParam(r, "id"))
 	if err != nil {
 		return err
 	}
@@ -384,7 +506,7 @@ func (m *Module) updateRule(w http.ResponseWriter, r *http.Request) error {
 	if err := decodeJSON(r, &in); err != nil {
 		return err
 	}
-	rule, err := m.svc.UpdateRule(r.Context(), urlParam(r, "id"), in)
+	rule, err := m.svc.UpdateRule(r.Context(), principal(r), urlParam(r, "id"), in)
 	if err != nil {
 		return err
 	}
@@ -396,7 +518,7 @@ func (m *Module) deleteRule(w http.ResponseWriter, r *http.Request) error {
 	if err := adminScope(r); err != nil {
 		return err
 	}
-	if err := m.svc.DeleteRule(r.Context(), urlParam(r, "id")); err != nil {
+	if err := m.svc.DeleteRule(r.Context(), principal(r), urlParam(r, "id")); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -406,6 +528,11 @@ func (m *Module) deleteRule(w http.ResponseWriter, r *http.Request) error {
 func (m *Module) reorderRules(w http.ResponseWriter, r *http.Request) error {
 	if err := adminScope(r); err != nil {
 		return err
+	}
+	// The order is global (every project's rules share it): supervisors and
+	// admins only (D-20).
+	if !principal(r).IsSupervisorOrAdmin() {
+		return problems.Forbidden("the rule order is managed by supervisors and admins")
 	}
 	var in struct {
 		IDs []string `json:"ids"`
@@ -434,7 +561,10 @@ func (m *Module) dryRunRule(w http.ResponseWriter, r *http.Request) error {
 	if err := decodeJSON(r, &in); err != nil {
 		return err
 	}
-	res, err := m.svc.DryRun(r.Context(), urlParam(r, "id"), in.TicketID)
+	if _, err := m.svc.visibleRule(r.Context(), principal(r), urlParam(r, "id")); err != nil {
+		return err
+	}
+	res, err := m.svc.DryRun(r.Context(), principal(r), urlParam(r, "id"), in.TicketID)
 	if err != nil {
 		return err
 	}

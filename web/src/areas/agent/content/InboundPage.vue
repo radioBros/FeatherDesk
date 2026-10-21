@@ -16,14 +16,19 @@ import InboundMailboxForm from './InboundMailboxForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { useLookupsStore } from '../shared/lookups'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 
 type Mailbox = components['schemas']['InboundMailbox']
 const { t } = useI18n()
 const { confirm } = useConfirm()
 const { run } = useAction()
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
 const items = ref<Mailbox[]>([])
 const loading = ref(true)
 const failed = ref(false)
@@ -68,6 +73,16 @@ async function remove(m: Mailbox) {
   const ok = await run(async () => (await unwrap(api.DELETE('/admin/inbound/mailboxes/{id}', { params: { path: { id: m.id } } })), true), t('agent.common.deleted'))
   if (ok !== undefined) await load()
 }
+
+const cols = useTableColumns('inbound', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'kind', label: t('agent.inbound.kindLabel'), lowPriority: true },
+  { key: 'address', label: t('agent.inbound.address'), lowPriority: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true },
+  { key: 'team', label: t('agent.common.team'), lowPriority: true },
+  { key: 'status', label: t('agent.common.status') },
+  { key: 'lastOk', label: t('agent.inbound.lastOk'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -82,49 +97,54 @@ async function remove(m: Mailbox) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !items.length" :title="$t('agent.inbound.empty')" :body="$t('agent.inbound.emptyBody')" />
-      <v-table v-else density="comfortable" data-testid="inbound-table">
-        <thead>
-          <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.inbound.kindLabel') }}</th>
-            <th>{{ $t('agent.inbound.address') }}</th>
-            <th>{{ $t('agent.common.team') }}</th>
-            <th>{{ $t('agent.common.status') }}</th>
-            <th>{{ $t('agent.inbound.lastOk') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in items" :key="m.id" data-testid="inbound-row">
-            <td>{{ m.name }}</td>
-            <td>{{ $t(`agent.inbound.kind.${m.kind}`) }}</td>
-            <td>{{ m.address }}</td>
-            <td>{{ lookups.teamName(m.team_id) || $t('agent.inbound.triage') }}</td>
-            <td>
-              <v-chip size="small" label variant="tonal" :color="m.last_error ? 'error' : m.active ? 'success' : undefined">
-                {{ m.last_error ? $t('agent.inbound.error') : m.active ? $t('agent.common.active') : $t('agent.common.inactive') }}
-              </v-chip>
-              <div v-if="m.last_error" class="text-caption text-error mt-1" data-testid="inbound-last-error">{{ m.last_error }}</div>
-            </td>
-            <td><RelativeTime v-if="m.last_ok_at" :value="m.last_ok_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-            <td class="text-right text-no-wrap">
-              <v-tooltip v-if="m.kind === 'webhook'" :text="$t('agent.inbound.regenerateHint')" location="top">
-                <template #activator="{ props: tip }">
-                  <span v-bind="tip"><v-btn :icon="mdiRefresh" variant="text" size="small" disabled :aria-label="$t('agent.inbound.regenerate')" data-testid="inbound-regenerate" /></span>
-                </template>
-              </v-tooltip>
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="inbound-edit" @click="openForm(m)" />
-              <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="inbound-delete" @click="remove(m)" />
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+      <template v-else>
+        <ColumnsMenu :cols="cols" />
+        <v-table density="comfortable" data-testid="inbound-table">
+          <thead>
+            <tr>
+              <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th v-if="cols.show('kind')">{{ $t('agent.inbound.kindLabel') }}</th>
+              <th v-if="cols.show('address')">{{ $t('agent.inbound.address') }}</th>
+              <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+              <th v-if="cols.show('team')">{{ $t('agent.common.team') }}</th>
+              <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+              <th v-if="cols.show('lastOk')">{{ $t('agent.inbound.lastOk') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in items" :key="m.id" data-testid="inbound-row">
+              <td v-if="cols.show('name')">{{ m.name }}</td>
+              <td v-if="cols.show('kind')">{{ $t(`agent.inbound.kind.${m.kind}`) }}</td>
+              <td v-if="cols.show('address')">{{ m.address }}</td>
+              <td v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
+              <td v-if="cols.show('team')">{{ lookups.teamName(m.team_id) || $t('agent.inbound.triage') }}</td>
+              <td v-if="cols.show('status')">
+                <v-chip size="small" label variant="tonal" :color="m.last_error ? 'error' : m.active ? 'success' : undefined">
+                  {{ m.last_error ? $t('agent.inbound.error') : m.active ? $t('agent.common.active') : $t('agent.common.inactive') }}
+                </v-chip>
+                <div v-if="m.last_error" class="text-caption text-error mt-1" data-testid="inbound-last-error">{{ m.last_error }}</div>
+              </td>
+              <td v-if="cols.show('lastOk')"><RelativeTime v-if="m.last_ok_at" :value="m.last_ok_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+              <td class="text-right text-no-wrap">
+                <v-tooltip v-if="m.kind === 'webhook'" :text="$t('agent.inbound.regenerateHint')" location="top">
+                  <template #activator="{ props: tip }">
+                    <span v-bind="tip"><v-btn :icon="mdiRefresh" variant="text" size="small" disabled :aria-label="$t('agent.inbound.regenerate')" data-testid="inbound-regenerate" /></span>
+                  </template>
+                </v-tooltip>
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="inbound-edit" @click="openForm(m)" />
+                <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="inbound-delete" @click="remove(m)" />
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="720">
       <v-card :title="editing ? $t('agent.inbound.edit') : $t('agent.inbound.new')">
         <v-card-text>
-          <InboundMailboxForm v-if="dialog" :mailbox="editing" :teams="lookups.teams" @saved="onSaved" @cancel="dialog = false" />
+          <InboundMailboxForm v-if="dialog" :mailbox="editing" :teams="lookups.teams" :projects="cp.options.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

@@ -28,6 +28,9 @@ type teamIn struct {
 	CalendarID        *string `json:"calendar_id"`
 	// AssignmentStrategy: nil keeps the current value on PATCH (manual on create).
 	AssignmentStrategy *string `json:"assignment_strategy"`
+	// ProjectIDs (D-20): the projects the team serves. nil keeps the current
+	// list on PATCH; omitted on create = the default project.
+	ProjectIDs []string `json:"project_ids"`
 }
 
 func (d *Directory) validateTeam(ctx context.Context, in *teamIn) []problems.FieldError {
@@ -71,7 +74,31 @@ func (d *Directory) validateTeam(ctx context.Context, in *teamIn) []problems.Fie
 			errs = append(errs, problems.Field("calendar_id", "not_found", "unknown calendar"))
 		}
 	}
+	for i, pid := range in.ProjectIDs {
+		if pr, err := d.ResolveProject(ctx, pid); err != nil {
+			errs = append(errs, problems.Field("project_ids["+itoa(i)+"]", "not_found", "unknown project"))
+		} else {
+			in.ProjectIDs[i] = pr.ID
+		}
+	}
 	return errs
+}
+
+// setTeamProjects replaces the projects team serves; a project whose
+// default team no longer serves it loses that default.
+func setTeamProjects(ctx context.Context, tx *store.Tx, teamID string, projectIDs []string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM project_teams WHERE team_id = ?`, teamID); err != nil {
+		return err
+	}
+	now := store.Now()
+	for _, p := range projectIDs {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO project_teams (project_id, team_id, created_at) VALUES (?, ?, ?) ON CONFLICT DO NOTHING`, p, teamID, now); err != nil {
+			return err
+		}
+	}
+	_, err := tx.ExecContext(ctx, `UPDATE projects SET default_team_id = NULL WHERE default_team_id = ?
+		AND NOT EXISTS (SELECT 1 FROM project_teams pt WHERE pt.project_id = projects.id AND pt.team_id = ?)`, teamID, teamID)
+	return err
 }
 
 func (d *Directory) teamOut(ctx context.Context, id string) (Team, error) {
@@ -126,13 +153,22 @@ func (d *Directory) createTeam(w http.ResponseWriter, r *http.Request) error {
 	if in.AssignmentStrategy != nil {
 		strategy = *in.AssignmentStrategy
 	}
+	if in.ProjectIDs == nil {
+		in.ProjectIDs = []string{}
+		if pr, err := d.DefaultProject(ctx); err == nil {
+			in.ProjectIDs = []string{pr.ID}
+		}
+	}
 	err := d.db.Tx(ctx, func(tx *store.Tx) error {
 		_, err := tx.ExecContext(ctx, `INSERT INTO teams (id, name, description, notification_email, notify_mode, calendar_id, assignment_strategy, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			id, in.Name, in.Description, in.NotificationEmail, in.NotifyMode, in.CalendarID, strategy, now, now)
 		if store.IsUniqueViolation(err) {
 			return problems.Conflict("a team with this name exists")
 		}
-		return err
+		if err != nil {
+			return err
+		}
+		return setTeamProjects(ctx, tx, id, in.ProjectIDs)
 	})
 	if err != nil {
 		return err
@@ -173,7 +209,10 @@ func (d *Directory) patchTeam(w http.ResponseWriter, r *http.Request) error {
 		if store.IsUniqueViolation(err) {
 			return problems.Validation(problems.Field("name", "unique", "a team with this name exists"))
 		}
-		return err
+		if err != nil || in.ProjectIDs == nil {
+			return err
+		}
+		return setTeamProjects(ctx, tx, id, in.ProjectIDs)
 	})
 	if err != nil {
 		return err
@@ -388,9 +427,12 @@ type categoryIn struct {
 	DefaultPriority *string `json:"default_priority"`
 	Active          *bool   `json:"active"`
 	Sort            *int    `json:"sort"`
+	// ProjectID (D-20): the owning project; omitted on create = the default
+	// project, omitted on PATCH = unchanged.
+	ProjectID *string `json:"project_id"`
 }
 
-func (d *Directory) validateCategory(ctx context.Context, in *categoryIn) []problems.FieldError {
+func (d *Directory) validateCategory(ctx context.Context, in *categoryIn, projectID string) []problems.FieldError {
 	var errs []problems.FieldError
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" || utf8.RuneCountInString(in.Name) > 120 {
@@ -402,6 +444,8 @@ func (d *Directory) validateCategory(ctx context.Context, in *categoryIn) []prob
 	if in.DefaultTeamID != nil {
 		if _, err := d.Team(ctx, *in.DefaultTeamID); err != nil {
 			errs = append(errs, problems.Field("default_team_id", "not_found", "unknown team"))
+		} else if !d.TeamServesProject(ctx, *in.DefaultTeamID, projectID) {
+			errs = append(errs, problems.Field("default_team_id", "wrong_project", "the team does not serve the category's project"))
 		}
 	}
 	if in.DefaultPriority != nil && *in.DefaultPriority == "" {
@@ -421,23 +465,48 @@ func (d *Directory) categoryOut(ctx context.Context, id string) (Category, error
 	return c, nil
 }
 
+// projectFilter resolves the optional `project` query parameter (id or key).
+// ok is false when no filter was given.
+func (d *Directory) projectFilter(r *http.Request) (id string, ok bool, err error) {
+	v := r.URL.Query().Get("project")
+	if v == "" {
+		return "", false, nil
+	}
+	pr, perr := d.ResolveProject(r.Context(), v)
+	if perr != nil {
+		return "", true, problems.Validation(problems.Field("project", "not_found", "unknown project"))
+	}
+	return pr.ID, true, nil
+}
+
 func (d *Directory) listCategories(w http.ResponseWriter, r *http.Request) error {
+	if err := canProjectConfig(r, false); err != nil {
+		return err
+	}
 	if err := dirCan(r, authz.ResCategories, authz.OpRead); err != nil {
+		return err
+	}
+	pid, filtered, err := d.projectFilter(r)
+	if err != nil {
 		return err
 	}
 	cs, err := d.Categories(r.Context())
 	if err != nil {
 		return err
 	}
-	if cs == nil {
-		cs = []Category{}
+	p := dirPrincipal(r)
+	out := []Category{}
+	for _, c := range cs {
+		if p.AdminsProject(c.ProjectID) && (!filtered || c.ProjectID == pid) {
+			out = append(out, c)
+		}
 	}
-	dirJSON(w, http.StatusOK, cs)
+	dirJSON(w, http.StatusOK, out)
 	return nil
 }
 
 func (d *Directory) createCategory(w http.ResponseWriter, r *http.Request) error {
-	if err := dirCan(r, authz.ResCategories, authz.OpWrite); err != nil {
+	if err := canProjectConfig(r, true); err != nil {
 		return err
 	}
 	var in categoryIn
@@ -445,7 +514,21 @@ func (d *Directory) createCategory(w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	ctx := r.Context()
-	if errs := d.validateCategory(ctx, &in); len(errs) > 0 {
+	p := dirPrincipal(r)
+	projectID := ""
+	if in.ProjectID != nil && *in.ProjectID != "" {
+		pr, err := d.ResolveProject(ctx, *in.ProjectID)
+		if err != nil {
+			return problems.Validation(problems.Field("project_id", "not_found", "unknown project"))
+		}
+		projectID = pr.ID
+	} else if pr, err := d.DefaultProject(ctx); err == nil {
+		projectID = pr.ID
+	}
+	if !p.AdminsProject(projectID) {
+		return problems.Forbidden("not a project admin of the category's project")
+	}
+	if errs := d.validateCategory(ctx, &in, projectID); len(errs) > 0 {
 		return problems.Validation(errs...)
 	}
 	active, sort := true, 0
@@ -457,8 +540,8 @@ func (d *Directory) createCategory(w http.ResponseWriter, r *http.Request) error
 	}
 	id, now := store.NewID(), store.Now()
 	err := d.db.Tx(ctx, func(tx *store.Tx) error {
-		_, err := tx.ExecContext(ctx, `INSERT INTO categories (id, name, default_team_id, default_priority, active, sort, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			id, in.Name, in.DefaultTeamID, in.DefaultPriority, active, sort, now, now)
+		_, err := tx.ExecContext(ctx, `INSERT INTO categories (id, name, default_team_id, default_priority, active, sort, project_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			id, in.Name, in.DefaultTeamID, in.DefaultPriority, active, sort, projectID, now, now)
 		return err
 	})
 	if err != nil {
@@ -474,20 +557,35 @@ func (d *Directory) createCategory(w http.ResponseWriter, r *http.Request) error
 }
 
 func (d *Directory) patchCategory(w http.ResponseWriter, r *http.Request) error {
-	if err := dirCan(r, authz.ResCategories, authz.OpWrite); err != nil {
+	if err := canProjectConfig(r, true); err != nil {
 		return err
 	}
 	ctx := r.Context()
 	id := urlID(r)
+	p := dirPrincipal(r)
 	cur, err := d.categoryOut(ctx, id)
 	if err != nil {
 		return err
+	}
+	if !p.AdminsProject(cur.ProjectID) {
+		return problems.NotFound()
 	}
 	var in categoryIn
 	if err := dirDecode(r, &in); err != nil {
 		return err
 	}
-	if errs := d.validateCategory(ctx, &in); len(errs) > 0 {
+	projectID := cur.ProjectID
+	if in.ProjectID != nil && *in.ProjectID != "" && *in.ProjectID != cur.ProjectID {
+		pr, err := d.ResolveProject(ctx, *in.ProjectID)
+		if err != nil {
+			return problems.Validation(problems.Field("project_id", "not_found", "unknown project"))
+		}
+		if !p.AdminsProject(pr.ID) {
+			return problems.Forbidden("not a project admin of the target project")
+		}
+		projectID = pr.ID
+	}
+	if errs := d.validateCategory(ctx, &in, projectID); len(errs) > 0 {
 		return problems.Validation(errs...)
 	}
 	active, sort := cur.Active, cur.Sort
@@ -498,8 +596,17 @@ func (d *Directory) patchCategory(w http.ResponseWriter, r *http.Request) error 
 		sort = *in.Sort
 	}
 	err = d.db.Tx(ctx, func(tx *store.Tx) error {
-		_, err := tx.ExecContext(ctx, `UPDATE categories SET name = ?, default_team_id = ?, default_priority = ?, active = ?, sort = ?, updated_at = ? WHERE id = ?`,
-			in.Name, in.DefaultTeamID, in.DefaultPriority, active, sort, store.Now(), id)
+		if projectID != cur.ProjectID {
+			var n int
+			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM tickets WHERE category_id = ?`, id).Scan(&n); err != nil {
+				return err
+			}
+			if n > 0 {
+				return problems.Validation(problems.Field("project_id", "immutable", "a category with tickets cannot move to another project"))
+			}
+		}
+		_, err := tx.ExecContext(ctx, `UPDATE categories SET name = ?, default_team_id = ?, default_priority = ?, active = ?, sort = ?, project_id = ?, updated_at = ? WHERE id = ?`,
+			in.Name, in.DefaultTeamID, in.DefaultPriority, active, sort, projectID, store.Now(), id)
 		return err
 	})
 	if err != nil {

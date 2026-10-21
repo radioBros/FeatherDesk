@@ -1,10 +1,10 @@
-Subject: [#1042] Eskaliert: Printer on floor 3 is offline
+Subject: [HD-1042] Eskaliert: Printer on floor 3 is offline
 
 ##- Bitte oberhalb dieser Zeile antworten -##
 
 Hallo Grace Hopper,
 
-Alan Turing hat das Ticket **#1042 Printer on floor 3 is offline** von L1 nach L2 eskaliert.
+Alan Turing hat das Ticket **HD-1042 Printer on floor 3 is offline** von L1 nach L2 eskaliert.
 
 **Grund:** Needs network access
 

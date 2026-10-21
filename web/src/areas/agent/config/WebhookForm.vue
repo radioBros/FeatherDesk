@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * Create / edit a webhook (FE-040). Save and Test both go through
  * `useForm().submit`, so `validate()` runs first and an invalid form sends
@@ -11,10 +12,12 @@ import { useForm } from '@/composables/useForm'
 import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
+import ProjectMultiSelect from '@/components/ProjectMultiSelect.vue'
+import type { ProjectOption } from '@/components/ProjectSelect.vue'
 import { EVENT_TYPES } from './constants'
 
 type S = components['schemas']
-const props = defineProps<{ webhook?: S['Webhook'] | null }>()
+const props = defineProps<{ webhook?: S['Webhook'] | null; projects?: ProjectOption[] }>()
 const emit = defineEmits<{ saved: [S['Webhook'], string | null]; cancel: [] }>()
 
 const model = reactive({
@@ -22,12 +25,13 @@ const model = reactive({
   events: [...(props.webhook?.events ?? [])] as S['EventType'][],
   include_internal: props.webhook?.include_internal ?? false,
   active: props.webhook?.active ?? true,
+  project_ids: [...(props.webhook?.project_ids ?? [])] as string[],
 })
 const testResult = ref<S['WebhookTestResult'] | null>(null)
 const { formRef, submit, fieldErrors, formError, submitting } = useForm()
 
 const onSave = submit(async () => {
-  const body = { url: model.url.trim(), events: model.events, include_internal: model.include_internal, active: model.active }
+  const body = { url: model.url.trim(), events: model.events, include_internal: model.include_internal, active: model.active, ...(props.projects?.length ? { project_ids: model.project_ids } : {}) }
   if (props.webhook) {
     const saved = await unwrap(api.PATCH('/admin/webhooks/{id}', { params: { path: { id: props.webhook.id } }, body }))
     emit('saved', saved, null)
@@ -64,9 +68,18 @@ const onTest = submit(async () => {
       :rules="[validations.required.array]"
       :error-messages="fieldErrors.events"
       multiple
-      chips
-      closable-chips
-      data-testid="webhook-events"
+      data-testid="webhook-events">
+      <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.events ?? []).length" /></template>
+    </v-autocomplete>
+    <ProjectMultiSelect
+      v-if="projects?.length"
+      v-model="model.project_ids"
+      :projects="projects"
+      :label="$t('projects.config.projects')"
+      :hint="$t('projects.config.webhookHint')"
+      :error-messages="fieldErrors.project_ids"
+      class="mb-2"
+      testid="webhook-projects"
     />
     <v-switch v-model="model.include_internal" :label="$t('agent.webhooks.includeInternal')" color="warning" inset hide-details data-testid="webhook-internal" />
     <v-alert v-if="model.include_internal" type="warning" variant="tonal" density="compact" class="my-2" data-testid="webhook-internal-warning">

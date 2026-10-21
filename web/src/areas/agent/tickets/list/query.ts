@@ -18,6 +18,8 @@ export interface ListFilters {
   team_id?: string
   assignee?: string
   category_id?: string
+  /** A project id or key (D-20); unset = the switcher's choice. */
+  project?: string
   tag?: string
   q?: string
   breached?: boolean
@@ -39,7 +41,7 @@ export const SORTS = [
 ] as const
 
 const VIEWS: QueueView[] = ['mine', 'unassigned', 'triage', 'tier', 'all']
-const SIMPLE = ['tier', 'team_id', 'assignee', 'category_id', 'tag', 'q', 'view_id'] as const
+const SIMPLE = ['tier', 'team_id', 'assignee', 'category_id', 'project', 'tag', 'q', 'view_id'] as const
 
 const one = (v: unknown): string | undefined => {
   const x = Array.isArray(v) ? v[0] : v
@@ -98,6 +100,7 @@ export function toApiParams(f: ListFilters, cursor?: string | null, limit = 50):
   set('team_id', f.team_id ?? fromView.team_id)
   set('assignee', f.assignee ?? fromView.assignee)
   set('category_id', f.category_id)
+  set('project', f.project)
   set('tag', f.tag)
   set('q', f.q)
   if (f.breached) set('breached', 'true')

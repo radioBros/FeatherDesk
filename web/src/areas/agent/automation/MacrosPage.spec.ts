@@ -25,6 +25,7 @@ const macro = (extra: Partial<S['Macro']> = {}): S['Macro'] => ({
   add_tags: ['solved'],
   remove_tags: [],
   assignee: 'me',
+  project_id: null,
   created_at: fx.iso,
   updated_at: fx.iso,
   ...extra,

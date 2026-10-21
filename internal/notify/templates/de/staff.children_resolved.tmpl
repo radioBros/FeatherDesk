@@ -3,7 +3,7 @@
 {{define "subject"}}Alle Unter-Tickets gelöst: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hallo {{.RecipientName}},
 
-alle Unter-Tickets von **#{{.Ticket.Number}} {{.Ticket.Subject}}** sind jetzt gelöst. Eventuell können Sie auch das übergeordnete Ticket lösen.
+alle Unter-Tickets von **{{.Ticket.Ref}} {{.Ticket.Subject}}** sind jetzt gelöst. Eventuell können Sie auch das übergeordnete Ticket lösen.
 
 [Ticket öffnen]({{.Ticket.URL}})
 {{end}}

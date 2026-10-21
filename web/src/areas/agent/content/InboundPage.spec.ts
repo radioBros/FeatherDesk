@@ -19,6 +19,7 @@ const imap = (extra: Partial<Mailbox> = {}, imapExtra: Partial<NonNullable<Mailb
   address: 'support@example.com',
   active: true,
   team_id: 'team-1',
+  project_id: 'p-web',
   last_ok_at: fx.iso,
   imap: {
     host: 'imap.example.com',

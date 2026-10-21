@@ -29,6 +29,7 @@ type fieldIn struct {
 	CustomerVisible  *bool             `json:"customer_visible"`
 	CustomerEditable *bool             `json:"customer_editable"`
 	CategoryIDs      optIDs            `json:"category_ids"`
+	ProjectIDs       optIDs            `json:"project_ids"` // D-20: null = all projects
 	Sort             *int              `json:"sort"`
 	Active           *bool             `json:"active"`
 }
@@ -98,7 +99,21 @@ func (d *Directory) validateField(ctx context.Context, f *FieldDef) []problems.F
 			errs = append(errs, problems.Field("category_ids["+itoa(i)+"]", "not_found", "unknown category"))
 		}
 	}
+	for i, p := range f.ProjectIDs {
+		if pr, err := d.ResolveProject(ctx, p); err != nil {
+			errs = append(errs, problems.Field("project_ids["+itoa(i)+"]", "not_found", "unknown project"))
+		} else {
+			f.ProjectIDs[i] = pr.ID
+		}
+	}
 	return errs
+}
+
+func projectIDsJSON(ids []string) any {
+	if ids == nil {
+		return nil
+	}
+	return store.MustJSON(ids)
 }
 
 func (d *Directory) listFieldDefs(w http.ResponseWriter, r *http.Request) error {
@@ -145,6 +160,9 @@ func (d *Directory) createFieldDef(w http.ResponseWriter, r *http.Request) error
 	if in.CategoryIDs.Set {
 		f.CategoryIDs = in.CategoryIDs.Val
 	}
+	if in.ProjectIDs.Set {
+		f.ProjectIDs = in.ProjectIDs.Val
+	}
 	if in.Sort != nil {
 		f.Sort = *in.Sort
 	}
@@ -157,9 +175,9 @@ func (d *Directory) createFieldDef(w http.ResponseWriter, r *http.Request) error
 		if f.CategoryIDs != nil {
 			cats = store.MustJSON(f.CategoryIDs)
 		}
-		_, err := tx.ExecContext(ctx, `INSERT INTO custom_field_defs (id, key, label, type, options, required, customer_visible, customer_editable, category_ids, sort, active, created_at, updated_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)`, f.ID, f.Key, store.MustJSON(f.Label), string(f.Type), store.MustJSON(f.Options),
-			f.Required, f.CustomerVisible, f.CustomerEditable, cats, f.Sort, now, now)
+		_, err := tx.ExecContext(ctx, `INSERT INTO custom_field_defs (id, key, label, type, options, required, customer_visible, customer_editable, category_ids, project_ids, sort, active, created_at, updated_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)`, f.ID, f.Key, store.MustJSON(f.Label), string(f.Type), store.MustJSON(f.Options),
+			f.Required, f.CustomerVisible, f.CustomerEditable, cats, projectIDsJSON(f.ProjectIDs), f.Sort, now, now)
 		if store.IsUniqueViolation(err) {
 			return problems.Conflict("a field with this key exists")
 		}
@@ -216,6 +234,9 @@ func (d *Directory) patchFieldDef(w http.ResponseWriter, r *http.Request) error 
 	if in.CategoryIDs.Set {
 		f.CategoryIDs = in.CategoryIDs.Val
 	}
+	if in.ProjectIDs.Set {
+		f.ProjectIDs = in.ProjectIDs.Val
+	}
 	if in.Sort != nil {
 		f.Sort = *in.Sort
 	}
@@ -254,8 +275,8 @@ func (d *Directory) patchFieldDef(w http.ResponseWriter, r *http.Request) error 
 			cats = store.MustJSON(f.CategoryIDs)
 		}
 		_, err := tx.ExecContext(ctx, `UPDATE custom_field_defs SET label = ?, type = ?, options = ?, required = ?, customer_visible = ?, customer_editable = ?,
-			category_ids = ?, sort = ?, active = ?, updated_at = ? WHERE id = ?`, store.MustJSON(f.Label), string(f.Type), store.MustJSON(f.Options),
-			f.Required, f.CustomerVisible, f.CustomerEditable, cats, f.Sort, f.Active, store.Now(), id)
+			category_ids = ?, project_ids = ?, sort = ?, active = ?, updated_at = ? WHERE id = ?`, store.MustJSON(f.Label), string(f.Type), store.MustJSON(f.Options),
+			f.Required, f.CustomerVisible, f.CustomerEditable, cats, projectIDsJSON(f.ProjectIDs), f.Sort, f.Active, store.Now(), id)
 		return err
 	})
 	if err != nil {

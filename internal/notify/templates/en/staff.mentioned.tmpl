@@ -2,7 +2,7 @@
 {{define "subject"}}You were mentioned: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hello {{.RecipientName}},
 
-{{.ActorName}} mentioned you in an internal note on ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**:{{range .Messages}}
+{{.ActorName}} mentioned you in an internal note on ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

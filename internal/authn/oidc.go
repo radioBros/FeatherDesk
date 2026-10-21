@@ -527,6 +527,11 @@ func (m *Module) createOIDCUser(ctx context.Context, tx *store.Tx, a *oidcAudien
 	if err != nil {
 		return userRow{}, err
 	}
+	if a.audience == domain.AudienceStaff {
+		if err := joinDefaultProject(ctx, tx, uid, now); err != nil { // D-20
+			return userRow{}, err
+		}
+	}
 	if _, err := tx.ExecContext(ctx, `INSERT INTO user_identities (id, user_id, audience, issuer, subject, email_at_link, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		store.NewID(), uid, string(a.audience), id.Issuer, id.Subject, id.Email, now); err != nil {
 		return userRow{}, err

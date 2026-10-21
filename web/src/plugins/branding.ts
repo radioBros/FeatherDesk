@@ -76,13 +76,20 @@ export function radiusDefaults(r: Branding['radius'] = 'default') {
     VBtnToggle: { elevation: 0 },
     VBtnGroup: { elevation: 0 },
     VCard: { rounded },
-    // Outlined fields keep labels on the surface colour (contrast-safe, FE-032).
-    VTextField: { rounded, variant: 'outlined' },
-    VTextarea: { rounded, variant: 'outlined' },
-    VSelect: { rounded, variant: 'outlined' },
-    VAutocomplete: { rounded, variant: 'outlined' },
-    VCombobox: { rounded, variant: 'outlined' },
-    VFileInput: { rounded, variant: 'outlined' },
+    // One density and variant for every field (FE-032): outlined keeps labels on the surface colour
+    // (contrast-safe), compact keeps selects, text fields, textareas and dates at the same 40px height.
+    // Chips inside a field are small so a multiselect never grows taller than a text field.
+    VTextField: { rounded, variant: 'outlined', density: 'compact' },
+    VTextarea: { rounded, variant: 'outlined', density: 'compact', rows: 1, autoGrow: true },
+    VSelect: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
+    VAutocomplete: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
+    VCombobox: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
+    VFileInput: { rounded, variant: 'outlined', density: 'compact' },
+    VDateInput: { rounded, variant: 'outlined', density: 'compact' },
+    VNumberInput: { rounded, variant: 'outlined', density: 'compact' },
+    VCheckbox: { density: 'compact' },
+    VSwitch: { density: 'compact' },
+    VRadioGroup: { density: 'compact' },
   }
 }
 

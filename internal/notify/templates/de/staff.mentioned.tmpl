@@ -3,7 +3,7 @@
 {{define "subject"}}Sie wurden erwähnt: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hallo {{.RecipientName}},
 
-{{.ActorName}} hat Sie in einer internen Notiz zum Ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** erwähnt:{{range .Messages}}
+{{.ActorName}} hat Sie in einer internen Notiz zum Ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** erwähnt:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

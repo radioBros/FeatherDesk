@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync/atomic"
 
 	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/notify"
@@ -40,9 +41,39 @@ func (m *Module) handleAuthConfig(w http.ResponseWriter, r *http.Request) {
 		c = &authConfigCache{body: b}
 		m.cfgCache.Store(c)
 	}
+	body := c.body
+	if key := r.URL.Query().Get("project"); key != "" && len(body) > 1 && body[len(body)-1] == '}' {
+		// D-20: the /p/{key} portal entry also gets the project's branding
+		// overrides (null when unknown, inactive or not portal-visible).
+		var proj any
+		if fn := publicProject.Load(); fn != nil && len(key) <= 36 {
+			v, err := (*fn)(r.Context(), key)
+			if err != nil {
+				problems.Write(w, r, err)
+				return
+			}
+			proj = v
+		}
+		pb, err := json.Marshal(proj)
+		if err != nil {
+			problems.Write(w, r, err)
+			return
+		}
+		body = append(append(append(append([]byte{}, body[:len(body)-1]...), `,"project":`...), pb...), '}')
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	_, _ = w.Write(c.body)
+	_, _ = w.Write(body)
+}
+
+// publicProject resolves the portal view of a project by key for
+// GET /auth/config?project= (D-20). authn cannot import the directory:
+// app/modules.go plugs in (*directory.Directory).PublicProject.
+var publicProject atomic.Pointer[func(ctx context.Context, key string) (any, error)]
+
+// SetPublicProject installs the project lookup of GET /auth/config?project=.
+func SetPublicProject(fn func(ctx context.Context, key string) (any, error)) {
+	publicProject.Store(&fn)
 }
 
 // emailEnabled reports notify.EnabledWith (NOT-022): the effective SMTP host

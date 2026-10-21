@@ -2,7 +2,7 @@
 {{define "subject"}}Tutti i ticket figli risolti: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Ciao {{.RecipientName}},
 
-tutti i ticket figli di **#{{.Ticket.Number}} {{.Ticket.Subject}}** sono stati risolti. Potresti voler risolvere anche il ticket principale.
+tutti i ticket figli di **{{.Ticket.Ref}} {{.Ticket.Subject}}** sono stati risolti. Potresti voler risolvere anche il ticket principale.
 
 [Apri il ticket]({{.Ticket.URL}})
 {{end}}

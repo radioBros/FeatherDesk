@@ -30,13 +30,22 @@ async function land(path: string, me: object) {
 }
 
 const ADMIN_ONLY = ['/agent/admin/staff', '/agent/admin/settings', '/agent/admin/system', '/agent/admin/queue', '/agent/admin/branding', '/agent/admin/email', '/agent/admin/webhooks', '/agent/admin/audit', '/agent/admin/jobs', '/agent/admin/tokens', '/agent/admin/custom-fields', '/agent/admin/inbound', '/agent/admin/inbound/log', '/agent/admin/storage', '/agent/admin/privacy']
-const SUPPORT = ['/agent/admin/teams', '/agent/admin/categories', '/agent/admin/sla', '/agent/admin/canned', '/agent/admin/tags', '/agent/admin/calendars', '/agent/admin/kb-categories', '/agent/admin/automation', '/agent/admin/macros']
+const SUPPORT = ['/agent/admin/teams', '/agent/admin/categories', '/agent/admin/sla', '/agent/admin/canned', '/agent/admin/tags', '/agent/admin/calendars', '/agent/admin/kb-categories', '/agent/admin/automation', '/agent/admin/macros', '/agent/admin/projects']
 
 describe('agent routes', () => {
   it('every agent page is lazy (dynamic import), so admin code is never in the initial chunk', () => {
     const children = agentRoutes.find((r) => r.path === '/agent')!.children!
     for (const r of children.filter((c) => c.component)) expect(typeof r.component).toBe('function')
     expect(adminNav.map((n) => n.to).sort()).toEqual([...ADMIN_ONLY.filter((p) => p !== '/agent/admin/inbound/log'), ...SUPPORT].sort())
+  })
+
+  it('project admins (allowed_areas) reach the projects and project-scoped config pages, plain agents do not', async () => {
+    const pa = { ...staff('agent'), allowed_areas: ['project_admin'] }
+    for (const path of ['/agent/admin/projects', '/agent/admin/categories', '/agent/admin/kb-categories', '/agent/admin/canned', '/agent/admin/automation', '/agent/admin/macros']) {
+      expect(await land(path, pa)).toBe(path)
+      expect(await land(path, staff('agent'))).toBe('/agent/tickets')
+    }
+    expect(await land('/agent/admin/staff', pa)).toBe('/agent/tickets')
   })
 
   it.each(ADMIN_ONLY)('%s: supervisors are redirected, admins land', async (path) => {

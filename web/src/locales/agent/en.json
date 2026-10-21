@@ -1015,7 +1015,8 @@
         "ticket_children_resolved": "All child tickets resolved",
         "unknown": "Event {type}",
         "reason": "Reason: {reason}",
-        "unassigned": "Unassigned"
+        "unassigned": "Unassigned",
+        "ticket_project_changed": "Moved to another project"
       },
       "timeline": {
         "empty": "No events yet",
@@ -1083,7 +1084,8 @@
       "custom_field": "Custom field",
       "business_hours": "Within business hours",
       "hours_since_update": "Hours since last update",
-      "hours_since_status": "Hours in current status"
+      "hours_since_status": "Hours in current status",
+      "project": "Project"
     },
     "ops": {
       "is": "is",
@@ -1239,6 +1241,114 @@
       "actor": "Automation",
       "rule": "“{name}”",
       "truncated": "stopped at the 10-action limit"
+    }
+  },
+  "projects": {
+    "nav": {
+      "title": "Projects"
+    },
+    "switcher": {
+      "label": "Project",
+      "all": "All projects",
+      "error": "Could not switch the project."
+    },
+    "reports": {
+      "project": "Project",
+      "byProject": "By project"
+    },
+    "config": {
+      "all": "All projects",
+      "project": "Project",
+      "projects": "Projects",
+      "filter": "Filter by project",
+      "lockedHint": "The project cannot change once the category has tickets.",
+      "teamHint": "Projects this team serves. New teams join the default project.",
+      "orgHint": "Projects its customers may open tickets in. Empty: every portal-visible project.",
+      "webhookHint": "Empty: events of every project are delivered.",
+      "fieldHint": "Empty: the field applies in every project.",
+      "scopeHint": "Empty: applies to all projects.",
+      "mailboxHint": "New tickets from this mailbox join this project.",
+      "memberships": "Project memberships",
+      "membershipsHint": "Agents only see tickets of their projects. Supervisors and admins see every project.",
+      "role": "Role in the project",
+      "member": "Member",
+      "project_admin": "Project admin",
+      "addMembership": "Add project",
+      "removeMembership": "Remove",
+      "noMemberships": "No project yet: the default project is used.",
+      "staffColumn": "Projects",
+      "ruleProject": "Project",
+      "pick": "Select projects",
+      "global": "All projects (global)",
+      "subHint": "A sub-category belongs to the project of its parent."
+    },
+    "ticket": {
+      "ref": "Ref",
+      "project": "Project",
+      "move": {
+        "title": "Move to project",
+        "target": "Target project",
+        "hint": "{ref} gets the next reference of the target project; the old reference stops working.",
+        "confirm": "Move",
+        "done": "Moved: now {ref}",
+        "handedOver": "The ticket was moved to a project you no longer see."
+      }
+    },
+    "admin": {
+      "subtitle": "Group tickets by product, client or service, each with its own key and ticket numbers.",
+      "new": "New project",
+      "edit": "Edit {name}",
+      "empty": "No projects yet",
+      "emptyBody": "Create the first project to start grouping tickets.",
+      "key": "Key",
+      "keyHint": "2 to 10 characters, for example WEB. Tickets become WEB-1, WEB-2 and so on.",
+      "keyLocked": "The key can no longer change: the project has tickets.",
+      "color": "Colour",
+      "icon": "Icon",
+      "sort": "Order",
+      "tickets": "Tickets",
+      "defaultTeam": "Default team",
+      "defaultTeamHint": "Takes new tickets that have no category team. It must be one of the teams that serve the project.",
+      "defaultTeamNew": "Choose it after creating the project, once its teams are mapped.",
+      "portalSection": "Customer portal",
+      "portalVisible": "Customers can open tickets in this project",
+      "portalTitle": "Portal title",
+      "portalFallback": "Empty: the global portal title",
+      "portalIntro": "Portal introduction (Markdown)",
+      "primaryColor": "Portal primary colour",
+      "tabs": {
+        "settings": "Settings",
+        "members": "Members",
+        "teams": "Teams",
+        "sla": "SLA"
+      },
+      "logo": {
+        "title": "Portal logo",
+        "label": "Logo file",
+        "hint": "PNG, JPEG or SVG, up to 1 MB. Empty: the global logo.",
+        "remove": "Remove logo"
+      },
+      "members": {
+        "add": "Add a staff member",
+        "role": "Role",
+        "empty": "No members yet. Agents only see tickets of the projects they belong to.",
+        "readOnly": "Only supervisors and administrators change the members.",
+        "roles": {
+          "member": "Member",
+          "project_admin": "Project admin"
+        }
+      },
+      "teams": {
+        "hint": "The teams that serve this project: they get its tickets, can be assigned and used by its rules.",
+        "default": "default",
+        "defaultStays": "The default team has to stay in the list."
+      },
+      "sla": {
+        "hint": "Each priority either uses the global default or its own targets for this project.",
+        "override": "Override",
+        "inherited": "Global default",
+        "clear": "Use global defaults for all"
+      }
     }
   }
 }

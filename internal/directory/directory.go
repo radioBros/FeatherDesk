@@ -34,10 +34,11 @@ type DirDeps struct {
 
 // Directory is the directory service. Construct with NewDirectory.
 type Directory struct {
-	db  *store.DB
-	log *slog.Logger
-	set *settings.Service
-	hub *realtime.Hub
+	db   *store.DB
+	log  *slog.Logger
+	set  *settings.Service
+	hub  *realtime.Hub
+	blob blob.Store // project logos (D-20)
 
 	snap      atomic.Pointer[dirSnapshot]
 	snapMu    sync.Mutex
@@ -72,7 +73,7 @@ func NewDirectory(d DirDeps) *Directory {
 	}
 	// app/modules.go wires OnTeamsChanged → authn.InvalidateTeams (AUTH-002
 	// team cache) and SetDisabler → authn.DisableUser (AUTH-017).
-	return &Directory{db: d.DB, log: d.Log, set: d.Settings, hub: d.Hub}
+	return &Directory{db: d.DB, log: d.Log, set: d.Settings, hub: d.Hub, blob: d.Blob}
 }
 
 // OnMembershipChange registers a hook run inside membership/tier write txs.
@@ -182,10 +183,12 @@ type Team struct {
 	NotifyMode        string  `json:"notify_mode"`
 	CalendarID        *string `json:"calendar_id"`
 	// AssignmentStrategy is manual, round_robin or least_busy (D-19 §A).
-	AssignmentStrategy string    `json:"assignment_strategy"`
-	MemberCount        int       `json:"member_count"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	AssignmentStrategy string `json:"assignment_strategy"`
+	// ProjectIDs are the projects the team serves (project_teams, D-20).
+	ProjectIDs  []string  `json:"project_ids"`
+	MemberCount int       `json:"member_count"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // Category is a category row.
@@ -196,9 +199,13 @@ type Category struct {
 	DefaultPriority *string `json:"default_priority"`
 	Active          bool    `json:"active"`
 	Sort            int     `json:"sort"`
+	ProjectID       string  `json:"project_id"` // D-20: every category belongs to one project
 }
 
 type dirSnapshot struct {
+	projects   []Project
+	projByID   map[string]*Project
+	projByKey  map[string]*Project
 	teams      []Team
 	teamByID   map[string]*Team
 	categories []Category
@@ -245,7 +252,10 @@ func (d *Directory) snapshot(ctx context.Context) (*dirSnapshot, error) {
 func (d *Directory) loadSnapshot(ctx context.Context) (*dirSnapshot, error) {
 	q := d.db.Read()
 	s := &dirSnapshot{teamByID: map[string]*Team{}, catByID: map[string]*Category{}, fieldByKey: map[string]*FieldDef{},
-		fieldByID: map[string]*FieldDef{}, calendars: map[string]*Calendar{}}
+		fieldByID: map[string]*FieldDef{}, calendars: map[string]*Calendar{}, projByID: map[string]*Project{}, projByKey: map[string]*Project{}}
+	if err := loadProjects(ctx, q, s); err != nil {
+		return nil, err
+	}
 	rows, err := q.QueryContext(ctx, `SELECT t.id, t.name, t.description, t.notification_email, t.notify_mode, t.calendar_id, t.assignment_strategy, t.created_at, t.updated_at,
 		(SELECT COUNT(*) FROM team_members m WHERE m.team_id = t.id)
 		FROM teams t ORDER BY lower(t.name), t.id`)
@@ -265,16 +275,24 @@ func (d *Directory) loadSnapshot(ctx context.Context) (*dirSnapshot, error) {
 	}
 	rows.Close()
 	for i := range s.teams {
+		s.teams[i].ProjectIDs = []string{}
 		s.teamByID[s.teams[i].ID] = &s.teams[i]
 	}
-	rows, err = q.QueryContext(ctx, `SELECT id, name, default_team_id, default_priority, active, sort FROM categories ORDER BY sort, lower(name), id`)
+	for i := range s.projects {
+		for _, tid := range s.projects[i].TeamIDs {
+			if t := s.teamByID[tid]; t != nil {
+				t.ProjectIDs = append(t.ProjectIDs, s.projects[i].ID)
+			}
+		}
+	}
+	rows, err = q.QueryContext(ctx, `SELECT id, name, default_team_id, default_priority, active, sort, project_id FROM categories ORDER BY sort, lower(name), id`)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var c Category
 		var team, prio store.NullString
-		if err := rows.Scan(&c.ID, &c.Name, &team, &prio, &c.Active, &c.Sort); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &team, &prio, &c.Active, &c.Sort, &c.ProjectID); err != nil {
 			rows.Close()
 			return nil, err
 		}

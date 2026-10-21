@@ -47,6 +47,11 @@ export async function getByNumber(n: number): Promise<{ ticket: Ticket; etag: st
   return { ticket: data, etag: etagOf(response) }
 }
 
+export async function getByRef(ref: string): Promise<{ ticket: Ticket; etag: string | null }> {
+  const { data, response } = await unwrapWithResponse(api.GET('/agent/tickets/by-ref/{ref}', { params: { path: { ref } } }))
+  return { ticket: data, etag: etagOf(response) }
+}
+
 export async function getById(id: string): Promise<{ ticket: Ticket; etag: string | null }> {
   const { data, response } = await unwrapWithResponse(api.GET('/agent/tickets/{id}', { params: { path: { id } } }))
   return { ticket: data, etag: etagOf(response) }
@@ -123,6 +128,14 @@ export function events(id: string, cursor: string | null): Promise<S['TicketEven
 export async function searchTickets(q: string): Promise<S['TicketSummary'][]> {
   const text = q.trim().replace(/^#/, '')
   if (!text) return []
+  if (/^[A-Za-z][A-Za-z0-9]*-\d+$/.test(text)) {
+    try {
+      const { ticket } = await getByRef(text)
+      return [ticket]
+    } catch {
+      return []
+    }
+  }
   if (/^\d+$/.test(text)) {
     try {
       const { ticket } = await getByNumber(Number(text))

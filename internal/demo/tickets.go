@@ -38,6 +38,8 @@ func (s *seeder) customerCF(cat string) map[string]any {
 	case "billing":
 		return map[string]any{"order_number": fmt.Sprintf("INV-2026-%04d", 100+s.rng.IntN(900)),
 			"invoice_date": s.now.AddDate(0, 0, -(10 + s.rng.IntN(60))).Format("2006-01-02")}
+	case "mobile":
+		return map[string]any{"os": pick(s, []string{"ios", "android"}), "app_version": pick(s, []string{"3.8.0", "3.8.1", "3.9.0"})}
 	}
 	return nil
 }
@@ -79,7 +81,7 @@ func (s *seeder) seedTickets() error {
 	sc := s.scenarios()
 	var plan []scenario
 	plan = append(plan, sc...)
-	filler := s.opt.Tickets - scriptedCount(sc)
+	filler := s.opt.Tickets - scriptedCount(sc) - projectExtraTickets
 	for i := 0; i < filler; i++ {
 		u := (float64(i) + s.rng.Float64()) / float64(filler)
 		age := time.Duration(math.Pow(u, 1.35)*58*float64(day)) + 3*time.Hour
@@ -115,11 +117,16 @@ type life struct {
 	tags      []string
 }
 
-func (s *seeder) pickCustomer(skipOrg string) *person {
+// pickCustomerFor returns a random customer who may be the requester of a
+// ticket in project (organization limits, D-20).
+func (s *seeder) pickCustomerFor(project string) *person {
 	keys := []string{"mia", "uma", "ben", "chloe", "gus", "hank", "ines", "jack", "ida", "ivan"}
+	if project == "it" {
+		keys = []string{"eva", "omar"}
+	}
 	for {
 		c := s.custs[pick(s, keys)]
-		if c.cl != nil && c.org != skipOrg {
+		if c.cl != nil && s.customerAllowed(c, project) {
 			return c
 		}
 	}
@@ -127,8 +134,17 @@ func (s *seeder) pickCustomer(skipOrg string) *person {
 
 // generated creates one random ticket whose story fits `age`.
 func (s *seeder) generated(age time.Duration) error {
-	tp := pick(s, topics)
-	c := s.pickCustomer("")
+	// D-20: the project first, with equal weight, then a topic of it, so the
+	// generated tickets split about evenly across WEB, MOB and IT.
+	project := pick(s, []string{"web", "mob", "it"})
+	var pool []topic
+	for _, x := range topics {
+		if s.projectOf(x.cat) == project {
+			pool = append(pool, x)
+		}
+	}
+	tp := pick(s, pool)
+	c := s.pickCustomerFor(project)
 	sp := spec{subject: tp.subject, body: tp.body, cat: tp.cat, cf: s.customerCF(tp.cat)}
 	switch r := s.rng.IntN(100); {
 	case r < 14:
@@ -175,8 +191,20 @@ func (s *seeder) generated(age time.Duration) error {
 	// Channel mix.
 	var t *tk
 	var err error
-	switch ch := s.rng.IntN(100); {
-	case ch < 60:
+	ch := s.rng.IntN(100)
+	switch {
+	case project == "it" && ch < 70:
+		// Internal IT is staff-only (not in the portal): the IT desk files it.
+		creator := s.staffBy(s.cats[tp.cat].Team, 1+s.rng.IntN(2))
+		if sp.prio == "urgent" {
+			creator = s.staff["sup"]
+		}
+		t, err = s.agentOpen(creator.cl, creator, c, sp, nil)
+	case project == "it":
+		t, err = s.agentOpen(s.pat, s.staff["admin"], c, sp, nil)
+	case ch < 60 || (ch >= 85 && project != "web"):
+		// Mail arrives on the default mailbox (Web App): other projects' topics
+		// come in through the portal instead.
 		t, err = s.portalOpen(c, sp)
 	case ch < 75:
 		creator := s.staffBy(s.cats[tp.cat].Team, 1+s.rng.IntN(2))
@@ -208,6 +236,14 @@ func topicTags(cat string) []string {
 		return []string{"feature-request"}
 	case "access":
 		return []string{"account"}
+	case "mobile":
+		return []string{"mobile"}
+	case "store":
+		return []string{"finance", "mobile"}
+	case "hardware":
+		return []string{"hardware"}
+	case "onboarding":
+		return []string{"onboarding"}
 	}
 	return nil
 }

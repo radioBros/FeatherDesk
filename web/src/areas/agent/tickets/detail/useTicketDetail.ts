@@ -35,11 +35,12 @@ export function useTicketDetail() {
   const stale = ref(false)
   let refetchTimer: ReturnType<typeof setTimeout> | null = null
 
-  async function load(number: number) {
+  /** Loads by global number, or by project ref (`WEB-12`) when given a string. */
+  async function load(key: number | string) {
     loading.value = true
     notFound.value = false
     try {
-      const res = await ticketApi.getByNumber(number)
+      const res = typeof key === 'string' ? await ticketApi.getByRef(key) : await ticketApi.getByNumber(key)
       ticket.value = res.ticket
       etag.value = res.etag
       // `by-number` carries no ETag; fetch it by id so the first PATCH can send If-Match.

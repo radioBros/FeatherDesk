@@ -51,7 +51,11 @@ type Groups struct {
 	Agent   chi.Router // /api/v1/agent, staff only (others → 404)
 	Admin   chi.Router // /api/v1/admin, admin only
 	Support chi.Router // /api/v1/admin, supervisor or admin
-	Root    chi.Router // /, no API middleware (inbound webhooks, sitemap)
+	// ProjectAdmin: /api/v1/admin, supervisor, admin or the project admin of
+	// at least one project (D-20). Handlers decide per project with
+	// Principal.AdminsProject.
+	ProjectAdmin chi.Router
+	Root         chi.Router // /, no API middleware (inbound webhooks, sitemap)
 }
 
 // Options configure the server; DB and Blob are optional (health/branding).
@@ -158,13 +162,14 @@ func New(opt Options) *Server {
 	r.Mount("/api/v1", api)
 
 	s.groups = Groups{
-		Public:  api,
-		Authed:  api.With(requireAuth),
-		Portal:  portal,
-		Agent:   agent,
-		Admin:   admin.With(requireRole(domain.RoleAdmin)),
-		Support: admin.With(requireRole(domain.RoleAdmin, domain.RoleSupervisor)),
-		Root:    r,
+		Public:       api,
+		Authed:       api.With(requireAuth),
+		Portal:       portal,
+		Agent:        agent,
+		Admin:        admin.With(requireRole(domain.RoleAdmin)),
+		Support:      admin.With(requireRole(domain.RoleAdmin, domain.RoleSupervisor)),
+		ProjectAdmin: admin.With(requireProjectAdmin),
+		Root:         r,
 	}
 	return s
 }

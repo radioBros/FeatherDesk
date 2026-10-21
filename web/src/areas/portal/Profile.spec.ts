@@ -27,7 +27,9 @@ describe('portal profile (FE-018)', () => {
     ;(wrapper.findComponent({ name: 'ProfileForm' }).vm as unknown as { $: { setupState: { model: { locale: string } } } }).$.setupState.model.locale = 'it'
     await settle()
     await wrapper.find('[data-testid="profile-form"]').trigger('submit')
-    await settle(10)
+    // The locale switch lazy-loads it.json and the area packs (real dynamic imports): wait for it
+    // instead of counting ticks, which is too short when the worker is busy.
+    await vi.waitFor(() => expect(i18n.global.locale.value).toBe('it'), { timeout: 5000 })
     const [patch] = await requests(fn)
     // Email opt-outs moved to the notification matrix (FE-095): this form sends name and locale only.
     expect(patch).toMatchObject({ method: 'PATCH', path: '/me', body: { name: 'Carla Customer', locale: 'it' } })
@@ -56,7 +58,7 @@ describe('portal profile (FE-018)', () => {
     expect(fn).not.toHaveBeenCalled()
     await wrapper.find('[data-testid="pw-confirm"] input').setValue('new-password-12')
     await wrapper.find('[data-testid="password-form"]').trigger('submit')
-    await settle(8)
+    await vi.waitFor(async () => expect(await requests(fn)).not.toHaveLength(0))
     expect((await requests(fn))[0]).toMatchObject({ method: 'PATCH', path: '/me', body: { current_password: 'old-password-1', new_password: 'new-password-12' } })
   })
 })

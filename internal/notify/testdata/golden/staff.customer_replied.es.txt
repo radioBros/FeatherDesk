@@ -1,10 +1,10 @@
-Subject: [#1042] El cliente ha respondido: Printer on floor 3 is offline
+Subject: [HD-1042] El cliente ha respondido: Printer on floor 3 is offline
 
 ##- Responda por encima de esta línea -##
 
 Hola Grace Hopper,
 
-el cliente ha respondido en el ticket **#1042 Printer on floor 3 is offline**:
+el cliente ha respondido en el ticket **HD-1042 Printer on floor 3 is offline**:
 
 **Ada Lovelace:**
 

@@ -3,7 +3,7 @@
 {{define "subject"}}Le han mencionado: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hola {{.RecipientName}},
 
-{{.ActorName}} le ha mencionado en una nota interna del ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**:{{range .Messages}}
+{{.ActorName}} le ha mencionado en una nota interna del ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

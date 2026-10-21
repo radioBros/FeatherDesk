@@ -98,3 +98,33 @@ describe('portal new ticket (FE-016)', () => {
     expect(wrapper.find('[data-testid="nt-requester"]').exists()).toBe(true)
   })
 })
+
+describe('portal new ticket: project picker (D-20)', () => {
+  const proj = (id: string, key: string) => ({ id, key, name: `${key} project`, color: '#1976d2', description: '', icon: '', logo_url: null, portal_intro_md: null, portal_title: null, primary_color: null })
+
+  it('is hidden with a single project, which is sent implicitly', async () => {
+    const { fn } = api({ 'GET /portal/projects': () => json([proj('p-web', 'WEB')]) })
+    const { wrapper } = await mountPage(NewTicketPage, { path: '/tickets/new' })
+    await settle(8)
+    expect(wrapper.find('[data-testid="nt-project"]').exists()).toBe(false)
+    await fill(wrapper)
+    await wrapper.find('[data-testid="new-ticket-form"]').trigger('submit')
+    await settle(6)
+    const post = (await requests(fn)).find((r) => r.method === 'POST' && r.path === '/portal/tickets')!
+    expect((post.body as Record<string, unknown>).project_id).toBe('p-web')
+  })
+
+  it('shows the picker with several projects, preselects ?project=KEY and scopes categories to it', async () => {
+    const { fn } = api({ 'GET /portal/projects': () => json([proj('p-web', 'WEB'), proj('p-mob', 'MOB')]) })
+    const { wrapper } = await mountPage(NewTicketPage, { path: '/tickets/new?project=mob', pattern: '/tickets/new' })
+    await settle(8)
+    expect(wrapper.find('[data-testid="nt-project"]').exists()).toBe(true)
+    const cat = (await requests(fn)).filter((r) => r.path === '/portal/categories').at(-1)!
+    expect(new URLSearchParams(cat.search).get('project')).toBe('p-mob')
+    await fill(wrapper)
+    await wrapper.find('[data-testid="new-ticket-form"]').trigger('submit')
+    await settle(6)
+    const post = (await requests(fn)).find((r) => r.method === 'POST' && r.path === '/portal/tickets')!
+    expect((post.body as Record<string, unknown>).project_id).toBe('p-mob')
+  })
+})

@@ -435,8 +435,8 @@ func TestAssignable_EqualsM4Set(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if satisfiesM4(st, row.TeamID, row.Tier) != ids[id] {
-				t.Errorf("user %s (tier %d role %s): M-4 %v listed %v", id, st.Tier, st.Role, satisfiesM4(st, row.TeamID, row.Tier), ids[id])
+			if satisfiesM4(st, row) != ids[id] {
+				t.Errorf("user %s (tier %d role %s): M-4 %v listed %v", id, st.Tier, st.Role, satisfiesM4(st, row), ids[id])
 			}
 		}
 		if !ids[sup.UserID] || ids[f.l1.UserID] || ids[disabled.UserID] || ids[f.l2B.UserID] {

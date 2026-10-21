@@ -115,6 +115,11 @@ func (s *seeder) setupKB() error {
 		}
 		catID[c.slug] = out.ID
 	}
+	// D-20: a Mobile KB category (shown with the Mobile portal entry /p/MOB).
+	if err := s.admin.post("/admin/kb/categories", map[string]any{"slug": "mobile-app", "visibility": "public", "sort": len(kbCatDefs),
+		"title": map[string]string{"en": "Mobile app", "it": "App mobile"}, "project_id": s.projects["mob"].ID}, nil); err != nil {
+		return fmt.Errorf("kb category mobile-app: %w", err)
+	}
 	for _, art := range kbArts {
 		first := art.tr[0]
 		var out idResp

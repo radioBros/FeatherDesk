@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import SelectionChips from '@/components/SelectionChips.vue'
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from '@/composables/useForm'
@@ -52,9 +53,9 @@ const onSubmit = submit(async () => {
       :rules="[validations.required.array]"
       :error-messages="fieldErrors.scopes"
       multiple
-      chips
-      data-testid="token-scopes"
-    />
+      data-testid="token-scopes">
+      <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.scopes ?? []).length" /></template>
+    </v-select>
     <v-text-field
       v-model="model.expires"
       :label="$t('portal.tokens.expires')"

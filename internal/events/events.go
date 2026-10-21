@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/store"
 )
 
@@ -45,7 +46,10 @@ const (
 	TicketDeleted          = "ticket.deleted"
 	// TicketAutomationApplied: an automation rule applied (D-19 §A); staff only.
 	TicketAutomationApplied = "ticket.automation_applied"
-	TicketAccessLost        = "ticket.access_lost" // realtime-only, never stored
+	// TicketProjectChanged: the ticket moved to another project and got a
+	// new ref (D-20); data ProjectChange. Staff only.
+	TicketProjectChanged = "ticket.project_changed"
+	TicketAccessLost     = "ticket.access_lost" // realtime-only, never stored
 )
 
 // All lists every stored event type (TestEventsCustomerVisibility iterates it).
@@ -54,7 +58,7 @@ var All = []string{
 	TicketEscalated, TicketDeescalated, TicketCategoryChanged, TicketTagsChanged, TicketFieldsChanged,
 	TicketSubjectChanged, MessageCreated, NoteCreated, MessageEdited, SLAWarning, SLABreached, TicketCSAT,
 	TicketFollowupCreated, TicketMerged, TicketSplit, TicketLinked, TicketUnlinked, TicketChildrenResolved,
-	TicketWatchersChanged, TicketDeleted, TicketAutomationApplied,
+	TicketWatchersChanged, TicketDeleted, TicketAutomationApplied, TicketProjectChanged,
 }
 
 // customerVisible: events a customer may ever learn about (I-7). Payloads of
@@ -70,6 +74,9 @@ var customerVisible = map[string]bool{
 	TicketSubjectChanged:  true,
 	// automation_applied stays staff-only (I-7): rule names and notes are internal.
 	TicketAutomationApplied: false,
+	// project_changed is staff-only: the target may be a staff-only project.
+	// Customers see the new ref on their next read.
+	TicketProjectChanged: false,
 }
 
 // CustomerVisible reports whether the event type may reach customer channels
@@ -91,6 +98,20 @@ type Snapshot struct {
 	OrganizationID string   `json:"organization_id,omitempty"`
 	Watchers       []string `json:"watchers,omitempty"`
 	Channel        string   `json:"channel,omitempty"`
+	// ProjectID and Ref (KEY-123) were added with D-20. Events written
+	// before migration 0141 have neither: readers treat an empty project as
+	// the Default project (domain.DefaultProjectID) and fall back to #number.
+	ProjectID string `json:"project_id,omitempty"`
+	Ref       string `json:"ref,omitempty"`
+}
+
+// Project returns the snapshot's project, the Default project for events
+// written before D-20.
+func (s Snapshot) Project() string {
+	if s.ProjectID == "" {
+		return domain.DefaultProjectID
+	}
+	return s.ProjectID
 }
 
 // ActorAutomation is the actor_id of every event written by automation
@@ -127,6 +148,13 @@ type (
 	Assignment struct {
 		From string `json:"from,omitempty"`
 		To   string `json:"to,omitempty"`
+	}
+	// ProjectChange is the data of ticket.project_changed (D-20).
+	ProjectChange struct {
+		From    string `json:"from"`
+		To      string `json:"to"`
+		FromRef string `json:"from_ref"`
+		ToRef   string `json:"to_ref"`
 	}
 	TierChange struct {
 		FromTier int    `json:"from_tier"`
@@ -262,6 +290,7 @@ var newData = map[string]func() any{
 	TicketWatchersChanged:   func() any { return &WatchersChange{} },
 	TicketDeleted:           func() any { return &Deleted{} },
 	TicketAutomationApplied: func() any { return &AutomationApplied{} },
+	TicketProjectChanged:    func() any { return &ProjectChange{} },
 }
 
 // NewData returns a pointer to a zero data struct for typ, ready for

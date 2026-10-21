@@ -14,6 +14,7 @@ import type { ServerEvent } from '@/realtime/client'
 import MessageThread from '@/components/MessageThread.vue'
 import StatusChip from '@/components/StatusChip.vue'
 import PriorityChip from '@/components/PriorityChip.vue'
+import ProjectChip from '@/components/ProjectChip.vue'
 import TicketNumber from '@/components/TicketNumber.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -34,7 +35,10 @@ const session = useSessionStore()
 const ui = useUiStore()
 const { confirm } = useConfirm()
 
-const id = computed(() => String(route.params.id ?? ''))
+// `/tickets/WEB-12` (by ref) or `/tickets/<id>`; sockets and actions use the loaded ticket's id.
+const key = computed(() => String(route.params.ref ?? route.params.id ?? ''))
+const byRef = computed(() => route.params.ref !== undefined)
+const id = computed(() => ticket.value?.id ?? (byRef.value ? '' : key.value))
 const ticket = ref<CustomerTicket | null>(null)
 const defs = ref<CustomFieldDef[]>([])
 const loading = ref(true)
@@ -50,7 +54,9 @@ const closed = computed(() => ticket.value?.status === 'closed')
 async function load() {
   error.value = null
   try {
-    ticket.value = await unwrap(api.GET('/portal/tickets/{id}', { params: { path: { id: id.value } } }))
+    ticket.value = byRef.value
+      ? await unwrap(api.GET('/portal/tickets/by-ref/{ref}', { params: { path: { ref: key.value } } }))
+      : await unwrap(api.GET('/portal/tickets/{id}', { params: { path: { id: key.value } } }))
   } catch (e) {
     ticket.value = null
     error.value = e instanceof ApiProblem && e.status === 404 ? t('portal.detail.notFound') : e instanceof ApiProblem ? e.userMessage : t('errors.generic')
@@ -68,7 +74,7 @@ async function loadFields() {
 }
 
 watch(
-  id,
+  key,
   () => {
     loading.value = true
     followUpId.value = null
@@ -156,8 +162,9 @@ function onRated(tk: CustomerTicket | null) {
     <template v-else>
       <header class="d-flex flex-wrap align-center ga-3 mb-2">
         <h1 class="text-h5 flex-grow-1" data-testid="detail-subject">
-          <TicketNumber :number="ticket.number" /> {{ ticket.subject }}
+          <TicketNumber :number="ticket.number" :reftext="ticket.ref" /> {{ ticket.subject }}
         </h1>
+        <ProjectChip :project="ticket.project" size="small" />
         <StatusChip :status="ticket.status" area="portal" size="default" />
         <PriorityChip :priority="ticket.priority" />
       </header>

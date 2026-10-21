@@ -25,6 +25,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 - [Configuration essentials](#configuration-essentials)
 - [Single sign-on with Authentik](#single-sign-on-with-authentik)
 - [Roles and support levels](#roles-and-support-levels)
+- [Projects](#projects)
 - [Automation and assignment](#automation-and-assignment)
 - [Two-step verification](#two-step-verification)
 - [Privacy and GDPR](#privacy-and-gdpr)
@@ -54,6 +55,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 - **My data:** customers download an export of their personal data and can ask for their account to be deleted.
 
 **For support staff (the agent panel at `/agent`)**
+- **Projects:** a top-bar switcher limits lists, counts and reports to one project; tickets show `KEY-123` references and project chips and open by reference (`/agent/tickets/WEB-123`); a ticket can be moved to another project.
 - Queues update live: My tickets, Unassigned, Triage, All tickets, one queue per tier, and saved views (private or shared).
 - Filters cover status, priority, tier, team, assignee, category, tag, breached SLA and custom fields. A "needs attention" sort is the default. Bulk actions are available.
 - Replies and **internal notes** are written in Markdown, with attachments, canned responses, knowledge-base links and @mentions in notes. Agents can send and set the status in one step.
@@ -74,6 +76,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 - **SSO** with Authentik or any OpenID Connect provider, configured separately for staff and for customers. Group membership sets role, tier and team on every login. Back-channel logout is supported.
 - Teams, categories, custom fields (7 types), SLA policies, business-hours calendars, canned responses, tags and knowledge-base categories.
 - Signed outgoing **webhooks** for 21 event types, with a delivery log and automatic disabling.
+- **Projects:** group tickets per product, client or service, each with its own key and references (`WEB-12`), categories, teams, SLA overrides, mailboxes, members and portal branding. Agents only see their projects.
 - **Automation:** per-team automatic assignment (round robin or least busy) and rules that route, tag, reply, escalate or close tickets on events or on a schedule, with a dry run.
 - **Two-step verification policy** for local accounts (optional, all staff, or everyone), with admin and CLI resets.
 - **Privacy (GDPR) tools:** data exports, erasure, deletion requests, retention policies and consent records.
@@ -93,6 +96,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 |---|---|---|
 | Customer portal | ![Customer portal, light theme](docs/screenshots/portal-light.png) | ![Customer portal, dark theme](docs/screenshots/portal-dark.png) |
 | Agent panel | ![Agent ticket list, light theme](docs/screenshots/agent-tickets-light.png) | ![Agent ticket list, dark theme](docs/screenshots/agent-tickets-dark.png) |
+| Project switcher | ![Agent top-bar project switcher, light theme](docs/screenshots/agent-project-switcher-light.png) | ![Agent top-bar project switcher, dark theme](docs/screenshots/agent-project-switcher-dark.png) |
+| Projects admin | ![Projects admin page, light theme](docs/screenshots/projects-light.png) | ![Projects admin page, dark theme](docs/screenshots/projects-dark.png) |
 | Branding settings | ![Branding page, light theme](docs/screenshots/branding-light.png) | ![Branding page, dark theme](docs/screenshots/branding-dark.png) |
 | Automation rules | ![Automation rules, light theme](docs/screenshots/automation-light.png) | ![Automation rules, dark theme](docs/screenshots/automation-dark.png) |
 | Privacy requests | ![Privacy requests admin page, light theme](docs/screenshots/privacy-light.png) | ![Privacy requests admin page, dark theme](docs/screenshots/privacy-dark.png) |
@@ -277,6 +282,18 @@ Staff are placed on three independent axes:
 
 Reading something outside your visibility returns **404**. A forbidden action on something you can see returns **403**. Details are in [Concepts](docs/DOCUMENTATION.md#1-concepts).
 
+## Projects
+
+- **Keys and references:** every ticket belongs to a project and gets a reference from the project's own sequence, `KEY-123`, used in the UI, email subjects (`[WEB-12]`), search, the API (`/agent/tickets/by-ref/WEB-12`) and MCP (`ticket://WEB-12`). The global number (`#1042`) keeps working.
+- **One project by default:** upgrading creates the **Default project** (`HD`) with everything in it, so a single-project installation behaves exactly as before.
+- **Access:** agents see only the tickets of the projects they are members of; supervisors and admins see all. A **project admin** manages that project's categories, teams, SLA, KB categories, automation, macros, canned responses and portal branding.
+- **Scoping:** categories and inbound mailboxes belong to a project; teams can serve several; SLA policies fall back to the global ones; rules, macros, canned responses, KB categories, custom fields and webhooks can be limited to projects.
+- **Portal:** customers choose among the projects open to them (an organization can be limited to some); each portal-visible project has its own entry at `/p/{key}` with its own title, introduction, logo and colour.
+
+- **Screens:** Administration → Projects (members and roles, team mapping, per-project SLA, portal branding and logo), project selectors on the configuration pages, a membership editor in Staff, a project picker in the portal, the branded entry `/p/{key}` and a by-project chart in the reports.
+
+Guide: [docs/features/projects.md](docs/features/projects.md) · manual: [Projects](docs/DOCUMENTATION.md#721-projects-administration--projects-supervisor).
+
 ## Automation and assignment
 
 - **Automatic assignment** per team: *Manual* (the default), *Round robin* or *Least busy*. It only picks agents who may own the ticket and are not marked **Away**, and runs whenever a ticket of the team ends up without an owner.
@@ -320,7 +337,7 @@ A built-in [Model Context Protocol](https://modelcontextprotocol.io) server at `
 
 - **Off by default:** an admin turns it on under *System → Support settings → Integrations*.
 - **The assistant is the user:** it connects with that user's personal access token and can never see or do more than the user could through the REST API with the same token. Customers' assistants get customer tools only and never see internal notes.
-- **Tools:** `search_tickets`, `list_my_tickets`, `get_ticket`, `create_ticket`, `reply_to_ticket`, `update_ticket`, `search_kb`, `get_kb_article`, `list_categories`, and for staff `add_internal_note`, `escalate_ticket`, `deescalate_ticket`, `apply_macro`, `list_teams`. Resources `ticket://{number}` and `kb://{slug}`.
+- **Tools:** `search_tickets`, `list_my_tickets`, `get_ticket`, `create_ticket`, `reply_to_ticket`, `update_ticket`, `search_kb`, `get_kb_article`, `list_categories`, and for staff `add_internal_note`, `escalate_ticket`, `deescalate_ticket`, `apply_macro`, `list_teams`. Resources `ticket://{ref}` (e.g. `ticket://WEB-12`) and `kb://{slug}`.
 - **Protocol:** Streamable HTTP, revisions 2026-07-28 (stateless) and 2025-11-25/06-18/03-26 (sessions). No extra dependency or process.
 
 ```sh
@@ -415,7 +432,8 @@ docker compose -f deploy/compose.yml exec app /simpletickets seed --demo   # i.e
 make demo                                                                   # from a checkout, on the dev database
 ```
 
-- It fills every feature, including automation and assignment, two-step verification, privacy and the notification centre.
+- It fills every feature, including projects, automation and assignment, two-step verification, privacy and the notification centre.
+- It creates three projects: **Web App** `WEB` and **Mobile** `MOB` (both on the portal, `/p/WEB` and `/p/MOB`) and the staff-only **Internal IT** `IT`, with tickets in all three, a project admin and an agent who works in `MOB` only. The printout lists each project with sample references.
 - It creates 3 organizations, staff of every role and tier, 12 customers, teams with calendars, categories, custom fields, SLA policies, about 60 tickets over the last two months, canned responses, saved views, a knowledge base in five languages, branding, a disabled webhook, an inactive mailbox and an admin API token. Nothing is sent anywhere.
 - It prints the entity counts, the portal and agent URLs and a login for every role. All accounts share the password `demo-password-123` (change it with `--password`). Staff other than the admin sign in locally only with `ST_AUTH_STAFF_LOCAL=true`; restart the app afterwards.
 - `--tickets N` (default 60), `--smtp-mailpit` (deliver email to Mailpit on `localhost:1025`; otherwise email stays disabled) and `--force` (wipe and re-seed a database that an earlier `seed --demo` filled; a database with other data is always refused).

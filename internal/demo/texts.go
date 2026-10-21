@@ -35,6 +35,21 @@ var topics = []topic{
 	{"feature", "Dark mode for the portal", "Many of us work late. A dark theme for the portal would be great."},
 	{"feature", "Bulk edit tickets in the agent panel", "It would save a lot of time to change the priority of several selected tickets in one go."},
 	{"feature", "Export reports as PDF", "Our management wants the monthly summary as a PDF instead of a screenshot."},
+	// Mobile (MOB, D-20).
+	{"mobile", "iOS app crashes when opening a photo", "Since the last update the iPhone app closes as soon as I tap a photo in a ticket. iOS 18.2, iPhone 14."},
+	{"mobile", "Push notifications stopped arriving", "We no longer get push notifications on Android, although they are enabled in the app and in the system settings."},
+	{"mobile", "Android app stuck on the loading screen", "The app shows the spinner forever after login. Clearing the cache did not help."},
+	{"mobile", "Dark mode text unreadable in the app", "In dark mode the ticket list shows grey text on a dark grey background; it is almost unreadable."},
+	{"mobile", "Login with Face ID fails after update", "Face ID unlock worked until version 3.8; now it always falls back to the password."},
+	{"store", "Charged twice for the in-app subscription", "The App Store shows two charges for the Pro subscription this month."},
+	{"store", "Restore purchases does not unlock Pro", "I reinstalled the app on a new phone and *Restore purchases* says there is nothing to restore."},
+	{"store", "Cancel the annual subscription", "How do I cancel the yearly plan I bought through Google Play? I cannot find the option in the app."},
+	// Internal IT (IT, staff-only, D-20).
+	{"hardware", "Laptop battery drains in two hours", "My work laptop is three years old and the battery lasts barely two hours. Can I get a replacement?"},
+	{"hardware", "External monitor not detected", "The docking station in meeting room B does not detect the external monitor any more."},
+	{"hardware", "Keyboard missing keys", "Two keys came off my laptop keyboard. Is there a spare or a loaner?"},
+	{"onboarding", "Accounts for a new hire starting Monday", "Please prepare a laptop, an email account and VPN access for our new designer who starts on Monday."},
+	{"onboarding", "Access to the shared drives for an intern", "Our intern needs read access to the marketing shared drive for three months."},
 }
 
 var agentReplies = []string{

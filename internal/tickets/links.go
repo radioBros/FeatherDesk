@@ -221,7 +221,8 @@ func (s *Service) ticketRefs(ctx context.Context, q store.Querier, p *domain.Pri
 	}
 	pol := s.Policy(ctx)
 	pred, pargs := authz.TicketPredicate(p, pol, "t")
-	rows, err := q.QueryContext(ctx, `SELECT t.id, t.number, t.subject, t.status, CASE WHEN `+pred+` THEN 1 ELSE 0 END FROM tickets t WHERE t.id IN (`+placeholders(len(ids))+`)`,
+	rows, err := q.QueryContext(ctx, `SELECT t.id, t.number, t.subject, t.status, CASE WHEN `+pred+` THEN 1 ELSE 0 END,
+		(SELECT pj.key FROM projects pj WHERE pj.id = t.project_id), t.project_seq FROM tickets t WHERE t.id IN (`+placeholders(len(ids))+`)`,
 		append(pargs, anyStrings(ids)...)...)
 	if err != nil {
 		return nil, err
@@ -230,9 +231,12 @@ func (s *Service) ticketRefs(ctx context.Context, q store.Querier, p *domain.Pri
 	for rows.Next() {
 		var r ticketRefDTO
 		var vis int
-		if err := rows.Scan(&r.ID, &r.Number, &r.Subject, &r.Status, &vis); err != nil {
+		var key string
+		var seq int64
+		if err := rows.Scan(&r.ID, &r.Number, &r.Subject, &r.Status, &vis, &key, &seq); err != nil {
 			return nil, err
 		}
+		r.Ref = domain.TicketRef(key, seq)
 		if vis == 0 {
 			r.Subject = ""
 		}

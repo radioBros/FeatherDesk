@@ -3,7 +3,7 @@
 {{define "subject"}}{{if .SLABreached}}SLA dépassé{{else}}Alerte SLA{{end}}: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Bonjour {{.RecipientName}},
 
-L'objectif de {{if eq .SLAWhich "first_response"}}première réponse{{else}}résolution{{end}} du ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** {{if .SLABreached}}a été dépassé{{else}}arrive à échéance{{end}} à {{.SLADue}} (UTC).
+L'objectif de {{if eq .SLAWhich "first_response"}}première réponse{{else}}résolution{{end}} du ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** {{if .SLABreached}}a été dépassé{{else}}arrive à échéance{{end}} à {{.SLADue}} (UTC).
 
 - **Objet:** {{.Ticket.Subject}}
 - **Priorité:** {{.Ticket.Priority}}

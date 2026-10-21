@@ -14,9 +14,10 @@ import { api, unwrap } from '@/api/client'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { PRIORITIES, STATUSES } from './model'
 import type { components } from '@/api/schema'
+import ProjectSelect, { type ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
-const props = defineProps<{ macro?: S['Macro'] | null; shared?: boolean; staff?: S['StaffRef'][]; tags?: string[] }>()
+const props = defineProps<{ macro?: S['Macro'] | null; shared?: boolean; staff?: S['StaffRef'][]; tags?: string[]; projects?: ProjectOption[]; canGlobal?: boolean }>()
 const emit = defineEmits<{ saved: [S['Macro']]; cancel: [] }>()
 const { t } = useI18n()
 
@@ -31,6 +32,7 @@ const model = reactive({
   add_tags: [...(props.macro?.add_tags ?? [])],
   remove_tags: [...(props.macro?.remove_tags ?? [])],
   assignee: props.macro?.assignee ?? UNCHANGED,
+  project_id: (props.macro?.project_id ?? null) as string | null,
 })
 const { formRef, submit, fieldErrors, formError, submitting } = useForm()
 
@@ -59,6 +61,7 @@ const onSave = submit(async () => {
     add_tags: norm(model.add_tags),
     remove_tags: norm(model.remove_tags),
     assignee: model.assignee || null,
+    ...(props.projects?.length ? { project_id: model.project_id } : {}),
   }
   let saved: S['Macro']
   if (props.shared) {
@@ -83,6 +86,18 @@ const onSave = submit(async () => {
       :rules="[validations.required.any, validations.maxLength(120)]"
       :error-messages="fieldErrors.name"
       data-testid="macro-name"
+    />
+    <ProjectSelect
+      v-if="projects?.length"
+      v-model="model.project_id"
+      :projects="projects"
+      :nullable="canGlobal !== false"
+      :null-label="$t('projects.config.global')"
+      :label="$t('projects.config.project')"
+      :hint="$t('projects.config.scopeHint')"
+      :rules="canGlobal === false ? [validations.required.any] : []"
+      :error-messages="fieldErrors.project_id"
+      testid="macro-project"
     />
     <v-select
       v-model="model.reply_kind"

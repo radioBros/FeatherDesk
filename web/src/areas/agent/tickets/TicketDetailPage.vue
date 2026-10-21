@@ -11,7 +11,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { mdiArrowLeft, mdiCallMerge, mdiCallSplit, mdiDotsVertical, mdiPencil, mdiSourceBranch } from '@mdi/js'
+import { mdiArrowLeft, mdiCallMerge, mdiCallSplit, mdiDotsVertical, mdiFolderSwapOutline, mdiPencil, mdiSourceBranch } from '@mdi/js'
 import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
 import { useRealtimeStore } from '@/stores/realtime'
@@ -22,6 +22,9 @@ import StatusChip from '@/components/StatusChip.vue'
 import PriorityChip from '@/components/PriorityChip.vue'
 import TierChip from '@/components/TierChip.vue'
 import TicketNumber from '@/components/TicketNumber.vue'
+import ProjectChip from '@/components/ProjectChip.vue'
+import MoveProjectForm from './detail/MoveProjectForm.vue'
+import { useProjectsStore } from '@/stores/projects'
 import UserAvatar from '@/components/UserAvatar.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import ComposerForm from './detail/ComposerForm.vue'
@@ -50,6 +53,7 @@ const { t } = useI18n()
 const session = useSessionStore()
 const ui = useUiStore()
 const lookups = useLookupsStore()
+const projects = useProjectsStore()
 const rt = useRealtimeStore()
 const detail = useTicketDetail()
 const { ticket } = detail
@@ -59,16 +63,26 @@ const timelineKey = ref(0)
 const composer = ref<InstanceType<typeof ComposerForm> | null>(null)
 const escalateDir = ref<'escalate' | 'deescalate' | null>(null)
 const mergeOpen = ref(false)
+const moveOpen = ref(false)
 const splitMode = ref(false)
 const splitSelected = ref<string[]>([])
 const editing = ref<S['Message'] | null>(null)
 const splitChild = ref<S['Ticket'] | null>(null)
 
-const number = computed(() => Number(route.params.number))
+/** The route's key: a project ref (`/agent/tickets/WEB-12`) or the legacy global number. */
+const key = computed<string | number | null>(() => {
+  const r = route.params.ref
+  if (typeof r === 'string' && r) return r
+  const n = Number(route.params.number)
+  return n ? n : null
+})
 const can = (a: string) => session.can(a, ticket.value)
+/** Moving needs the server's `transfer` action and another active project to move to. */
+const canMove = computed(() => can('transfer') && projects.active.some((p) => p.id !== ticket.value?.project_id))
 
+void projects.load()
 void lookups.ensure('teams', 'categories', 'customFields', 'tags', 'staff')
-watch(number, (n) => n && void detail.load(n), { immediate: true })
+watch(key, (k) => k && void detail.load(k), { immediate: true })
 
 function leave(message = t('agent.ticket.lostAccess')) {
   ui.notify(message, 'warning')
@@ -235,8 +249,18 @@ async function onLinkRemove(l: S['TicketLink']) {
 
 function onMerged(target: S['TicketSummary']) {
   mergeOpen.value = false
-  ui.notify(t('agent.ticket.merge.done', { target: target.number }), 'success')
-  void router.push(`/agent/tickets/${target.number}`)
+  ui.notify(t('agent.ticket.merge.done', { target: target.ref ?? target.number }), 'success')
+  void router.push(`/agent/tickets/${target.ref ?? target.number}`)
+}
+
+function onMoved(res: S['TicketUpdateResult'], etag: string | null) {
+  moveOpen.value = false
+  if (!res.visible) return leave(t('projects.ticket.move.handedOver'))
+  detail.apply(res, etag)
+  timelineKey.value++
+  ui.notify(t('projects.ticket.move.done', { ref: res.ticket.ref }), 'success')
+  // The old ref no longer resolves: continue on the new one.
+  void router.replace(`/agent/tickets/${res.ticket.ref}`)
 }
 
 function onSplit(child: S['Ticket']) {
@@ -270,7 +294,8 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
     <template v-else-if="ticket">
       <div class="d-flex flex-wrap align-center ga-2 mb-3" data-testid="ticket-header">
         <v-btn :icon="mdiArrowLeft" variant="text" to="/agent/tickets" :aria-label="$t('app.back')" />
-        <TicketNumber :number="ticket.number" />
+        <TicketNumber :number="ticket.number" :reftext="ticket.ref" />
+        <ProjectChip :project="ticket.project" />
         <h1 class="text-h6 flex-grow-1 text-truncate" data-testid="ticket-subject">{{ ticket.subject }}</h1>
         <v-chip v-if="isParent" size="small" label :prepend-icon="mdiSourceBranch" data-testid="badge-parent">{{ $t('agent.ticket.links.parentBadge') }}</v-chip>
         <v-chip v-if="isChild" size="small" label :prepend-icon="mdiSourceBranch" data-testid="badge-child">{{ $t('agent.ticket.links.childBadge') }}</v-chip>
@@ -283,11 +308,12 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
             <template #activator="{ props: p }"><span v-bind="p"><UserAvatar :name="u.name" :size="28" /></span></template>
           </v-tooltip>
         </div>
-        <v-menu v-if="can('merge') || can('split')">
+        <v-menu v-if="can('merge') || can('split') || canMove">
           <template #activator="{ props: p }">
             <v-btn v-bind="p" :icon="mdiDotsVertical" variant="text" :aria-label="$t('agent.common.actions')" data-testid="ticket-more" />
           </template>
           <v-list density="compact">
+ <v-list-item v-if="canMove" :prepend-icon="mdiFolderSwapOutline" :title="$t('projects.ticket.move.title')" data-testid="move-open" @click="moveOpen = true" />
             <v-list-item v-if="can('merge')" :prepend-icon="mdiCallMerge" :title="$t('agent.ticket.merge.title')" data-testid="merge-open" @click="mergeOpen = true" />
             <v-list-item v-if="can('split')" :prepend-icon="mdiCallSplit" :title="$t('agent.ticket.split.title')" data-testid="split-open" @click="splitMode = true; tab = 'thread'" />
           </v-list>
@@ -306,9 +332,9 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
               <SplitForm :ticket-id="ticket.id" :selected="splitSelected" @split="onSplit" @cancel="splitMode = false; splitSelected = []" />
             </v-card>
             <v-alert v-if="splitChild" type="success" variant="tonal" density="compact" class="mb-3" closable @click:close="splitChild = null">
-              {{ $t('agent.ticket.split.done', { n: splitChild.number }) }}
+              {{ $t('agent.ticket.split.done', { n: splitChild.ref ?? splitChild.number }) }}
               <template #append>
-                <v-btn size="small" variant="text" :to="`/agent/tickets/${splitChild.number}`" data-testid="split-open-child">{{ $t('agent.common.open') }}</v-btn>
+                <v-btn size="small" variant="text" :to="`/agent/tickets/${splitChild.ref ?? splitChild.number}`" data-testid="split-open-child">{{ $t('agent.common.open') }}</v-btn>
               </template>
             </v-alert>
             <MessageThread v-model:selected="splitSelected" :messages="messages" area="agent" :selectable="splitMode">
@@ -355,6 +381,11 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
       <v-dialog v-model="mergeOpen" max-width="560">
         <v-card :title="$t('agent.ticket.merge.title')">
           <v-card-text><MergeForm v-if="mergeOpen" :ticket="ticket" @merged="onMerged" @cancel="mergeOpen = false" /></v-card-text>
+        </v-card>
+      </v-dialog>
+      <v-dialog v-model="moveOpen" max-width="520">
+        <v-card :title="$t('projects.ticket.move.title')">
+          <v-card-text><MoveProjectForm v-if="moveOpen" :ticket="ticket" :etag="detail.etag.value" @moved="onMoved" @cancel="moveOpen = false" /></v-card-text>
         </v-card>
       </v-dialog>
       <v-dialog :model-value="!!editing" max-width="640" @update:model-value="(v: boolean) => !v && (editing = null)">

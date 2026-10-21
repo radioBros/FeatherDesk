@@ -18,6 +18,8 @@ export interface Seed {
   id: string
   ticketId: string
   ticketNumber: number
+  ticketRef: string
+  projectKey: string
   customerId: string
   organizationId: string
   kbCategorySlug: string
@@ -46,6 +48,8 @@ export const PAGES: Record<string, PageSpec | { skip: string }> = {
   'not-found': { who: 'anon', path: () => '/no-such-page', ready: '.v-container' },
   // Portal, signed in (the customer is an organization manager, so every page is reachable)
   'portal-tickets': { who: 'customer', path: () => '/tickets' },
+  'portal-project': { who: 'anon', path: (s) => `/p/${s.projectKey}`, ready: '[data-testid="project-entry"], [data-testid="project-not-found"]' },
+  'portal-ticket-ref': { who: 'customer', path: (s) => `/tickets/${s.ticketRef}`, ready: '[data-testid="message-thread"]' },
   'portal-ticket-new': { who: 'customer', path: () => '/tickets/new' },
   'portal-ticket': { who: 'customer', path: (s) => `/tickets/${s.ticketId}`, ready: '[data-testid="message-thread"]' },
   'portal-profile': { who: 'customer', path: () => '/profile' },
@@ -63,6 +67,7 @@ export const PAGES: Record<string, PageSpec | { skip: string }> = {
   // Agent panel, as the admin (every page is reachable)
   'agent-tickets': { who: 'admin', path: () => '/agent/tickets' },
   'agent-ticket-new': { who: 'admin', path: () => '/agent/tickets/new' },
+  'agent-ticket-ref': { who: 'admin', path: (s) => `/agent/tickets/${s.ticketRef}`, ready: '[data-testid="message-thread"]' },
   'agent-ticket': { who: 'admin', path: (s) => `/agent/tickets/${s.ticketNumber}`, ready: '[data-testid="message-thread"]' },
   'agent-customers': { who: 'admin', path: () => '/agent/customers' },
   'agent-customer': { who: 'admin', path: (s) => `/agent/customers/${s.customerId}` },
@@ -75,6 +80,7 @@ export const PAGES: Record<string, PageSpec | { skip: string }> = {
   'agent-kb-article': { who: 'admin', path: (s) => `/agent/kb/articles/${s.kbArticleId}`, ready: '[data-testid="kb-article-form"]' },
   'agent-reports': { who: 'admin', path: () => '/agent/reports' },
   'admin-staff': { who: 'admin', path: () => '/agent/admin/staff' },
+  'admin-projects': { who: 'admin', path: () => '/agent/admin/projects' },
   'admin-teams': { who: 'admin', path: () => '/agent/admin/teams' },
   'admin-categories': { who: 'admin', path: () => '/agent/admin/categories' },
   'admin-tokens': { who: 'admin', path: () => '/agent/admin/tokens' },
@@ -180,6 +186,8 @@ export async function seedWorld(browser: Browser, page: Page, device: BrowserCon
       id,
       ticketId: ticket.id,
       ticketNumber: ticket.number,
+      ticketRef: ticket.ref,
+      projectKey: ticket.project.key,
       customerId,
       organizationId: org.id,
       kbCategorySlug: cat.slug,

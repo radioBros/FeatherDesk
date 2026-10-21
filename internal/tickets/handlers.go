@@ -53,7 +53,15 @@ func (m *Module) agentCounts(w http.ResponseWriter, r *http.Request) error {
 	if err := readScope(r); err != nil {
 		return err
 	}
-	c, err := m.svc.Counts(r.Context(), principal(r))
+	project := ""
+	if v := r.URL.Query().Get("project"); v != "" {
+		pid, err := m.svc.projectParam(r.Context(), v)
+		if err != nil {
+			return err
+		}
+		project = pid
+	}
+	c, err := m.svc.CountsFor(r.Context(), principal(r), project)
 	if err != nil {
 		return err
 	}
@@ -70,6 +78,19 @@ func (m *Module) agentByNumber(w http.ResponseWriter, r *http.Request) error {
 		return problems.NotFound()
 	}
 	d, err := m.svc.StaffTicketByNumber(r.Context(), principal(r), n)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("ETag", d.etag)
+	writeJSON(w, http.StatusOK, d)
+	return nil
+}
+
+func (m *Module) agentByRef(w http.ResponseWriter, r *http.Request) error {
+	if err := readScope(r); err != nil {
+		return err
+	}
+	d, err := m.svc.StaffTicketByRef(r.Context(), principal(r), urlParam(r, "ref"))
 	if err != nil {
 		return err
 	}
@@ -324,6 +345,18 @@ func (m *Module) portalByNumber(w http.ResponseWriter, r *http.Request) error {
 		return problems.NotFound()
 	}
 	d, err := m.svc.CustomerTicketByNumber(r.Context(), principal(r), n)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, d)
+	return nil
+}
+
+func (m *Module) portalByRef(w http.ResponseWriter, r *http.Request) error {
+	if err := readScope(r); err != nil {
+		return err
+	}
+	d, err := m.svc.CustomerTicketByRef(r.Context(), principal(r), urlParam(r, "ref"))
 	if err != nil {
 		return err
 	}

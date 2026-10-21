@@ -1,12 +1,17 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
 /** /agent/organizations (FE-026): search, cursor list, create dialog. */
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { mdiDomain, mdiMagnify, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { useI18n } from 'vue-i18n'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import OrganizationForm from './OrganizationForm.vue'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { api, unwrap } from '@/api/client'
 import { useCursorList } from '../shared/useCursorList'
 import type { components } from '@/api/schema'
@@ -29,6 +34,16 @@ function onSaved(o: S['Organization']) {
   dialog.value = false
   void router.push(`/agent/organizations/${o.id}`)
 }
+const { t } = useI18n()
+const cp = useConfigProjects()
+const portalProjects = computed(() => cp.all.value.filter((p) => p.portal_visible && p.active))
+const cols = useTableColumns('agent-organizations', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'domains', label: t('agent.organizations.domains') },
+  { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
+  { key: 'members', label: t('agent.organizations.members'), lowPriority: true },
+  { key: 'status', label: t('agent.common.status'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -54,26 +69,30 @@ function onSaved(o: S['Organization']) {
     <v-card border flat>
       <v-progress-linear v-if="list.loading.value" indeterminate />
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.organizations.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="org-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="org-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.organizations.domains') }}</th>
-            <th>{{ $t('agent.organizations.members') }}</th>
-            <th>{{ $t('agent.common.status') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('domains')">{{ $t('agent.organizations.domains') }}</th>
+            <th v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
+            <th v-if="cols.show('members')">{{ $t('agent.organizations.members') }}</th>
+            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="o in list.items.value" :key="o.id" class="st-row" data-testid="org-row" @click="router.push(`/agent/organizations/${o.id}`)">
-            <td>
+            <td v-if="cols.show('name')">
               <div class="d-flex align-center ga-2">
                 <SectionIcon section="customers" :icon="mdiDomain" :size="28" />
                 <router-link :to="`/agent/organizations/${o.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ o.name }}</router-link>
               </div>
             </td>
-            <td>{{ (o.email_domains ?? []).join(', ') || '—' }}</td>
-            <td>{{ o.member_count ?? '—' }}</td>
-            <td>
+            <td v-if="cols.show('domains')">{{ (o.email_domains ?? []).join(', ') || '—' }}</td>
+            <td v-if="cols.show('projects')"><ProjectCell :ids="o.project_ids ?? []" /></td>
+            <td v-if="cols.show('members')">{{ o.member_count ?? '—' }}</td>
+            <td v-if="cols.show('status')">
               <v-chip size="small" label :color="o.status === 'active' ? 'success' : undefined">
                 {{ o.status === 'active' ? $t('agent.common.active') : $t('agent.organizations.archived') }}
               </v-chip>
@@ -81,6 +100,7 @@ function onSaved(o: S['Organization']) {
           </tr>
         </tbody>
       </v-table>
+      </template>
       <div v-if="list.next.value" class="pa-2 text-center">
         <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
       </div>
@@ -88,7 +108,7 @@ function onSaved(o: S['Organization']) {
     <v-dialog v-model="dialog" max-width="560">
       <v-card :title="$t('agent.organizations.new')">
         <v-card-text>
-          <OrganizationForm v-if="dialog" @saved="onSaved" @cancel="dialog = false" />
+          <OrganizationForm v-if="dialog" :projects="portalProjects" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

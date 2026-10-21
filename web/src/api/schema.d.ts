@@ -34,7 +34,8 @@ export interface paths {
         };
         /**
          * Automation rules
-         * @description Supervisor or admin. Every trigger and time-based rule, in execution order (`position`).
+         * @description Supervisor or admin: every trigger and time-based rule, in execution order (`position`). A project admin gets the rules of
+         *     their projects (D-20). `project` narrows to one project's rules.
          *
          *     Phase: V1.
          */
@@ -42,7 +43,8 @@ export interface paths {
         put?: never;
         /**
          * Create an automation rule
-         * @description Supervisor or admin. The new rule is appended at the end of the order. Conditions `hours_since_update` and
+         * @description Supervisor or admin; a project admin may create rules with the `project_id` of one of their projects (D-20, a project rule
+         *     only runs on tickets of that project). The new rule is appended at the end of the order. Conditions `hours_since_update` and
          *     `hours_since_status` are only valid for `event: time`, and a `time` rule needs at least one of them.
          *
          *     Phase: V1.
@@ -63,7 +65,7 @@ export interface paths {
         };
         /**
          * One automation rule
-         * @description Supervisor or admin. Phase: V1.
+         * @description Supervisor or admin, or a project admin for a rule of their projects (others: 404). Phase: V1.
          */
         get: operations["getAutomationRule"];
         put?: never;
@@ -116,7 +118,8 @@ export interface paths {
         put?: never;
         /**
          * Reorder automation rules
-         * @description Supervisor or admin. `ids` must list every rule exactly once; the rules run in that order.
+         * @description Supervisor or admin (project admins: 403, the order is shared by every project). `ids` must list every rule exactly once;
+         *     the rules run in that order.
          *
          *     Phase: V1.
          */
@@ -240,13 +243,13 @@ export interface paths {
         };
         /**
          * Canned responses
-         * @description Phase: V1.
+         * @description Supervisors and admins get every canned response; project admins those of their projects (D-20). Phase: V1.
          */
         get: operations["listCanned"];
         put?: never;
         /**
          * Create a canned response
-         * @description Phase: V1.
+         * @description Without `team_id` and `project_id`: supervisors and admins. With `project_id` only: that project's admins too. With `team_id`: members of the team (D-20: agents must also work in the project). Phase: V1.
          */
         post: operations["createCanned"];
         delete?: never;
@@ -679,13 +682,13 @@ export interface paths {
         };
         /**
          * Shared macros
-         * @description Supervisor or admin. Phase: V1.
+         * @description Supervisors and admins get every shared macro; project admins the shared macros of their projects (D-20). Phase: V1.
          */
         get: operations["listSharedMacros"];
         put?: never;
         /**
          * Create a shared macro
-         * @description Supervisor or admin. Shared macros are offered to every agent. Phase: V1.
+         * @description Supervisor or admin, or a project admin for a macro with the `project_id` of one of their projects (D-20). Shared macros are offered to every agent (of that project). Phase: V1.
          */
         post: operations["createSharedMacro"];
         delete?: never;
@@ -878,6 +881,170 @@ export interface paths {
          * @description Queues an export of any user, downloadable by admins. `include_internal` adds internal notes and staff-only fields on the user's tickets. The requesting admin gets the ready email. 409 while another export of this user is pending. Phase: V1.
          */
         post: operations["exportUserData"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Projects
+         * @description D-20. Supervisors and admins get every project; a project admin gets the projects they administer. Agents
+         *     without a `project_admin` membership get 403.
+         *
+         *     Phase: V1.
+         */
+        get: operations["listProjects"];
+        put?: never;
+        /**
+         * Create a project
+         * @description Supervisors and admins. The key must be unique (422 `unique`). The project starts with no members (supervisors and
+         *     admins see it anyway) and its ticket sequence at 1.
+         *
+         *     Phase: V1.
+         */
+        post: operations["createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project
+         * @description D-20. Supervisors, admins and the project's admins; anyone else gets 404. Phase: V1.
+         */
+        get: operations["getProject"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete an unused project
+         * @description Supervisors and admins. 409 while tickets, categories, inbound mailboxes or KB categories belong to the project, and
+         *     for the last active project; deactivate it instead. Rules, macros, canned responses, SLA overrides, memberships and
+         *     team/organization mappings of the project are deleted with it.
+         *
+         *     Phase: V1.
+         */
+        delete: operations["deleteProject"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a project
+         * @description D-20. Project admins edit name, description, colour, icon, default team and the portal settings; `key`, `active` and `sort` need a supervisor or admin (403). Phase: V1.
+         */
+        patch: operations["patchProject"];
+        trace?: never;
+    };
+    "/admin/projects/{id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload the project's portal logo
+         * @description PNG/JPEG/SVG ≤ 1 MB, processed like the `logo_light` brand asset. Shown on `/p/{key}` instead of the global logo.
+         *     Supervisors, admins and the project's admins.
+         *
+         *     Phase: V1.
+         */
+        post: operations["uploadProjectLogo"];
+        /**
+         * Remove the project's portal logo
+         * @description The portal falls back to the global logo. Phase: V1.
+         */
+        delete: operations["deleteProjectLogo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project members
+         * @description Supervisors, admins and the project's admins. Phase: V1.
+         */
+        get: operations["listProjectMembers"];
+        /**
+         * Replace the project's members
+         * @description Supervisors and admins. Agents see only tickets of the projects they are members of (I-11); staff removed here lose
+         *     access at once and their tickets in the project are unassigned (M-4).
+         *
+         *     Phase: V1.
+         */
+        put: operations["putProjectMembers"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{id}/sla-policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Effective SLA policies of the project
+         * @description One entry per priority: the project's override, or the global default (`inherited: true`). Supervisors, admins and the project's admins. Phase: V1.
+         */
+        get: operations["getProjectSlaPolicies"];
+        /**
+         * Replace the project's SLA overrides
+         * @description Supervisors, admins and the project's admins. New tickets (and priority changes, resumes) use the override, else the global default. Phase: V1.
+         */
+        put: operations["putProjectSlaPolicies"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/projects/{id}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Teams serving the project
+         * @description Supervisors, admins and the project's admins. Phase: V1.
+         */
+        get: operations["getProjectTeams"];
+        /**
+         * Replace the teams serving the project
+         * @description Supervisors, admins and the project's admins. Tickets of the project can only be routed, transferred or assigned to teams serving it. Phase: V1.
+         */
+        put: operations["putProjectTeams"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1687,7 +1854,7 @@ export interface paths {
         };
         /**
          * My macros and the shared ones
-         * @description The caller's personal macros plus every shared macro, sorted by name. Phase: V1.
+         * @description The caller's personal macros plus every shared macro, sorted by name, limited to unscoped macros and those of the projects the caller works in (D-20). Phase: V1.
          */
         get: operations["listMacros"];
         put?: never;
@@ -1772,6 +1939,30 @@ export interface paths {
          * @description Phase: CORE.
          */
         patch: operations["updateOrganization"];
+        trace?: never;
+    };
+    "/agent/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My projects
+         * @description The projects the caller works in (D-20): every project for supervisors and admins, the memberships for agents
+         *     (I-11). Inactive projects are included (`active: false`) so chips of old tickets render. Feeds the project switcher,
+         *     which is hidden while only one active project exists.
+         *
+         *     Phase: V1.
+         */
+        get: operations["listAgentProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/agent/reports/summary": {
@@ -2178,6 +2369,26 @@ export interface paths {
          * @description Phase: CORE.
          */
         get: operations["getAgentTicketByNumber"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent/tickets/by-ref/{ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ticket by reference
+         * @description The `getAgentTicket` view addressed by its `KEY-123` reference (D-20), like `getAgentTicketByNumber` (no `ETag`). 404 outside the caller's visibility (I-4, I-11). Phase: V1.
+         */
+        get: operations["getAgentTicketByRef"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3612,6 +3823,29 @@ export interface paths {
         patch: operations["updateOrgMember"];
         trace?: never;
     };
+    "/portal/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Projects I can open tickets in
+         * @description Active, portal-visible projects, limited to the organization's projects when it has a list (D-20). The new-ticket
+         *     form shows a project picker when more than one is returned.
+         *
+         *     Phase: V1.
+         */
+        get: operations["listPortalProjects"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/portal/tickets": {
         parameters: {
             query?: never;
@@ -3776,6 +4010,26 @@ export interface paths {
          * @description The `getPortalTicket` view (public messages only, I-2) addressed by the human number. Phase: V1.
          */
         get: operations["getPortalTicketByNumber"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/portal/tickets/by-ref/{ref}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My ticket by reference
+         * @description The `getPortalTicket` view (public messages only, I-2) addressed by its `KEY-123` reference (D-20). Phase: V1.
+         */
+        get: operations["getPortalTicketByRef"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4277,6 +4531,13 @@ export interface components {
             kind: "public" | "internal";
             set_status?: components["schemas"]["TicketStatus"];
         };
+        /** @description A project the caller works in (the agent panel's project switcher). */
+        AgentProject: components["schemas"]["ProjectBase"] & {
+            /** @description The caller may manage this project's configuration (supervisor, admin or project_admin) */
+            can_admin: boolean;
+            /** @description The caller's membership role; null for supervisors and admins without a membership row (they see every project) */
+            my_role: components["schemas"]["ProjectRole"] | null;
+        };
         /** @description Provide `requester_id`, or `requester_email` (+ `requester_name`) to find-or-create the customer. */
         AgentTicketCreate: {
             assignee_id?: components["schemas"]["Id"] | null;
@@ -4285,6 +4546,8 @@ export interface components {
             category_id?: components["schemas"]["Id"] | null;
             custom_fields?: components["schemas"]["CustomFieldValues"];
             priority?: components["schemas"]["Priority"];
+            /** @description Project id or key (D-20). Omitted: the category's project, else (customers) the only project open to them, else the default project. Customers need a portal-visible project their organization may use; agents need a membership (422 `not_allowed`). */
+            project_id?: string;
             /** Format: email */
             requester_email?: string;
             requester_id?: components["schemas"]["Id"] | null;
@@ -4380,6 +4643,8 @@ export interface components {
             message_max_length?: number;
             /** @description `support.portal_enabled`. When `false` the SPA hides every customer entry point and the `customer` sign-in methods are all `false`. */
             portal_enabled: boolean;
+            /** @description With `?project=KEY`: the portal view of that active, portal-visible project for the `/p/{key}` entry (title, intro, logo and colour overrides); null when unknown or hidden */
+            project?: components["schemas"]["PortalProject"] | null;
             setup_pending: boolean;
             staff: {
                 local: boolean;
@@ -4441,7 +4706,7 @@ export interface components {
             value?: string | number | boolean | string[];
         };
         /** @enum {string} */
-        AutomationConditionField: "subject" | "body" | "channel" | "priority" | "status" | "tier" | "category_id" | "team_id" | "organization_id" | "requester_domain" | "tag" | "custom_field" | "business_hours" | "hours_since_update" | "hours_since_status";
+        AutomationConditionField: "subject" | "body" | "channel" | "priority" | "status" | "tier" | "category_id" | "team_id" | "project" | "organization_id" | "requester_domain" | "tag" | "custom_field" | "business_hours" | "hours_since_update" | "hours_since_status";
         AutomationDryRun: {
             /** @description What each action would do; empty when the rule does not match */
             actions: components["schemas"]["AutomationActionOutcome"][];
@@ -4487,6 +4752,8 @@ export interface components {
             match: components["schemas"]["AutomationMatch"];
             name: string;
             position: number;
+            /** @description D-20: the rule only runs for tickets of this project; null = every project (supervisors and admins only) */
+            project_id: components["schemas"]["Id"] | null;
             /** @description When the rule applied, later rules are not evaluated for this event */
             stop_processing: boolean;
             updated_at: components["schemas"]["Timestamp"];
@@ -4498,6 +4765,8 @@ export interface components {
             event: components["schemas"]["AutomationEvent"];
             match?: components["schemas"]["AutomationMatch"];
             name: string;
+            /** @description D-20: the rule only runs for tickets of this project; null = every project (supervisors and admins only) */
+            project_id?: components["schemas"]["Id"] | null;
             stop_processing?: boolean;
         };
         AutomationRulePatch: {
@@ -4507,6 +4776,8 @@ export interface components {
             event?: components["schemas"]["AutomationEvent"];
             match?: components["schemas"]["AutomationMatch"];
             name?: string;
+            /** @description D-20: the rule only runs for tickets of this project; null = every project (supervisors and admins only) */
+            project_id?: components["schemas"]["Id"] | null;
             stop_processing?: boolean;
         };
         Availability: {
@@ -4620,6 +4891,8 @@ export interface components {
         CalendarMode: "24x7" | "team";
         CannedCreate: {
             body_md: string;
+            /** @description D-20: offered only on tickets of this project; null = every project */
+            project_id?: components["schemas"]["Id"] | null;
             team_id?: components["schemas"]["Id"] | null;
             title: string;
         };
@@ -4634,6 +4907,8 @@ export interface components {
             created_at?: components["schemas"]["Timestamp"];
             created_by?: components["schemas"]["UserRef"] | null;
             id: components["schemas"]["Id"];
+            /** @description D-20: offered only on tickets of this project; null = every project */
+            project_id?: components["schemas"]["Id"] | null;
             team_id?: components["schemas"]["Id"] | null;
             title: string;
             updated_at?: components["schemas"]["Timestamp"];
@@ -4644,6 +4919,7 @@ export interface components {
             default_team_id?: components["schemas"]["Id"] | null;
             id: components["schemas"]["Id"];
             name: string;
+            project_id: components["schemas"]["Id"];
             sort: number;
         };
         CategoryCreate: {
@@ -4651,6 +4927,8 @@ export interface components {
             default_priority?: components["schemas"]["Priority"] | null;
             default_team_id?: components["schemas"]["Id"] | null;
             name: string;
+            /** @description Project id or key (D-20). Omitted on create: the default project. A category with tickets cannot move (422 `immutable`). The default team must serve the project (422 `wrong_project`). */
+            project_id?: string;
             sort?: number;
         };
         /** @enum {string} */
@@ -4716,6 +4994,9 @@ export interface components {
             number: number;
             organization_id?: components["schemas"]["Id"] | null;
             priority: components["schemas"]["Priority"];
+            project: components["schemas"]["ProjectRef"];
+            project_id: components["schemas"]["Id"];
+            ref: components["schemas"]["TicketRefCode"];
             requester: components["schemas"]["UserRef"];
             resolved_at?: components["schemas"]["Timestamp"] | null;
             status: components["schemas"]["CustomerStatus"];
@@ -4738,6 +5019,9 @@ export interface components {
             number: number;
             organization_id?: components["schemas"]["Id"] | null;
             priority: components["schemas"]["Priority"];
+            project: components["schemas"]["ProjectRef"];
+            project_id: components["schemas"]["Id"];
+            ref: components["schemas"]["TicketRefCode"];
             requester: components["schemas"]["UserRef"];
             resolved_at?: components["schemas"]["Timestamp"] | null;
             status: components["schemas"]["CustomerStatus"];
@@ -4751,6 +5035,8 @@ export interface components {
             key: string;
             label: components["schemas"]["LocalizedText"];
             options?: components["schemas"]["CustomFieldOption"][];
+            /** @description D-20: null = applies to every project */
+            project_ids?: components["schemas"]["Id"][] | null;
             required?: boolean;
             sort?: number;
             type: components["schemas"]["FieldType"];
@@ -4767,6 +5053,8 @@ export interface components {
             key: string;
             label: components["schemas"]["LocalizedText"];
             options?: components["schemas"]["CustomFieldOption"][];
+            /** @description D-20: null = applies to every project */
+            project_ids?: components["schemas"]["Id"][] | null;
             required: boolean;
             sort: number;
             type: components["schemas"]["FieldType"];
@@ -4783,6 +5071,8 @@ export interface components {
             customer_visible?: boolean;
             label?: components["schemas"]["LocalizedText"];
             options?: components["schemas"]["CustomFieldOption"][];
+            /** @description D-20: null = applies to every project */
+            project_ids?: components["schemas"]["Id"][] | null;
             required?: boolean;
             sort?: number;
         };
@@ -4881,7 +5171,7 @@ export interface components {
          * @description Event types a webhook can subscribe to. The ticket timeline (`Event.type`) uses `TimelineEventType`, a superset.
          * @enum {string}
          */
-        EventType: "ticket.created" | "ticket.status_changed" | "ticket.priority_changed" | "ticket.assigned" | "ticket.team_changed" | "ticket.escalated" | "ticket.deescalated" | "ticket.category_changed" | "ticket.tags_changed" | "ticket.fields_changed" | "message.created" | "note.created" | "sla.warning" | "sla.breached" | "ticket.csat" | "ticket.followup_created" | "ticket.merged" | "ticket.split" | "ticket.linked" | "ticket.unlinked" | "ticket.children_resolved";
+        EventType: "ticket.created" | "ticket.status_changed" | "ticket.priority_changed" | "ticket.assigned" | "ticket.team_changed" | "ticket.escalated" | "ticket.deescalated" | "ticket.category_changed" | "ticket.tags_changed" | "ticket.fields_changed" | "message.created" | "note.created" | "sla.warning" | "sla.breached" | "ticket.csat" | "ticket.followup_created" | "ticket.merged" | "ticket.split" | "ticket.linked" | "ticket.unlinked" | "ticket.children_resolved" | "ticket.project_changed";
         FieldError: {
             code: components["schemas"]["FieldErrorCode"];
             /** @description JSON path of the field, e.g. `subject` or `custom_fields.order_id` */
@@ -4899,7 +5189,7 @@ export interface components {
          *     the server can emit.
          * @enum {string}
          */
-        FieldErrorCode: "admin_only" | "boolean" | "color" | "contrast" | "customer" | "date" | "date_time" | "default_missing" | "domain" | "email" | "enum" | "file_type" | "filter" | "immutable" | "inactive" | "insecure_scheme" | "invalid" | "invalid_image" | "invalid_json" | "invalid_svg" | "invalid_url" | "kb_translation_required" | "kb_visibility_wider" | "length" | "locale" | "locked_by_env" | "max_depth" | "max_items" | "max_length" | "mention_not_visible" | "min_properties" | "not_allowed" | "not_applicable" | "not_customer" | "not_found" | "not_optional" | "not_owner" | "number" | "option" | "order" | "org_required" | "other_org" | "overlap" | "password_too_common" | "password_too_long" | "password_too_short" | "past" | "pattern" | "private_address" | "range" | "read_only" | "required" | "requires_visible" | "self" | "slug" | "staff" | "svg_not_allowed" | "team" | "tier" | "time" | "timezone" | "too_many_tokens" | "type" | "unique" | "unknown" | "unknown_team" | "unresolvable" | "unsupported_type" | "url" | "uuid" | "webmail";
+        FieldErrorCode: "admin_only" | "boolean" | "color" | "contrast" | "customer" | "date" | "date_time" | "default_missing" | "domain" | "email" | "enum" | "file_type" | "filter" | "immutable" | "inactive" | "insecure_scheme" | "invalid" | "invalid_image" | "invalid_json" | "invalid_svg" | "invalid_url" | "kb_translation_required" | "kb_visibility_wider" | "length" | "locale" | "locked_by_env" | "max_depth" | "max_items" | "max_length" | "mention_not_visible" | "min_properties" | "not_allowed" | "not_applicable" | "not_customer" | "not_found" | "not_optional" | "not_owner" | "number" | "option" | "order" | "org_required" | "other_org" | "overlap" | "password_too_common" | "password_too_long" | "password_too_short" | "past" | "pattern" | "private_address" | "range" | "read_only" | "required" | "requires_visible" | "self" | "slug" | "staff" | "svg_not_allowed" | "team" | "tier" | "time" | "timezone" | "too_many_tokens" | "type" | "unique" | "unknown" | "unknown_team" | "unresolvable" | "unsupported_type" | "url" | "uuid" | "webmail" | "wrong_project";
         /** @enum {string} */
         FieldType: "text" | "textarea" | "number" | "date" | "select" | "multiselect" | "checkbox";
         FileUpload: {
@@ -4939,6 +5229,7 @@ export interface components {
             last_ok_at?: components["schemas"]["Timestamp"] | null;
             locked_by_env?: string[];
             name: string;
+            project_id: components["schemas"]["Id"];
             team_id?: components["schemas"]["Id"] | null;
             /** @description Returned once on creation for webhook mailboxes */
             readonly webhook_url?: string | null;
@@ -4951,6 +5242,8 @@ export interface components {
             /** @enum {string} */
             kind: "imap" | "webhook";
             name: string;
+            /** @description Project of the tickets this mailbox opens (id or key, D-20). Omitted on create: the default project. The team must serve it (422 `wrong_project`). */
+            project_id?: string;
             team_id?: components["schemas"]["Id"] | null;
             webhook_hmac_secret?: string;
         };
@@ -5077,6 +5370,8 @@ export interface components {
             article_count?: number;
             id: components["schemas"]["Id"];
             parent_id?: components["schemas"]["Id"] | null;
+            /** @description Owning project (D-20); null = global */
+            project_id?: components["schemas"]["Id"] | null;
             slug: string;
             sort?: number;
             title: components["schemas"]["LocalizedText"];
@@ -5084,6 +5379,8 @@ export interface components {
         };
         KbCategoryCreate: {
             parent_id?: components["schemas"]["Id"] | null;
+            /** @description Project id or key; null or omitted = global (supervisors and admins only). Project admins manage the KB categories of their projects. */
+            project_id?: string | null;
             slug: string;
             sort?: number;
             title: components["schemas"]["LocalizedText"];
@@ -5130,10 +5427,12 @@ export interface components {
             name: string;
             owner_id: components["schemas"]["Id"] | null;
             priority: components["schemas"]["Priority"] | null;
+            /** @description D-20: the macro applies only to tickets of this project (422 `wrong_project` elsewhere); null = every project. Shared project macros are managed by the project's admins. */
+            project_id: components["schemas"]["Id"] | null;
             remove_tags: string[];
             /** @enum {string} */
             reply_kind: "public" | "internal";
-            /** @description Placeholders as canned responses: `{{customer.name}}`, `{{ticket.number}}`, `{{agent.name}}` */
+            /** @description Placeholders as canned responses: `{{customer.name}}`, `{{ticket.number}}`, `{{ticket.ref}}`, `{{agent.name}}` */
             reply_md: string;
             shared: boolean;
             status: components["schemas"]["TicketStatus"] | null;
@@ -5144,6 +5443,8 @@ export interface components {
             assignee?: string | null;
             name: string;
             priority?: components["schemas"]["Priority"] | null;
+            /** @description D-20: the macro applies only to tickets of this project (422 `wrong_project` elsewhere); null = every project. Shared project macros are managed by the project's admins. */
+            project_id?: components["schemas"]["Id"] | null;
             remove_tags?: string[];
             /** @enum {string} */
             reply_kind?: "public" | "internal";
@@ -5179,6 +5480,8 @@ export interface components {
         };
         MePatch: {
             current_password?: string;
+            /** @description Staff only: persist the project switcher (a project the caller works in, or null for all projects) */
+            current_project_id?: components["schemas"]["Id"] | null;
             locale?: components["schemas"]["Locale"];
             name?: string;
             new_password?: string;
@@ -5352,6 +5655,8 @@ export interface components {
             member_count?: number;
             name: string;
             notes?: string;
+            /** @description Projects the organization may open tickets in (D-20). Empty = every portal-visible project. Its members still see all their own tickets. */
+            project_ids?: components["schemas"]["Id"][];
             /** @enum {string} */
             status: "active" | "archived";
             updated_at: components["schemas"]["Timestamp"];
@@ -5360,6 +5665,8 @@ export interface components {
             email_domains?: string[];
             name: string;
             notes?: string;
+            /** @description Projects the organization may open tickets in (D-20). Empty = every portal-visible project. Its members still see all their own tickets. */
+            project_ids?: components["schemas"]["Id"][];
         };
         OrganizationPage: {
             items: components["schemas"]["Organization"][];
@@ -5370,6 +5677,8 @@ export interface components {
             email_domains?: string[];
             name?: string;
             notes?: string;
+            /** @description Projects the organization may open tickets in (D-20). Empty = every portal-visible project. Its members still see all their own tickets. */
+            project_ids?: components["schemas"]["Id"][];
             /** @enum {string} */
             status?: "active" | "archived";
         };
@@ -5388,12 +5697,27 @@ export interface components {
             password: string;
             token: string;
         };
+        /** @description What customers (and the anonymous `/p/{key}` entry) see of a project: no routing, no membership. Null overrides fall back to the global branding. */
+        PortalProject: {
+            color: string;
+            description: string;
+            icon: string;
+            id: components["schemas"]["Id"];
+            key: components["schemas"]["ProjectKey"];
+            logo_url: string | null;
+            name: string;
+            portal_intro_md: string | null;
+            portal_title: string | null;
+            primary_color: string | null;
+        };
         PortalTicketCreate: {
             attachment_ids?: components["schemas"]["Id"][];
             body_md: string;
             category_id?: components["schemas"]["Id"] | null;
             custom_fields?: components["schemas"]["CustomFieldValues"];
             priority?: components["schemas"]["Priority"];
+            /** @description Project id or key (D-20). Omitted: the category's project, else (customers) the only project open to them, else the default project. Customers need a portal-visible project their organization may use; agents need a membership (422 `not_allowed`). */
+            project_id?: string;
             /** @description org_manager only: a colleague in the same organization */
             requester_id?: components["schemas"]["Id"] | null;
             subject: string;
@@ -5474,6 +5798,139 @@ export interface components {
          * @enum {string}
          */
         ProblemSlug: "validation" | "not-found" | "forbidden" | "invalid-transition" | "conflict" | "rate-limited" | "csrf" | "unauthenticated" | "idempotency-mismatch" | "setup-required" | "email-disabled" | "merge-cross-requester" | "link-cycle" | "field-required" | "payload-too-large" | "unsupported-media-type" | "precondition-failed" | "internal" | "unavailable" | "idempotency-in-flight" | "bad-request" | "method-not-allowed" | "portal-disabled";
+        /** @description Administration view of a project. */
+        Project: components["schemas"]["ProjectBase"] & {
+            /** @description True once the project has tickets: the key can no longer change */
+            key_locked: boolean;
+            member_count: number;
+            ticket_count: number;
+        };
+        ProjectBase: {
+            active: boolean;
+            /** @description `#RRGGBB` or empty */
+            color: string;
+            created_at: components["schemas"]["Timestamp"];
+            /** @description Team of new tickets that name no category (or whose category has no default team serving the project); null = triage */
+            default_team_id: components["schemas"]["Id"] | null;
+            description: string;
+            /** @description Free icon name (the SPA uses Material Design Icons names, e.g. `mdi-web`) or empty */
+            icon: string;
+            id: components["schemas"]["Id"];
+            key: components["schemas"]["ProjectKey"];
+            logo_asset_id: components["schemas"]["Id"] | null;
+            /** @description Portal logo override (`/branding/<sha>.<ext>`); null = the global logo */
+            logo_url: string | null;
+            name: string;
+            /** @description Portal introduction (Markdown) override; null = the global branding */
+            portal_intro_md: string | null;
+            /** @description Portal title override for `/p/{key}`; null = the global branding */
+            portal_title: string | null;
+            /** @description Customers can open tickets in it and pick it in the portal */
+            portal_visible: boolean;
+            /** @description Portal primary colour override (`#RRGGBB`); null = the global colour */
+            primary_color: string | null;
+            sort: number;
+            /** @description Teams serving the project (routing, transfer, assignment, automation) */
+            team_ids: components["schemas"]["Id"][];
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        ProjectCounts: {
+            breached: number;
+            mine: number;
+            tier: {
+                1?: number;
+                2?: number;
+                3?: number;
+            };
+            triage: number;
+            unassigned: number;
+        };
+        ProjectCreate: {
+            active?: boolean;
+            /** @description `#RRGGBB` or empty */
+            color?: string;
+            /** @description Added to `team_ids` when missing */
+            default_team_id?: components["schemas"]["Id"] | null;
+            description?: string;
+            icon?: string;
+            /** @description Upper-cased by the server, then checked against `ProjectKey` */
+            key: string;
+            name: string;
+            portal_intro_md?: string | null;
+            portal_title?: string | null;
+            portal_visible?: boolean;
+            primary_color?: string | null;
+            sort?: number;
+            team_ids?: components["schemas"]["Id"][];
+        };
+        /** @description 2–10 characters: an upper-case letter, then upper-case letters or digits. Immutable once the project has tickets. */
+        ProjectKey: string;
+        ProjectMember: {
+            created_at: components["schemas"]["Timestamp"];
+            /** Format: email */
+            email: string;
+            name: string;
+            role: components["schemas"]["ProjectRole"];
+            staff_role: components["schemas"]["StaffRole"];
+            tier: components["schemas"]["Tier"];
+            user_id: components["schemas"]["Id"];
+        };
+        /** @description One project membership of a staff user. In requests `project_id` also accepts the key and `role` defaults to `member`. */
+        ProjectMembership: {
+            project_id: components["schemas"]["Id"];
+            role?: components["schemas"]["ProjectRole"];
+        };
+        /** @description The complete member list. Staff who leave lose access to the project's tickets at once (I-11); tickets they own there are unassigned. */
+        ProjectMembersPut: {
+            members: {
+                role?: components["schemas"]["ProjectRole"];
+                user_id: components["schemas"]["Id"];
+            }[];
+        };
+        /** @description Project admins may change everything except `key`, `active` and `sort` (403). Team mapping has its own route. */
+        ProjectPatch: {
+            /** @description Supervisors and admins; the last active project cannot be deactivated (422 `not_allowed`) */
+            active?: boolean;
+            color?: string;
+            /** @description Must serve the project (422 `wrong_project`) */
+            default_team_id?: components["schemas"]["Id"] | null;
+            description?: string;
+            icon?: string;
+            /** @description Supervisors and admins; 422 `immutable` once the project has tickets */
+            key?: string;
+            name?: string;
+            portal_intro_md?: string | null;
+            portal_title?: string | null;
+            portal_visible?: boolean;
+            primary_color?: string | null;
+            /** @description Supervisors and admins */
+            sort?: number;
+        };
+        /** @description The project chip shown next to a ticket. */
+        ProjectRef: {
+            /** @description `#RRGGBB` or empty */
+            color: string;
+            id: components["schemas"]["Id"];
+            key: components["schemas"]["ProjectKey"];
+            name: string;
+        };
+        /**
+         * @description A staff user's role in one project. `project_admin` manages that project's categories, team mapping, SLA, KB categories, automation rules, macros, canned responses and portal settings.
+         * @enum {string}
+         */
+        ProjectRole: "member" | "project_admin";
+        /** @description The project's overrides: listed priorities override the global defaults, the others inherit them. `[]` removes every override. */
+        ProjectSlaPoliciesPut: {
+            policies: components["schemas"]["SlaPolicy"][];
+        };
+        ProjectSlaPolicy: components["schemas"]["SlaPolicy"] & {
+            /** @description True when the project has no override for this priority and the global default applies */
+            inherited: boolean;
+        };
+        /** @description The complete list of teams serving the project. The project's default team must stay in it. */
+        ProjectTeams: {
+            team_ids: components["schemas"]["Id"][];
+        };
         QueueStatus: {
             deferred: {
                 dead: number;
@@ -5507,6 +5964,13 @@ export interface components {
             body_md: string;
         };
         Report: {
+            by_project?: {
+                created: number;
+                key: components["schemas"]["ProjectKey"];
+                name: string;
+                project_id: components["schemas"]["Id"];
+                resolved: number;
+            }[];
             by_team?: {
                 created?: number;
                 name?: string;
@@ -5529,6 +5993,8 @@ export interface components {
                 p90?: number | null;
             };
             from: components["schemas"]["Timestamp"];
+            /** @description The `project` filter applied (null = all projects) */
+            project_id?: components["schemas"]["Id"] | null;
             resolution_minutes?: {
                 median?: number | null;
                 p90?: number | null;
@@ -5571,7 +6037,7 @@ export interface components {
         Role: "admin" | "supervisor" | "agent" | "requester" | "org_manager";
         SavedView: {
             created_at?: components["schemas"]["Timestamp"];
-            /** @description Same keys as the `/agent/tickets` query parameters */
+            /** @description Same keys as the `/agent/tickets` query parameters, including `project` (D-20) */
             filter: {
                 [key: string]: unknown;
             };
@@ -5669,6 +6135,8 @@ export interface components {
             email: string;
             name: string;
             password?: string;
+            /** @description Project memberships (D-20), replacing the current ones. Omitted on create: member of the default project. */
+            projects?: components["schemas"]["ProjectMembership"][];
             role: components["schemas"]["StaffRole"];
             send_invite?: boolean;
             team_ids?: components["schemas"]["Id"][];
@@ -5677,6 +6145,8 @@ export interface components {
         StaffPatch: {
             break_glass?: boolean;
             name?: string;
+            /** @description Project memberships (D-20), replacing the current ones. Omitted on create: member of the default project. */
+            projects?: components["schemas"]["ProjectMembership"][];
             role?: components["schemas"]["StaffRole"];
             status?: components["schemas"]["UserStatus"];
             team_ids?: components["schemas"]["Id"][];
@@ -5771,6 +6241,8 @@ export interface components {
             /** Format: email */
             notification_email?: string | null;
             notify_mode: components["schemas"]["NotifyMode"];
+            /** @description Projects the team serves (D-20) */
+            project_ids?: components["schemas"]["Id"][];
             updated_at: components["schemas"]["Timestamp"];
         };
         TeamCreate: {
@@ -5781,6 +6253,8 @@ export interface components {
             /** Format: email */
             notification_email?: string | null;
             notify_mode?: components["schemas"]["NotifyMode"];
+            /** @description Projects the team serves (ids or keys). Omitted on create: the default project; omitted on PATCH: unchanged. */
+            project_ids?: string[];
         };
         TeamMember: {
             name: string;
@@ -5809,6 +6283,10 @@ export interface components {
         };
         TicketCounts: {
             breached?: number;
+            /** @description The same buckets per project id, over the projects the caller works in (D-20). The project switcher picks one; the totals above are all projects (or the `project` filter). */
+            by_project?: {
+                [key: string]: components["schemas"]["ProjectCounts"];
+            };
             mine: number;
             tier: {
                 1?: number;
@@ -5851,6 +6329,8 @@ export interface components {
             category_id?: components["schemas"]["Id"] | null;
             custom_fields?: components["schemas"]["CustomFieldValues"];
             priority?: components["schemas"]["Priority"];
+            /** @description Move the ticket to another project (id or key, D-20). Needs `transfer`; agents must be members of the target. The ticket gets the next ref of the target project (the old ref no longer resolves; `number` is unchanged), a category of the old project is cleared, a team not serving the target is replaced by the target's default team (or triage), and the SLA is recomputed with the target's policies. Writes `ticket.project_changed`. */
+            project_id?: string;
             status?: components["schemas"]["TicketStatus"];
             subject?: string;
             tags?: string[];
@@ -5859,9 +6339,15 @@ export interface components {
         TicketRef: {
             id: components["schemas"]["Id"];
             number: number;
+            ref: components["schemas"]["TicketRefCode"];
             status: components["schemas"]["TicketStatus"];
             subject: string;
         };
+        /**
+         * @description A ticket reference `KEY-123` (D-20): the project key and the per-project sequence. The key is matched case-insensitively.
+         * @example HD-1042
+         */
+        TicketRefCode: string;
         /** @enum {string} */
         TicketSort: "attention" | "updated_at" | "-updated_at" | "created_at" | "-created_at" | "priority" | "-priority" | "due" | "number" | "-number";
         /** @enum {string} */
@@ -5876,10 +6362,13 @@ export interface components {
             id: components["schemas"]["Id"];
             last_customer_activity_at?: components["schemas"]["Timestamp"] | null;
             last_staff_activity_at?: components["schemas"]["Timestamp"] | null;
-            /** @description Human-facing number, shown as `#1042` */
+            /** @description Global human number (kept for compatibility, `/by-number/{n}`); the UI shows `ref` */
             number: number;
             organization_id?: components["schemas"]["Id"] | null;
             priority: components["schemas"]["Priority"];
+            project: components["schemas"]["ProjectRef"];
+            project_id: components["schemas"]["Id"];
+            ref: components["schemas"]["TicketRefCode"];
             requester: components["schemas"]["UserRef"];
             resolution_due_at?: components["schemas"]["Timestamp"] | null;
             sla_breached?: boolean;
@@ -5898,10 +6387,10 @@ export interface components {
         /** @description Support tier L1–L3 (D-05). */
         Tier: number;
         /**
-         * @description Every stored event type that `GET /agent/tickets/{id}/events` returns: `EventType` plus edits of the subject, message edits, watcher changes and `ticket.automation_applied` (a rule applied; actor id `automation`, data `AutomationApplied`).
+         * @description Every stored event type that `GET /agent/tickets/{id}/events` returns: `EventType` plus edits of the subject, message edits, watcher changes, `ticket.project_changed` and `ticket.automation_applied` (a rule applied; actor id `automation`, data `AutomationApplied`).
          * @enum {string}
          */
-        TimelineEventType: "ticket.created" | "ticket.status_changed" | "ticket.priority_changed" | "ticket.assigned" | "ticket.team_changed" | "ticket.escalated" | "ticket.deescalated" | "ticket.category_changed" | "ticket.tags_changed" | "ticket.fields_changed" | "message.created" | "note.created" | "sla.warning" | "sla.breached" | "ticket.csat" | "ticket.followup_created" | "ticket.merged" | "ticket.split" | "ticket.linked" | "ticket.unlinked" | "ticket.children_resolved" | "ticket.subject_changed" | "message.edited" | "ticket.watchers_changed" | "ticket.automation_applied";
+        TimelineEventType: "ticket.created" | "ticket.status_changed" | "ticket.priority_changed" | "ticket.assigned" | "ticket.team_changed" | "ticket.escalated" | "ticket.deescalated" | "ticket.category_changed" | "ticket.tags_changed" | "ticket.fields_changed" | "message.created" | "note.created" | "sla.warning" | "sla.breached" | "ticket.csat" | "ticket.followup_created" | "ticket.merged" | "ticket.split" | "ticket.linked" | "ticket.unlinked" | "ticket.children_resolved" | "ticket.subject_changed" | "message.edited" | "ticket.watchers_changed" | "ticket.automation_applied" | "ticket.project_changed";
         TimeRange: {
             end: string;
             start: string;
@@ -5923,6 +6412,8 @@ export interface components {
         User: {
             break_glass?: boolean;
             created_at: components["schemas"]["Timestamp"];
+            /** @description Staff only: the agent panel's project switcher (null = all projects) */
+            current_project_id?: components["schemas"]["Id"] | null;
             /** Format: email */
             email: string;
             has_password?: boolean;
@@ -5933,6 +6424,8 @@ export interface components {
             locale: components["schemas"]["Locale"];
             name: string;
             organization_id?: components["schemas"]["Id"] | null;
+            /** @description Staff only: project memberships (D-20). Admins and supervisors see every project regardless. */
+            projects?: components["schemas"]["ProjectMembership"][];
             role: components["schemas"]["Role"];
             status: components["schemas"]["UserStatus"];
             team_ids?: components["schemas"]["Id"][];
@@ -5988,6 +6481,8 @@ export interface components {
             id: components["schemas"]["Id"];
             /** @description Deliver `note.created` and internal reasons (staff integrations only) */
             include_internal: boolean;
+            /** @description D-20: deliver only events of tickets in these projects; empty = every project */
+            project_ids?: components["schemas"]["Id"][];
             secret_set?: boolean;
             updated_at?: components["schemas"]["Timestamp"];
             /** Format: uri */
@@ -5997,6 +6492,8 @@ export interface components {
             active?: boolean;
             events: components["schemas"]["EventType"][];
             include_internal?: boolean;
+            /** @description D-20: deliver only events of tickets in these projects; empty = every project */
+            project_ids?: components["schemas"]["Id"][];
             /** Format: uri */
             url: string;
         };
@@ -6039,6 +6536,8 @@ export interface components {
             active?: boolean;
             events?: components["schemas"]["EventType"][];
             include_internal?: boolean;
+            /** @description D-20: deliver only events of tickets in these projects; empty = every project */
+            project_ids?: components["schemas"]["Id"][];
             rotate_secret?: boolean;
             /** Format: uri */
             url?: string;
@@ -6048,7 +6547,7 @@ export interface components {
             response_ms?: number | null;
             status_code?: number | null;
         };
-        /** @description Client → server frame (≤ 4 KB, ≤ 20/s burst 40). Topics: `tickets`, `ticket:<id>`, `counts` (staff), `me`, `queue:<team_id>` (staff), `kb` (staff), `admin:system` (admin). */
+        /** @description Client → server frame (≤ 4 KB, ≤ 20/s burst 40). Topics: `tickets`, `ticket:<id>`, `counts` (staff), `me`, `queue:<team_id>` (staff), `project:<project_id>` (staff working in the project, D-20), `kb` (staff), `admin:system` (admin). */
         WsClientFrame: {
             id?: string;
             /** @constant */
@@ -6244,8 +6743,11 @@ export interface components {
         IfMatch: string;
         Limit: number;
         LocaleQ: components["schemas"]["Locale"];
+        /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+        ProjectFilter: string;
         /** @description Full-text search */
         Q: string;
+        TicketRefPath: components["schemas"]["TicketRefCode"];
         UserIdPath: components["schemas"]["Id"];
     };
     requestBodies: never;
@@ -6256,6 +6758,7 @@ export type SchemaAccepted = components['schemas']['Accepted'];
 export type SchemaAdminExportCreate = components['schemas']['AdminExportCreate'];
 export type SchemaAdminMfaStatus = components['schemas']['AdminMfaStatus'];
 export type SchemaAgentMessageCreate = components['schemas']['AgentMessageCreate'];
+export type SchemaAgentProject = components['schemas']['AgentProject'];
 export type SchemaAgentTicketCreate = components['schemas']['AgentTicketCreate'];
 export type SchemaAllowedAction = components['schemas']['AllowedAction'];
 export type SchemaApiToken = components['schemas']['ApiToken'];
@@ -6404,6 +6907,7 @@ export type SchemaOrganizationPatch = components['schemas']['OrganizationPatch']
 export type SchemaOrgMemberInvite = components['schemas']['OrgMemberInvite'];
 export type SchemaOrgMemberPatch = components['schemas']['OrgMemberPatch'];
 export type SchemaPasswordResetRequest = components['schemas']['PasswordResetRequest'];
+export type SchemaPortalProject = components['schemas']['PortalProject'];
 export type SchemaPortalTicketCreate = components['schemas']['PortalTicketCreate'];
 export type SchemaPriority = components['schemas']['Priority'];
 export type SchemaPrivacyRequest = components['schemas']['PrivacyRequest'];
@@ -6414,6 +6918,20 @@ export type SchemaPrivacySettings = components['schemas']['PrivacySettings'];
 export type SchemaPrivacyUserRef = components['schemas']['PrivacyUserRef'];
 export type SchemaProblem = components['schemas']['Problem'];
 export type SchemaProblemSlug = components['schemas']['ProblemSlug'];
+export type SchemaProject = components['schemas']['Project'];
+export type SchemaProjectBase = components['schemas']['ProjectBase'];
+export type SchemaProjectCounts = components['schemas']['ProjectCounts'];
+export type SchemaProjectCreate = components['schemas']['ProjectCreate'];
+export type SchemaProjectKey = components['schemas']['ProjectKey'];
+export type SchemaProjectMember = components['schemas']['ProjectMember'];
+export type SchemaProjectMembership = components['schemas']['ProjectMembership'];
+export type SchemaProjectMembersPut = components['schemas']['ProjectMembersPut'];
+export type SchemaProjectPatch = components['schemas']['ProjectPatch'];
+export type SchemaProjectRef = components['schemas']['ProjectRef'];
+export type SchemaProjectRole = components['schemas']['ProjectRole'];
+export type SchemaProjectSlaPoliciesPut = components['schemas']['ProjectSlaPoliciesPut'];
+export type SchemaProjectSlaPolicy = components['schemas']['ProjectSlaPolicy'];
+export type SchemaProjectTeams = components['schemas']['ProjectTeams'];
 export type SchemaQueueStatus = components['schemas']['QueueStatus'];
 export type SchemaReauthRequest = components['schemas']['ReauthRequest'];
 export type SchemaRegisterRequest = components['schemas']['RegisterRequest'];
@@ -6456,6 +6974,7 @@ export type SchemaTicketLink = components['schemas']['TicketLink'];
 export type SchemaTicketPage = components['schemas']['TicketPage'];
 export type SchemaTicketPatch = components['schemas']['TicketPatch'];
 export type SchemaTicketRef = components['schemas']['TicketRef'];
+export type SchemaTicketRefCode = components['schemas']['TicketRefCode'];
 export type SchemaTicketSort = components['schemas']['TicketSort'];
 export type SchemaTicketStatus = components['schemas']['TicketStatus'];
 export type SchemaTicketSummary = components['schemas']['TicketSummary'];
@@ -6502,7 +7021,9 @@ export type ParameterIdempotencyKey = components['parameters']['IdempotencyKey']
 export type ParameterIfMatch = components['parameters']['IfMatch'];
 export type ParameterLimit = components['parameters']['Limit'];
 export type ParameterLocaleQ = components['parameters']['LocaleQ'];
+export type ParameterProjectFilter = components['parameters']['ProjectFilter'];
 export type ParameterQ = components['parameters']['Q'];
+export type ParameterTicketRefPath = components['parameters']['TicketRefPath'];
 export type ParameterUserIdPath = components['parameters']['UserIdPath'];
 export type $defs = Record<string, never>;
 export interface operations {
@@ -6539,7 +7060,10 @@ export interface operations {
     };
     listAutomationRules: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -6558,6 +7082,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createAutomationRule: {
@@ -7107,7 +7632,10 @@ export interface operations {
     };
     listCategories: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7126,6 +7654,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createCategory: {
@@ -7756,7 +8285,10 @@ export interface operations {
     };
     listKbCategoriesAdmin: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7775,6 +8307,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createKbCategory: {
@@ -7872,7 +8405,10 @@ export interface operations {
     };
     listSharedMacros: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -7891,6 +8427,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createSharedMacro: {
@@ -8257,6 +8794,379 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    listProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteProject: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    patchProject: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    uploadProjectLogo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["FileUpload"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            413: components["responses"]["TooLarge"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    deleteProjectLogo: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listProjectMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMember"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    putProjectMembers: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectMembersPut"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectMember"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    getProjectSlaPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSlaPolicy"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    putProjectSlaPolicies: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectSlaPoliciesPut"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectSlaPolicy"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    getProjectTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTeams"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    putProjectTeams: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectTeams"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectTeams"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             422: components["responses"]["Validation"];
         };
     };
@@ -9253,6 +10163,8 @@ export interface operations {
     listCannedForAgent: {
         parameters: {
             query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
             };
@@ -9274,6 +10186,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createAgentCanned: {
@@ -9396,7 +10309,10 @@ export interface operations {
     };
     listAgentCategories: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9415,12 +10331,15 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listAgentCustomFields: {
         parameters: {
             query?: {
                 category_id?: components["schemas"]["Id"];
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
             };
             header?: never;
             path?: never;
@@ -9440,6 +10359,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listCustomers: {
@@ -9570,6 +10490,8 @@ export interface operations {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
                 locale?: components["parameters"]["LocaleQ"];
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
                 status?: components["schemas"]["KbStatus"];
@@ -9592,6 +10514,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createKbArticle: {
@@ -9834,7 +10757,10 @@ export interface operations {
     };
     listMacros: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -9853,6 +10779,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     createMacro: {
@@ -10064,11 +10991,36 @@ export interface operations {
             422: components["responses"]["Validation"];
         };
     };
+    listAgentProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentProject"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getReportSummary: {
         parameters: {
             query?: {
                 calendar_mode?: components["schemas"]["CalendarMode"];
                 from?: components["schemas"]["Timestamp"];
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 team_id?: components["schemas"]["Id"];
                 to?: components["schemas"]["Timestamp"];
             };
@@ -10090,11 +11042,14 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listAgentStaff: {
         parameters: {
             query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
             };
@@ -10116,6 +11071,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listAgentTags: {
@@ -10146,7 +11102,10 @@ export interface operations {
     };
     listAgentTeams: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10165,6 +11124,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listAgentTickets: {
@@ -10180,6 +11140,8 @@ export interface operations {
                 organization_id?: components["schemas"]["Id"];
                 /** @description Comma-separated `Priority` values */
                 priority?: string;
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
                 requester_id?: components["schemas"]["Id"];
@@ -10779,9 +11741,37 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    getAgentTicketCounts: {
+    getAgentTicketByRef: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                ref: components["parameters"]["TicketRefPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getAgentTicketCounts: {
+        parameters: {
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10800,6 +11790,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listViews: {
@@ -10962,7 +11953,10 @@ export interface operations {
     };
     getAuthConfig: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: a project key (the `/p/{key}` portal entry); adds `project` to the response */
+                project?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -11506,6 +12500,8 @@ export interface operations {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
                 locale?: components["parameters"]["LocaleQ"];
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
             };
@@ -11546,6 +12542,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            422: components["responses"]["Validation"];
         };
     };
     kbFeedback: {
@@ -11690,6 +12687,8 @@ export interface operations {
         parameters: {
             query?: {
                 locale?: components["parameters"]["LocaleQ"];
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
             };
             header?: {
                 /** @description ETag of a cached copy (304 when unchanged) */
@@ -11728,6 +12727,7 @@ export interface operations {
                     "application/problem+json": components["schemas"]["Problem"];
                 };
             };
+            422: components["responses"]["Validation"];
         };
     };
     getKbSitemap: {
@@ -12805,7 +13805,10 @@ export interface operations {
     };
     listPortalCategories: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -12824,12 +13827,15 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     listPortalCustomFields: {
         parameters: {
             query?: {
                 category_id?: components["schemas"]["Id"];
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
             };
             header?: never;
             path?: never;
@@ -12849,6 +13855,7 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
         };
     };
     suggestKbArticles: {
@@ -12966,6 +13973,29 @@ export interface operations {
             422: components["responses"]["Validation"];
         };
     };
+    listPortalProjects: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalProject"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listPortalTickets: {
         parameters: {
             query?: {
@@ -12974,6 +14004,8 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
                 /** @description org_manager: only tickets I requested */
                 mine_only?: boolean;
+                /** @description D-20: limit to one project, by id or key (case-insensitive). An unknown project is a 422 on `project`. */
+                project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
                 status?: components["schemas"]["CustomerStatus"];
@@ -13225,6 +14257,31 @@ export interface operations {
             header?: never;
             path: {
                 n: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerTicket"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPortalTicketByRef: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: components["parameters"]["TicketRefPath"];
             };
             cookie?: never;
         };

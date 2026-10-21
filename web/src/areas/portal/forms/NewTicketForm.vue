@@ -10,7 +10,8 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import AttachmentUploader from '@/components/AttachmentUploader.vue'
 import CustomFieldInput from '@/components/CustomFieldInput.vue'
 import KbSuggestions from '../components/KbSuggestions.vue'
-import type { Category, CustomFieldDef, CustomFieldValue, CustomerTicket, Priority, UserRef } from '../types'
+import ProjectChip from '@/components/ProjectChip.vue'
+import type { Category, PortalProject, CustomFieldDef, CustomFieldValue, CustomerTicket, Priority, UserRef } from '../types'
 
 /**
  * New portal ticket (FE-016). Data comes in as props (the page loads it) so the
@@ -18,15 +19,16 @@ import type { Category, CustomFieldDef, CustomFieldValue, CustomerTicket, Priori
  * customer-editable definitions for the chosen category (FE-054, I-9).
  */
 const props = withDefaults(
-  defineProps<{ categories?: Category[]; fields?: CustomFieldDef[]; members?: UserRef[] | null; selfId?: string }>(),
-  { categories: () => [], fields: () => [], members: null, selfId: '' },
+  defineProps<{ categories?: Category[]; fields?: CustomFieldDef[]; members?: UserRef[] | null; selfId?: string; projects?: PortalProject[]; project?: string | null }>(),
+  { categories: () => [], fields: () => [], members: null, selfId: '', projects: () => [], project: null },
 )
-const emit = defineEmits<{ created: [ticket: CustomerTicket] }>()
+const emit = defineEmits<{ created: [ticket: CustomerTicket]; 'update:project': [id: string | null] }>()
 const { t } = useI18n()
 const config = useConfigStore()
 
 const model = reactive({
   subject: '',
+  project_id: props.project,
   category_id: null as string | null,
   priority: 'normal' as Priority,
   body_md: '',
@@ -38,6 +40,21 @@ const uploader = ref<InstanceType<typeof AttachmentUploader> | null>(null)
 const { formRef, submit, fieldErrors, formError, submitting } = useForm()
 // One key per draft: a retried submit after a network error cannot create a duplicate.
 let idemKey = newIdempotencyKey()
+
+// The picker only exists when there is a choice; a single project is sent implicitly by the server.
+const showProjects = computed(() => props.projects.length > 1)
+watch(() => props.project, (id) => { if (id !== model.project_id) model.project_id = id })
+watch(() => model.project_id, (id) => {
+  model.category_id = null
+  emit('update:project', id)
+})
+
+// Vuetify hands the slot the item (or a wrapper with `raw`) depending on the version: resolve by id.
+const projectOf = (item: unknown): PortalProject | undefined => {
+  const o = item as { id?: string; value?: string; raw?: { id?: string } }
+  const id = o?.raw?.id ?? o?.id ?? o?.value
+  return props.projects.find((p) => p.id === id)
+}
 
 const categoryItems = computed(() =>
   props.categories.filter((c) => c.active).sort((a, b) => a.sort - b.sort).map((c) => ({ value: c.id, title: c.name })),
@@ -91,6 +108,7 @@ const onSubmit = submit(async () => {
         subject: model.subject.trim(),
         body_md: model.body_md,
         category_id: model.category_id,
+        ...(model.project_id ? { project_id: model.project_id } : {}),
         priority: model.priority,
         attachment_ids: model.attachment_ids,
         ...(model.requester_id ? { requester_id: model.requester_id } : {}),
@@ -115,6 +133,24 @@ const onSubmit = submit(async () => {
       data-testid="nt-subject"
     />
     <KbSuggestions :query="model.subject" />
+    <v-select
+      v-if="showProjects"
+      v-model="model.project_id"
+      :items="projects"
+      item-value="id"
+      item-title="name"
+      :label="$t('portal.projects.project')"
+      :rules="[validations.required.select]"
+      :error-messages="fieldErrors.project_id"
+      data-testid="nt-project"
+    >
+      <template #item="{ props: ip, item }">
+        <v-list-item v-bind="ip">
+          <template #prepend><ProjectChip :project="projectOf(item)" size="small" class="mr-2" /></template>
+        </v-list-item>
+      </template>
+      <template #selection="{ item }"><ProjectChip :project="projectOf(item)" size="small" class="mr-2" />{{ projectOf(item)?.name }}</template>
+    </v-select>
     <v-row density="compact">
       <v-col cols="12" sm="6">
         <v-select

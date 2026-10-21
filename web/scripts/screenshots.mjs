@@ -10,7 +10,8 @@
 // 3. signs in as an admin and as a seeded customer (password set with the
 //    `reset-password` CLI) and captures the customer portal, the agent ticket
 //    list, the branding, automation and privacy admin pages, the portal
-//    notification centre and two-step page in the light and the dark theme,
+//    notification centre and two-step page, the project switcher and the
+//    Projects admin page in the light and the dark theme,
 // 4. writes docs/screenshots/<view>-<theme>.png.
 //
 // Env: SCREENSHOTS_SERVER_BIN (prebuilt binary; skips both builds),
@@ -86,6 +87,12 @@ async function ready() {
 const views = {
   staff: [
     ['agent-tickets', '/agent/tickets'],
+    // D-20: the top-bar project switcher with its menu open, and the Projects admin page.
+    ['agent-project-switcher', '/agent/tickets?view=all', async (page) => {
+      await page.getByTestId('project-switcher').click()
+      await page.getByTestId('project-switcher-list').waitFor({ state: 'visible' })
+    }],
+    ['projects', '/agent/admin/projects'],
     ['branding', '/agent/admin/branding'],
     ['automation', '/agent/admin/automation'],
     ['privacy', '/agent/admin/privacy'],
@@ -126,11 +133,12 @@ async function main() {
         const res = await ctx.request.post('/api/v1/auth/login', { data: accounts[who] })
         if (!res.ok()) throw new Error(`${who} login: ${res.status()} ${await res.text()}`)
         const page = await ctx.newPage()
-        for (const [name, path] of pages) {
+        for (const [name, path, prepare] of pages) {
           await page.goto(path)
           await page.waitForLoadState('networkidle')
           await page.locator('main').first().waitFor({ state: 'visible' })
           await page.evaluate(() => document.fonts.ready)
+          if (prepare) await prepare(page)
           await page.waitForTimeout(300) // let transitions settle
           const file = join(out, `${name}-${theme}.png`)
           await page.screenshot({ path: file })

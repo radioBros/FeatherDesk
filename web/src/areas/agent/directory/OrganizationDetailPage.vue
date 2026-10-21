@@ -7,6 +7,8 @@ import { mdiAccountPlus, mdiPencil } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import OrganizationForm from './OrganizationForm.vue'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import CustomerForm from './CustomerForm.vue'
 import TicketMiniList from './TicketMiniList.vue'
 import { api, unwrap } from '@/api/client'
@@ -20,6 +22,8 @@ const id = computed(() => String(route.params.id))
 const org = ref<S['Organization'] | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
+const cp = useConfigProjects()
+const portalProjects = computed(() => cp.all.value.filter((p) => p.portal_visible && p.active))
 const editDialog = ref(false)
 const memberDialog = ref(false)
 const members = useCursorList((cursor) =>
@@ -60,6 +64,10 @@ function onMemberSaved() {
           <v-btn variant="tonal" :prepend-icon="mdiPencil" data-testid="org-edit" @click="editDialog = true">{{ $t('agent.common.edit') }}</v-btn>
         </template>
       </PageHeader>
+      <div class="mb-3 d-flex align-center ga-2" data-testid="org-projects-line">
+        <span class="text-caption text-medium-emphasis">{{ $t('projects.config.projects') }}</span>
+        <ProjectCell :ids="org.project_ids ?? []" />
+      </div>
       <v-alert v-if="org.notes" variant="tonal" density="compact" class="mb-4" style="white-space: pre-line">{{ org.notes }}</v-alert>
       <v-row>
         <v-col cols="12" md="5">
@@ -99,7 +107,7 @@ function onMemberSaved() {
       <v-dialog v-model="editDialog" max-width="560">
         <v-card :title="$t('agent.organizations.edit')">
           <v-card-text>
-            <OrganizationForm v-if="editDialog" :organization="org" @saved="onSaved" @cancel="editDialog = false" />
+            <OrganizationForm v-if="editDialog" :organization="org" :projects="portalProjects" @saved="onSaved" @cancel="editDialog = false" />
           </v-card-text>
         </v-card>
       </v-dialog>

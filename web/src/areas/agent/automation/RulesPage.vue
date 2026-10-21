@@ -11,11 +11,15 @@ import { useI18n } from 'vue-i18n'
 import { mdiArrowDown, mdiArrowUp, mdiDelete, mdiFlaskOutline, mdiLightningBolt, mdiPencil, mdiPlus, mdiStopCircleOutline } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import RuleForm from './RuleForm.vue'
 import DryRunForm from './DryRunForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { useLookupsStore } from '../shared/lookups'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
@@ -24,6 +28,7 @@ type S = components['schemas']
 const { t } = useI18n()
 const { confirm } = useConfirm()
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
 const { run, busy } = useAction()
 const rules = ref<S['AutomationRule'][]>([])
 const loading = ref(true)
@@ -95,6 +100,14 @@ async function remove(r: S['AutomationRule']) {
   }, t('agent.common.deleted'))
   if (ok) void load()
 }
+const cols = useTableColumns('automation-rules', () => [
+  { key: 'position', label: '#', locked: true },
+  { key: 'name', label: t('automation.rules.name'), locked: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true },
+  { key: 'event', label: t('automation.rules.event') },
+  { key: 'summary', label: t('automation.rules.summary'), lowPriority: true },
+  { key: 'enabled', label: t('automation.rules.enabled') },
+])
 </script>
 
 <template>
@@ -108,29 +121,33 @@ async function remove(r: S['AutomationRule']) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !rules.length" :title="$t('automation.rules.empty')" :body="$t('automation.rules.emptyBody')" />
-      <v-table v-else density="comfortable" data-testid="rules-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="rules-table">
         <thead>
           <tr>
-            <th>#</th>
-            <th>{{ $t('automation.rules.name') }}</th>
-            <th>{{ $t('automation.rules.event') }}</th>
-            <th>{{ $t('automation.rules.summary') }}</th>
-            <th>{{ $t('automation.rules.enabled') }}</th>
+            <th v-if="cols.show('position')">#</th>
+            <th v-if="cols.show('name')">{{ $t('automation.rules.name') }}</th>
+            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+            <th v-if="cols.show('event')">{{ $t('automation.rules.event') }}</th>
+            <th v-if="cols.show('summary')">{{ $t('automation.rules.summary') }}</th>
+            <th v-if="cols.show('enabled')">{{ $t('automation.rules.enabled') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(r, i) in rules" :key="r.id" data-testid="rule-row">
-            <td>{{ i + 1 }}</td>
-            <td>
+            <td v-if="cols.show('position')">{{ i + 1 }}</td>
+            <td v-if="cols.show('name')">
               <SectionIcon section="automation" :icon="mdiLightningBolt" :size="26" class="mr-2 align-middle" />{{ r.name }}
               <v-icon v-if="r.stop_processing" :icon="mdiStopCircleOutline" size="small" class="ml-1" :title="$t('automation.rules.stopProcessing')" data-testid="rule-stop-icon" />
             </td>
-            <td>{{ $t(`automation.events.${r.event.replace('.', '_')}`) }}</td>
-            <td class="text-medium-emphasis">
+            <td v-if="cols.show('project')"><ProjectCell :id="r.project_id" /></td>
+            <td v-if="cols.show('event')">{{ $t(`automation.events.${r.event.replace('.', '_')}`) }}</td>
+            <td v-if="cols.show('summary')" class="text-medium-emphasis">
               {{ $t('automation.rules.counts', { conditions: r.conditions.length, actions: r.actions.length }) }}
             </td>
-            <td>
+            <td v-if="cols.show('enabled')">
               <v-switch
                 :model-value="r.enabled"
                 color="primary"
@@ -160,6 +177,7 @@ async function remove(r: S['AutomationRule']) {
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="1100" scrollable>
@@ -174,6 +192,8 @@ async function remove(r: S['AutomationRule']) {
             :custom-fields="lookups.customFields"
             :canned="canned"
             :organizations="organizations"
+            :projects="cp.options.value"
+            :can-global="cp.canGlobal.value"
             @saved="onSaved"
             @cancel="dialog = false"
           />

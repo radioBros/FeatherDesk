@@ -11,7 +11,7 @@ import (
 func facts() Facts {
 	return Facts{
 		Subject: "Printer OFFLINE on floor 3", Body: "Order #12345 is late, please refund", Channel: "email", Priority: "high",
-		Status: "pending", Tier: 2, CategoryID: "cat-1", TeamID: "team-1", OrganizationID: "org-1", RequesterDomain: "acme.test",
+		Status: "pending", Tier: 2, CategoryID: "cat-1", TeamID: "team-1", ProjectID: "proj-1", OrganizationID: "org-1", RequesterDomain: "acme.test",
 		Tags: []string{"vip", "billing"}, Fields: map[string]any{"plan": "Enterprise", "seats": 25.0, "urgent": true, "regions": []string{"eu", "us"}},
 		BusinessHours: true, HoursSinceUpdate: 80, HoursSinceStatus: 100,
 	}
@@ -58,6 +58,8 @@ func TestConditions_Each(t *testing.T) {
 		{Condition{Field: FieldCategory, Op: OpIsNot, Value: "cat-1"}, EventTicketCreated, false},
 		{Condition{Field: FieldTeam, Op: OpIs, Value: "team-2"}, EventTicketCreated, false},
 		{Condition{Field: FieldTeam, Op: OpIsNot, Value: "team-2"}, EventTicketCreated, true},
+		{Condition{Field: FieldProject, Op: OpIs, Value: []any{"proj-1", "proj-2"}}, EventTicketCreated, true},
+		{Condition{Field: FieldProject, Op: OpIsNot, Value: "proj-1"}, EventTicketCreated, false},
 		{Condition{Field: FieldOrganization, Op: OpIs, Value: "org-1"}, EventTicketCreated, true},
 		{Condition{Field: FieldOrganization, Op: OpIsNot, Value: "org-1"}, EventTicketCreated, false},
 		{Condition{Field: FieldRequesterDomain, Op: OpIs, Value: "@ACME.test"}, EventTicketCreated, true},
@@ -202,5 +204,24 @@ func TestRegex_InputCapped(t *testing.T) {
 	f.Body = strings.Repeat("x", MaxMatchInput) + "needle"
 	if c.Match(f) {
 		t.Fatal("matched beyond the input cap")
+	}
+}
+
+// TestRule_ProjectScope (D-20): a project rule never matches tickets of
+// another project, whatever its conditions; a global rule matches anywhere.
+func TestRule_ProjectScope(t *testing.T) {
+	f := facts()
+	p1, p2 := "proj-1", "proj-2"
+	r := Rule{Name: "x", Event: EventTicketCreated, Actions: []Action{{Type: ActEscalate}}}
+	if ok, _ := r.Evaluate(f); !ok {
+		t.Fatal("a global rule without conditions must match")
+	}
+	r.ProjectID = &p1
+	if ok, _ := r.Evaluate(f); !ok {
+		t.Fatal("a rule of the ticket's project must match")
+	}
+	r.ProjectID = &p2
+	if ok, _ := r.Evaluate(f); ok {
+		t.Fatal("a rule of another project must never match")
 	}
 }

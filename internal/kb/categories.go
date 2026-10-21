@@ -4,10 +4,12 @@ package kb
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"regexp"
 	"sort"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -25,13 +27,14 @@ const maxCategorySlug = 80
 
 type category struct {
 	ID, ParentID, Slug, Visibility string
+	ProjectID                      string // D-20: "" = global
 	Title                          map[string]string
 	Sort                           int
 	UpdatedAt                      time.Time
 }
 
 func loadCategories(ctx context.Context, q store.Querier) (map[string]*category, error) {
-	rows, err := q.QueryContext(ctx, `SELECT id, COALESCE(parent_id, ''), slug, title, sort, visibility, updated_at FROM kb_categories`)
+	rows, err := q.QueryContext(ctx, `SELECT id, COALESCE(parent_id, ''), slug, title, sort, visibility, updated_at, COALESCE(project_id, '') FROM kb_categories`)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +43,7 @@ func loadCategories(ctx context.Context, q store.Querier) (map[string]*category,
 	for rows.Next() {
 		var c category
 		var title store.JSON[map[string]string]
-		if err := rows.Scan(&c.ID, &c.ParentID, &c.Slug, &title, &c.Sort, &c.Visibility, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.ParentID, &c.Slug, &title, &c.Sort, &c.Visibility, &c.UpdatedAt, &c.ProjectID); err != nil {
 			return nil, err
 		}
 		c.Title = title.V
@@ -98,6 +101,47 @@ type categoryInput struct {
 	Title      map[string]string `json:"title"`
 	Sort       *int              `json:"sort"`
 	Visibility *string           `json:"visibility"`
+	// ProjectID (D-20): id or key; null = global. Absent on PATCH = unchanged.
+	ProjectID json.RawMessage `json:"project_id"`
+}
+
+// project resolves the project_id input (set=false when absent).
+func (m *Module) projectInput(ctx context.Context, in categoryInput) (id string, set bool, err error) {
+	if len(in.ProjectID) == 0 {
+		return "", false, nil
+	}
+	if string(in.ProjectID) == "null" {
+		return "", true, nil
+	}
+	var ref string
+	if err := json.Unmarshal(in.ProjectID, &ref); err != nil {
+		return "", true, fieldErr("project_id", "type", "a project id or key")
+	}
+	id, err = m.resolveProject(ctx, ref, "project_id")
+	return id, true, err
+}
+
+// resolveProject maps a project id or key to its id (422 on field when
+// unknown).
+func (m *Module) resolveProject(ctx context.Context, ref, field string) (string, error) {
+	var id string
+	err := m.d.DB.Read().QueryRowContext(ctx, `SELECT id FROM projects WHERE id = ? OR key = ?`, ref, strings.ToUpper(ref)).Scan(&id)
+	if err != nil {
+		return "", fieldErr(field, "not_found", "unknown project")
+	}
+	return id, nil
+}
+
+// authorizeCategory: global KB categories are supervisor+, a project's are
+// managed by its project admins too (D-20); PATs need kb:write.
+func authorizeCategory(p *domain.Principal, projectID string) error {
+	if projectID == "" {
+		return authorize(p, ActionCategoryManage, "")
+	}
+	if p.IsStaff() && p.AdminsProject(projectID) && p.HasScope(domain.ScopeKBWrite) {
+		return nil
+	}
+	return problems.Forbidden("not a project admin of the category's project")
 }
 
 func (in categoryInput) parent() (id string, set bool, err error) {
@@ -190,7 +234,13 @@ func toCategoryDTO(c *category, count int, locale, def string) categoryDTO {
 		p := c.ParentID
 		parent = &p
 	}
-	return categoryDTO{ID: c.ID, ParentID: parent, Slug: c.Slug, Title: title, Sort: c.Sort, Visibility: c.Visibility, ArticleCount: count}
+	var project *string
+	if c.ProjectID != "" {
+		pid := c.ProjectID
+		project = &pid
+	}
+	return categoryDTO{ID: c.ID, ParentID: parent, Slug: c.Slug, Title: title, Sort: c.Sort, Visibility: c.Visibility, ArticleCount: count,
+		ProjectID: project}
 }
 
 func sortCategories(out []categoryDTO) {
@@ -203,8 +253,9 @@ func sortCategories(out []categoryDTO) {
 }
 
 // listCategories returns the categories the audience can see, with the count
-// of articles it can see in each (published only unless staffAll).
-func (m *Module) listCategories(ctx context.Context, aud audience, locale string, staffAll bool) ([]categoryDTO, error) {
+// of articles it can see in each (published only unless staffAll). project
+// ("" = all) keeps that project's categories and the global ones (D-20).
+func (m *Module) listCategories(ctx context.Context, aud audience, locale string, staffAll bool, project string) ([]categoryDTO, error) {
 	q := m.d.DB.Read()
 	all, err := loadCategories(ctx, q)
 	if err != nil {
@@ -237,6 +288,9 @@ func (m *Module) listCategories(ctx context.Context, aud audience, locale string
 		if visRank(c.Visibility) > maxRank || !ancestorsVisible(all, c, maxRank) {
 			continue
 		}
+		if project != "" && c.ProjectID != "" && c.ProjectID != project {
+			continue
+		}
 		out = append(out, toCategoryDTO(c, counts[c.ID], locale, def))
 	}
 	sortCategories(out)
@@ -259,7 +313,11 @@ func ancestorsVisible(all map[string]*category, c *category, maxRank int) bool {
 
 // CreateCategory adds a category (supervisor+).
 func (m *Module) CreateCategory(ctx context.Context, p *domain.Principal, in categoryInput) (categoryDTO, error) {
-	if err := authorize(p, ActionCategoryManage, ""); err != nil {
+	project, _, err := m.projectInput(ctx, in)
+	if err != nil {
+		return categoryDTO{}, err
+	}
+	if err := authorizeCategory(p, project); err != nil {
 		return categoryDTO{}, err
 	}
 	if in.Slug == nil || in.Visibility == nil || in.Title == nil {
@@ -269,7 +327,7 @@ func (m *Module) CreateCategory(ctx context.Context, p *domain.Principal, in cat
 	if err != nil {
 		return categoryDTO{}, err
 	}
-	c := &category{ID: store.NewID(), ParentID: parent, Slug: *in.Slug, Title: in.Title, Visibility: *in.Visibility}
+	c := &category{ID: store.NewID(), ParentID: parent, Slug: *in.Slug, Title: in.Title, Visibility: *in.Visibility, ProjectID: project}
 	if in.Sort != nil {
 		c.Sort = *in.Sort
 	}
@@ -286,10 +344,13 @@ func (m *Module) CreateCategory(ctx context.Context, p *domain.Principal, in cat
 		if err := checkTree(all, &probe); err != nil {
 			return err
 		}
+		if err := checkProject(all, c); err != nil {
+			return err
+		}
 		now := store.Now()
 		c.UpdatedAt = now
-		if _, err := tx.ExecContext(ctx, `INSERT INTO kb_categories (id, parent_id, slug, title, sort, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			c.ID, store.Nullable(c.ParentID), c.Slug, store.NewJSON(c.Title), c.Sort, c.Visibility, now, now); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO kb_categories (id, parent_id, slug, title, sort, visibility, project_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			c.ID, store.Nullable(c.ParentID), c.Slug, store.NewJSON(c.Title), c.Sort, c.Visibility, store.Nullable(c.ProjectID), now, now); err != nil {
 			if store.IsUniqueViolation(err) {
 				return problems.Conflict("kb-slug-taken: the category slug is already used")
 			}
@@ -306,13 +367,14 @@ func (m *Module) CreateCategory(ctx context.Context, p *domain.Principal, in cat
 
 // UpdateCategory replaces the editable fields of a category (supervisor+).
 func (m *Module) UpdateCategory(ctx context.Context, p *domain.Principal, id string, in categoryInput) (categoryDTO, error) {
-	if err := authorize(p, ActionCategoryManage, ""); err != nil {
-		return categoryDTO{}, err
-	}
 	if !validID(id) {
 		return categoryDTO{}, problems.NotFound()
 	}
 	parent, parentSet, err := in.parent()
+	if err != nil {
+		return categoryDTO{}, err
+	}
+	project, projectSet, err := m.projectInput(ctx, in)
 	if err != nil {
 		return categoryDTO{}, err
 	}
@@ -326,9 +388,18 @@ func (m *Module) UpdateCategory(ctx context.Context, p *domain.Principal, id str
 		if !ok {
 			return problems.NotFound()
 		}
+		if err := authorizeCategory(p, cur.ProjectID); err != nil {
+			return err
+		}
 		c := *cur
 		if parentSet {
 			c.ParentID = parent
+		}
+		if projectSet && project != cur.ProjectID {
+			if err := authorizeCategory(p, project); err != nil {
+				return err
+			}
+			c.ProjectID = project
 		}
 		if in.Slug != nil {
 			c.Slug = *in.Slug
@@ -348,6 +419,9 @@ func (m *Module) UpdateCategory(ctx context.Context, p *domain.Principal, id str
 		if err := checkTree(all, &c); err != nil {
 			return err
 		}
+		if err := checkProject(all, &c); err != nil {
+			return err
+		}
 		// M-10 pre-check: narrowing below a contained article is refused.
 		if visRank(c.Visibility) > visRank(cur.Visibility) {
 			var n int
@@ -359,8 +433,8 @@ func (m *Module) UpdateCategory(ctx context.Context, p *domain.Principal, id str
 			}
 		}
 		c.UpdatedAt = store.Now()
-		_, err = tx.ExecContext(ctx, `UPDATE kb_categories SET parent_id = ?, slug = ?, title = ?, sort = ?, visibility = ?, updated_at = ? WHERE id = ?`,
-			store.Nullable(c.ParentID), c.Slug, store.NewJSON(c.Title), c.Sort, c.Visibility, c.UpdatedAt, id)
+		_, err = tx.ExecContext(ctx, `UPDATE kb_categories SET parent_id = ?, slug = ?, title = ?, sort = ?, visibility = ?, project_id = ?, updated_at = ? WHERE id = ?`,
+			store.Nullable(c.ParentID), c.Slug, store.NewJSON(c.Title), c.Sort, c.Visibility, store.Nullable(c.ProjectID), c.UpdatedAt, id)
 		switch {
 		case store.IsUniqueViolation(err):
 			return problems.Conflict("kb-slug-taken: the category slug is already used")
@@ -382,20 +456,18 @@ func (m *Module) UpdateCategory(ctx context.Context, p *domain.Principal, id str
 
 // DeleteCategory removes an empty category (no articles, no children).
 func (m *Module) DeleteCategory(ctx context.Context, p *domain.Principal, id string) error {
-	if err := authorize(p, ActionCategoryManage, ""); err != nil {
-		return err
-	}
 	if !validID(id) {
 		return problems.NotFound()
 	}
 	return m.d.DB.Tx(ctx, func(tx *store.Tx) error {
-		var n int
-		if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM kb_categories WHERE id = ?`, id).Scan(&n); err != nil {
+		var project sql.NullString
+		if err := tx.QueryRowContext(ctx, `SELECT project_id FROM kb_categories WHERE id = ?`, id).Scan(&project); err != nil {
+			return store.NotFound(err)
+		}
+		if err := authorizeCategory(p, project.String); err != nil {
 			return err
 		}
-		if n == 0 {
-			return problems.NotFound()
-		}
+		var n int
 		if err := tx.QueryRowContext(ctx, `SELECT (SELECT COUNT(*) FROM kb_articles WHERE category_id = ?) + (SELECT COUNT(*) FROM kb_categories WHERE parent_id = ?)`, id, id).Scan(&n); err != nil {
 			return err
 		}
@@ -428,13 +500,50 @@ func visBelow(v string) []string {
 
 // ---- handlers ----
 
+// handleAdminCategories: every category for supervisors and admins; a
+// project admin gets the global ones and those of their projects (D-20).
 func (m *Module) handleAdminCategories(w http.ResponseWriter, r *http.Request) {
-	out, err := m.listCategories(r.Context(), audStaff, "", true)
+	project, err := m.projectParam(r)
 	if err != nil {
 		problems.Write(w, r, err)
 		return
 	}
+	out, err := m.listCategories(r.Context(), audStaff, "", true, project)
+	if err != nil {
+		problems.Write(w, r, err)
+		return
+	}
+	if p := server.PrincipalFrom(r.Context()); !p.IsSupervisorOrAdmin() {
+		kept := out[:0]
+		for _, c := range out {
+			if c.ProjectID == nil || p.AdminsProject(*c.ProjectID) {
+				kept = append(kept, c)
+			}
+		}
+		out = kept
+	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// projectParam resolves the optional `project` query parameter (D-20).
+func (m *Module) projectParam(r *http.Request) (string, error) {
+	v := r.URL.Query().Get("project")
+	if v == "" {
+		return "", nil
+	}
+	return m.resolveProject(r.Context(), v, "project")
+}
+
+// checkProject: a sub-category belongs to its parent's project (or the
+// parent is global), D-20.
+func checkProject(all map[string]*category, c *category) error {
+	if c.ParentID == "" {
+		return nil
+	}
+	if p, ok := all[c.ParentID]; ok && p.ProjectID != "" && p.ProjectID != c.ProjectID {
+		return fieldErr("project_id", "wrong_project", "a sub-category belongs to its parent's project")
+	}
+	return nil
 }
 
 func (m *Module) handleCreateCategory(w http.ResponseWriter, r *http.Request) {

@@ -19,6 +19,8 @@ vi.mock('@/composables/useRealtime', () => ({
 
 afterEach(() => vi.unstubAllGlobals())
 
+const WEB = { id: 'p-web', key: 'WEB', name: 'Web App', color: '#1976d2' }
+const MOB = { id: 'p-mob', key: 'MOB', name: 'Mobile', color: '#d81b60' }
 const row = (id: string, extra = {}) => ({
   id,
   number: Number(id.replace(/\D/g, '')) || 1,
@@ -26,10 +28,15 @@ const row = (id: string, extra = {}) => ({
   status: 'open' as const,
   priority: 'normal' as const,
   requester: { id: 'u-cust', name: 'Carla', kind: 'customer' as const },
+  ref: `WEB-${Number(id.replace(/\D/g, '')) || 1}`,
+  project_id: 'p-web',
+  project: WEB,
   created_at: '2026-10-20T10:00:00Z',
   updated_at: '2026-10-20T10:00:00Z',
   ...extra,
 })
+
+const ticketRequests = async (fn: Parameters<typeof requests>[0]) => (await requests(fn)).filter((r) => r.path === '/portal/tickets')
 
 /** A server event frame, typed by the generated `WsServerFrame` (CON-013). */
 const ev = (e: Omit<ServerEvent, 'type' | 'at'>): ServerEvent => ({ type: 'event', at: '2026-10-20T10:00:00Z', ...e })
@@ -39,7 +46,7 @@ describe('portal ticket list (FE-015)', () => {
     const { fn } = mockFetch(() => json({ items: [row('t1')], next_cursor: null }))
     const { wrapper } = await mountPage(TicketListPage, { path: '/tickets?status=resolved&q=printer', pattern: '/tickets' })
     await settle(6)
-    const [first] = await requests(fn)
+    const [first] = await ticketRequests(fn)
     expect(first!.path).toBe('/portal/tickets')
     const params = new URLSearchParams(first!.search)
     expect(params.get('status')).toBe('resolved')
@@ -63,7 +70,7 @@ describe('portal ticket list (FE-015)', () => {
     const buttons = mgr.wrapper.findAll('[data-testid="scope-toggle"] button')
     await buttons[0]!.trigger('click')
     await settle(6)
-    const last = (await requests(fn)).at(-1)!
+    const last = (await ticketRequests(fn)).at(-1)!
     expect(new URLSearchParams(last.search).get('mine_only')).toBe('true')
   })
 
@@ -87,7 +94,7 @@ describe('portal ticket list (FE-015)', () => {
     await wrapper.find('[data-testid="load-more"]').trigger('click')
     await settle(6)
     expect(wrapper.findAll('[data-testid="ticket-row"]')).toHaveLength(2)
-    expect(new URLSearchParams((await requests(fn))[1]!.search).get('cursor')).toBe('c2')
+    expect(new URLSearchParams((await ticketRequests(fn))[1]!.search).get('cursor')).toBe('c2')
     expect(wrapper.find('[data-testid="load-more"]').exists()).toBe(false)
   })
 
@@ -105,5 +112,29 @@ describe('portal ticket list (FE-015)', () => {
     rt.opts!.onResync!('gap_too_large')
     await settle(6)
     expect(fn.mock.calls.length).toBe(before + 1)
+  })
+
+  it('shows the ref, and a project column and filter only with several projects', async () => {
+    mockFetch((url) =>
+      new URL(url, 'http://x').pathname.endsWith('/portal/projects')
+        ? json([{ ...WEB, description: '', icon: '', logo_url: null, portal_intro_md: null, portal_title: null, primary_color: null }, { ...MOB, description: '', icon: '', logo_url: null, portal_intro_md: null, portal_title: null, primary_color: null }])
+        : json({ items: [row('t1'), row('t2', { project_id: 'p-mob', project: MOB, ref: 'MOB-7' })], next_cursor: null }),
+    )
+    const { wrapper } = await mountPage(TicketListPage, { path: '/tickets' })
+    await settle(8)
+    const rows = wrapper.findAll('[data-testid="ticket-row"]')
+    expect(rows[0]!.text()).toContain('WEB-1')
+    expect(rows[1]!.text()).toContain('MOB-7')
+    expect(wrapper.findAll('[data-testid="project-chip"]').length).toBe(2)
+    expect(wrapper.find('[data-testid="project-filter"]').exists()).toBe(true)
+  })
+
+  it('hides the project column and filter when there is a single project', async () => {
+    mockFetch((url) => (new URL(url, 'http://x').pathname.endsWith('/portal/projects') ? json([{ ...WEB }]) : json({ items: [row('t1')], next_cursor: null })))
+    const { wrapper } = await mountPage(TicketListPage, { path: '/tickets' })
+    await settle(8)
+    expect(wrapper.find('[data-testid="project-chip"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="project-filter"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="ticket-row"]').text()).toContain('WEB-1')
   })
 })

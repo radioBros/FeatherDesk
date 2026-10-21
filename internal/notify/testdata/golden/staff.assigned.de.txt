@@ -1,10 +1,10 @@
-Subject: [#1042] Ihnen zugewiesen: Printer on floor 3 is offline
+Subject: [HD-1042] Ihnen zugewiesen: Printer on floor 3 is offline
 
 ##- Bitte oberhalb dieser Zeile antworten -##
 
 Hallo Grace Hopper,
 
-Alan Turing hat Ihnen das Ticket **#1042 Printer on floor 3 is offline** zugewiesen.
+Alan Turing hat Ihnen das Ticket **HD-1042 Printer on floor 3 is offline** zugewiesen.
 
 - **Betreff:** Printer on floor 3 is offline
 - **Priorität:** high

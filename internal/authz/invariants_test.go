@@ -217,3 +217,48 @@ func invStatus(err error) int {
 	}
 	return problems.From(err).Status()
 }
+
+// I-11 (D-20): an agent sees only tickets of the projects they are members
+// of, combined with the team/tier/assignee/watcher rules; supervisors and
+// admins see every project. Event snapshots written before D-20 carry no
+// project and count as the Default project.
+func TestInvariant_I11_AgentProjectVisibility(t *testing.T) {
+	other := "proj-other"
+	snap := tmSnap(tmCustC)
+	for _, p := range []*domain.Principal{tmL1, tmL2, tmL3} {
+		if !CanSeeEvent(p, snap, events.TicketCreated, DefaultTicketPolicy()) {
+			t.Errorf("%s misses an event of its project (pre-D-20 snapshot = Default project)", p.UserID)
+		}
+		s := snap
+		s.ProjectID = other
+		s.AssigneeID = p.UserID
+		s.Watchers = []string{p.UserID}
+		if CanSeeEvent(p, s, events.TicketCreated, DefaultTicketPolicy()) {
+			t.Errorf("%s receives an event of a project it is not a member of", p.UserID)
+		}
+		v := tmTk(func(v *TicketView) { v.ProjectID = other })
+		if Can(p, ActReply, v) == nil || problems.From(Can(p, ActReply, v)).Slug != problems.SlugNotFound {
+			t.Errorf("%s: a ticket outside its projects must be 404", p.UserID)
+		}
+		if pred, _ := TicketPredicate(&domain.Principal{UserID: "x", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 3, Teams: p.Teams}, DefaultTicketPolicy(), "t"); pred != "1=0" {
+			t.Errorf("an agent without projects must get the empty predicate, got %q", pred)
+		}
+		pred, args := TicketPredicate(p, DefaultTicketPolicy(), "t")
+		if !strings.HasPrefix(pred, "((t.project_id || '') IN (") || args[0] != domain.DefaultProjectID {
+			t.Errorf("%s: predicate must start with the project restriction: %s %v", p.UserID, pred, args)
+		}
+	}
+	for _, p := range []*domain.Principal{tmSup, tmAdm} {
+		s := snap
+		s.ProjectID = other
+		if !CanSeeEvent(p, s, events.TicketCreated, DefaultTicketPolicy()) {
+			t.Errorf("%s must see every project", p.UserID)
+		}
+	}
+	// The project admin role widens configuration rights, never visibility.
+	padm := &domain.Principal{UserID: "pa", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 3, Teams: []string{tmTeamA},
+		Projects: []string{domain.DefaultProjectID}, AdminProjects: []string{domain.DefaultProjectID}}
+	if CanSeeTicket(padm, tmTk(func(v *TicketView) { v.TeamID = tmTeamB })) {
+		t.Error("a project admin sees tickets of foreign teams only like any agent (I-4)")
+	}
+}

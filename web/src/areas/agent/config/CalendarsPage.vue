@@ -6,6 +6,8 @@ import { useI18n } from 'vue-i18n'
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import CalendarForm from './CalendarForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
@@ -54,6 +56,12 @@ async function remove(c: S['BusinessCalendar']) {
   }, t('agent.common.deleted'))
   if (ok) void load()
 }
+const cols = useTableColumns('config-calendars', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'timezone', label: t('agent.calendars.timezone') },
+  { key: 'openDays', label: t('agent.calendars.openDays'), lowPriority: true },
+  { key: 'holidays', label: t('agent.calendars.holidays'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -67,22 +75,24 @@ async function remove(c: S['BusinessCalendar']) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !items.length" :title="$t('agent.calendars.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="calendar-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="calendar-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.calendars.timezone') }}</th>
-            <th>{{ $t('agent.calendars.openDays') }}</th>
-            <th>{{ $t('agent.calendars.holidays') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('timezone')">{{ $t('agent.calendars.timezone') }}</th>
+            <th v-if="cols.show('openDays')">{{ $t('agent.calendars.openDays') }}</th>
+            <th v-if="cols.show('holidays')">{{ $t('agent.calendars.holidays') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in items" :key="c.id" data-testid="calendar-row">
-            <td>{{ c.name }}</td>
-            <td>{{ c.timezone }}</td>
-            <td>{{ openDays(c) }}</td>
-            <td>{{ c.holidays.length }}</td>
+            <td v-if="cols.show('name')">{{ c.name }}</td>
+            <td v-if="cols.show('timezone')">{{ c.timezone }}</td>
+            <td v-if="cols.show('openDays')">{{ openDays(c) }}</td>
+            <td v-if="cols.show('holidays')">{{ c.holidays.length }}</td>
             <td class="text-right text-no-wrap">
               <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
               <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="calendar-delete" @click="remove(c)" />
@@ -90,6 +100,7 @@ async function remove(c: S['BusinessCalendar']) {
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="760" scrollable>

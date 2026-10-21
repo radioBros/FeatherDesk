@@ -147,7 +147,7 @@ func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketR
 				errs = append(errs, problems.Field("cf."+key, "read_only", "this field cannot be edited"))
 			}
 			continue
-		case !def.AppliesTo(t.CategoryID):
+		case !def.AppliesTo(t.CategoryID, t.ProjectID):
 			errs = append(errs, problems.Field("cf."+key, "not_applicable", "the field does not apply to this category"))
 			continue
 		}
@@ -164,7 +164,7 @@ func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketR
 			return nil, err
 		}
 		for _, def := range defs {
-			if !def.Active || !def.Required || !def.CustomerEditable || !def.AppliesTo(t.CategoryID) {
+			if !def.Active || !def.Required || !def.CustomerEditable || !def.AppliesTo(t.CategoryID, t.ProjectID) {
 				continue
 			}
 			v, given := in[def.Key]
@@ -233,7 +233,7 @@ func (s *Service) missingRequiredStaffFields(ctx context.Context, q store.Querie
 	}
 	var need []directory.FieldDef
 	for _, d := range defs {
-		if d.Active && d.Required && !d.CustomerEditable && d.AppliesTo(t.CategoryID) {
+		if d.Active && d.Required && !d.CustomerEditable && d.AppliesTo(t.CategoryID, t.ProjectID) {
 			need = append(need, d)
 		}
 	}

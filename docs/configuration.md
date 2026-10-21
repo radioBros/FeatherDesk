@@ -55,6 +55,6 @@ The complete module reference is [DOCUMENTATION.md §3.3](DOCUMENTATION.md#33-va
 
 ## Settings without environment variables
 
-Automation and assignment, two-step verification, privacy (GDPR) and the notification centre add **no** environment variables. Their settings live in the database and are edited in the admin UI or by each user: the two-step verification policy (settings key `security`), the retention policy and deletion-request options (`retention`, `privacy`), each team's automatic assignment, automation rules and macros, the agents' *Away* switch and every user's notification preferences.
+Projects, automation and assignment, two-step verification, privacy (GDPR) and the notification centre add **no** environment variables. Projects (keys, members, team mapping, per-project SLA overrides, portal branding) are database rows edited under *Administration → Projects* or through `/api/v1/admin/projects` ([features/projects.md](features/projects.md)); the Default project is created by the migration. Their settings live in the database and are edited in the admin UI or by each user: the two-step verification policy (settings key `security`), the retention policy and deletion-request options (`retention`, `privacy`), each team's automatic assignment, automation rules and macros, the agents' *Away* switch and every user's notification preferences.
 
 The canonical list, with the admin UI location and API of each setting, is [Settings stored in the database](DOCUMENTATION.md#settings-stored-in-the-database).

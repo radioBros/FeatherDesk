@@ -30,9 +30,9 @@ const (
 )
 
 var (
-	tmL1    = &domain.Principal{UserID: "l1", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1, Teams: []string{tmTeamA}}
-	tmL2    = &domain.Principal{UserID: "l2", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 2, Teams: []string{tmTeamA}}
-	tmL3    = &domain.Principal{UserID: "l3", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 3, Teams: []string{tmTeamA}}
+	tmL1    = &domain.Principal{UserID: "l1", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1, Teams: []string{tmTeamA}, Projects: []string{domain.DefaultProjectID}}
+	tmL2    = &domain.Principal{UserID: "l2", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 2, Teams: []string{tmTeamA}, Projects: []string{domain.DefaultProjectID}}
+	tmL3    = &domain.Principal{UserID: "l3", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 3, Teams: []string{tmTeamA}, Projects: []string{domain.DefaultProjectID}}
 	tmSup   = &domain.Principal{UserID: "sup", Kind: domain.KindStaff, Role: domain.RoleSupervisor, Tier: 1}
 	tmAdm   = &domain.Principal{UserID: "adm", Kind: domain.KindStaff, Role: domain.RoleAdmin, Tier: 1}
 	tmReq   = &domain.Principal{UserID: tmCustC, Kind: domain.KindCustomer, Role: domain.RoleRequester, OrganizationID: tmOrgX}
@@ -288,7 +288,7 @@ func tmSnap(requester string) events.Snapshot {
 // TestAllowedActionsMatchCan: allowed_actions lists an action iff Can allows it.
 func TestAllowedActionsMatchCan(t *testing.T) {
 	principals := []*domain.Principal{tmL1, tmL2, tmL3, tmSup, tmAdm, tmReq, tmMgr,
-		{UserID: "pat", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 2, Teams: []string{tmTeamA}, Scopes: []string{domain.ScopeTicketsRead}}}
+		{UserID: "pat", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 2, Teams: []string{tmTeamA}, Projects: []string{domain.DefaultProjectID}, Scopes: []string{domain.ScopeTicketsRead}}}
 	for _, p := range principals {
 		for _, s := range domain.TicketStatuses {
 			for _, tr := range []int{1, 2, 3} {
@@ -308,7 +308,7 @@ func TestAllowedActionsMatchCan(t *testing.T) {
 }
 
 func TestReadOnlyTokenHasNoActions(t *testing.T) {
-	p := &domain.Principal{UserID: "l2", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 2, Teams: []string{tmTeamA}, Scopes: []string{domain.ScopeTicketsRead}}
+	p := &domain.Principal{UserID: "l2", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 2, Teams: []string{tmTeamA}, Projects: []string{domain.DefaultProjectID}, Scopes: []string{domain.ScopeTicketsRead}}
 	if !CanSeeTicket(p, tmTk()) {
 		t.Fatal("tickets:read token must see the ticket")
 	}

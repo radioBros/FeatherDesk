@@ -1,10 +1,10 @@
-Subject: [#1042] Sie wurden erwähnt: Printer on floor 3 is offline
+Subject: [HD-1042] Sie wurden erwähnt: Printer on floor 3 is offline
 
 ##- Bitte oberhalb dieser Zeile antworten -##
 
 Hallo Grace Hopper,
 
-Alan Turing hat Sie in einer internen Notiz zum Ticket **#1042 Printer on floor 3 is offline** erwähnt:
+Alan Turing hat Sie in einer internen Notiz zum Ticket **HD-1042 Printer on floor 3 is offline** erwähnt:
 
 **Ada Lovelace:**
 

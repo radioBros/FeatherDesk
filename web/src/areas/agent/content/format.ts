@@ -6,6 +6,8 @@ export interface ReportFilter {
   from: string
   to: string
   team_id: string | null
+  /** Project id (or null = all projects). */
+  project?: string | null
   calendar_mode: components['schemas']['CalendarMode'] | null
 }
 

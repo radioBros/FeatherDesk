@@ -197,8 +197,9 @@ func (s *Service) Split(ctx context.Context, p *domain.Principal, id string, in 
 		if len(msgs) != len(ids) {
 			return problems.Validation(problems.Field("message_ids", "not_found", "every message must belong to the ticket"))
 		}
-		child, err := s.createTx(ctx, tx, p, CreateInput{Subject: subject, BodyMD: fmt.Sprintf("Split from #%d.", src.Number),
-			RequesterID: &src.RequesterID, channel: src.Channel, fixedTeam: &src.TeamID})
+		s.fillKey(ctx, src)
+		child, err := s.createTx(ctx, tx, p, CreateInput{Subject: subject, BodyMD: fmt.Sprintf("Split from %s.", src.Ref()),
+			RequesterID: &src.RequesterID, channel: src.Channel, fixedTeam: &src.TeamID, fixedProject: src.ProjectID})
 		if err != nil {
 			return err
 		}

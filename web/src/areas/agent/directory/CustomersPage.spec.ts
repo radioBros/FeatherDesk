@@ -73,7 +73,7 @@ describe('CustomerDetailPage (FE-026)', () => {
     const req = h.calls('GET /agent/tickets')[0]!
     expect(req.url.searchParams.get('requester_id')).toBe('c-1')
     const link = h.wrapper.find('[data-testid="mini-ticket-row"] a')
-    expect(link.attributes('href')).toBe('/agent/tickets/1042')
+    expect(link.attributes('href')).toBe('/agent/tickets/WEB-1042')
   })
 
   it('shows the problem when the customer is not visible', async () => {

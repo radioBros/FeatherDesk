@@ -23,7 +23,8 @@ import (
 // Macros (D-19 §A, TKT-048): one-click bundles of a reply or note, status,
 // tags, assignee and priority. Personal macros belong to one agent; shared
 // macros (owner NULL) are managed by supervisors and admins through
-// /admin/macros and offered to every agent. Applying one runs as the agent,
+// /admin/macros and offered to every agent. A macro may be limited to one
+// project (D-20); shared project macros are managed by its project admins. Applying one runs as the agent,
 // in one transaction, with every part authorised like the single action.
 
 type macroDTO struct {
@@ -38,20 +39,22 @@ type macroDTO struct {
 	AddTags    []string  `json:"add_tags"`
 	RemoveTags []string  `json:"remove_tags"`
 	Assignee   *string   `json:"assignee"`
+	ProjectID  *string   `json:"project_id"` // D-20: nil = every project
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
 
-const macroCols = `id, name, owner_id, reply_kind, reply_md, status, priority, add_tags, remove_tags, assignee, created_at, updated_at`
+const macroCols = `id, name, owner_id, reply_kind, reply_md, status, priority, add_tags, remove_tags, assignee, created_at, updated_at, project_id`
 
 func scanMacro(r scanner) (*macroDTO, error) {
 	var x macroDTO
-	var owner, status, prio, asg sql.NullString
+	var owner, status, prio, asg, project sql.NullString
 	var add, rem store.JSON[[]string]
-	if err := r.Scan(&x.ID, &x.Name, &owner, &x.ReplyKind, &x.ReplyMD, &status, &prio, &add, &rem, &asg, &x.CreatedAt, &x.UpdatedAt); err != nil {
+	if err := r.Scan(&x.ID, &x.Name, &owner, &x.ReplyKind, &x.ReplyMD, &status, &prio, &add, &rem, &asg, &x.CreatedAt, &x.UpdatedAt, &project); err != nil {
 		return nil, store.NotFound(err)
 	}
 	x.OwnerID, x.Status, x.Priority, x.Assignee = strPtrOf(owner), strPtrOf(status), strPtrOf(prio), strPtrOf(asg)
+	x.ProjectID = strPtrOf(project)
 	x.Shared = !owner.Valid
 	x.AddTags, x.RemoveTags = add.V, rem.V
 	if x.AddTags == nil {
@@ -106,6 +109,7 @@ type macroIn struct {
 	AddTags    []string `json:"add_tags"`
 	RemoveTags []string `json:"remove_tags"`
 	Assignee   *string  `json:"assignee"`
+	ProjectID  *string  `json:"project_id"` // D-20: id or key; nil = every project
 }
 
 func normTags(field string, in []string) ([]string, []problems.FieldError) {
@@ -176,6 +180,17 @@ func (s *Service) validateMacro(ctx context.Context, in *macroIn) error {
 			errs = append(errs, problems.Field("assignee", "inactive", "the user is not active"))
 		}
 	}
+	if in.ProjectID != nil && *in.ProjectID == "" {
+		in.ProjectID = nil
+	}
+	if in.ProjectID != nil {
+		if pr, err := s.dir.ResolveProject(ctx, *in.ProjectID); err != nil {
+			errs = append(errs, problems.Field("project_id", "not_found", "unknown project"))
+		} else {
+			id := pr.ID
+			in.ProjectID = &id
+		}
+	}
 	if len(errs) == 0 && in.ReplyMD == "" && in.Status == nil && in.Priority == nil && len(in.AddTags) == 0 && len(in.RemoveTags) == 0 && in.Assignee == nil {
 		errs = append(errs, problems.Field("body", "min_properties", "a macro needs a reply, a status, a priority, tags or an assignee"))
 	}
@@ -186,22 +201,38 @@ func (s *Service) validateMacro(ctx context.Context, in *macroIn) error {
 }
 
 // saveMacro inserts (id "") or updates a macro owned by owner ("" = shared).
-func (s *Service) saveMacro(ctx context.Context, id, owner, createdBy string, in macroIn) (*macroDTO, error) {
+// p decides the project scope (D-20): a personal macro may name a project
+// the owner works in, a shared one a project the caller administers.
+func (s *Service) saveMacro(ctx context.Context, p *domain.Principal, id, owner, createdBy string, in macroIn) (*macroDTO, error) {
 	if err := s.validateMacro(ctx, &in); err != nil {
 		return nil, err
+	}
+	pid := ""
+	if in.ProjectID != nil {
+		pid = *in.ProjectID
+	}
+	switch {
+	case owner != "" && pid != "" && !p.InProject(pid):
+		return nil, problems.Validation(problems.Field("project_id", "not_allowed", "you are not a member of this project"))
+	case owner == "" && authz.CanProjectConfig(p, authz.PCMacros, pid) != nil:
+		if pid == "" {
+			return nil, problems.Forbidden("shared macros for every project need a supervisor or admin")
+		}
+		return nil, problems.Forbidden("not a project admin of the macro's project")
 	}
 	now := s.clock()
 	err := s.db.Tx(ctx, func(tx *store.Tx) error {
 		if id == "" {
 			id = store.NewID()
-			_, err := tx.ExecContext(ctx, `INSERT INTO macros (`+macroCols+`, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			_, err := tx.ExecContext(ctx, `INSERT INTO macros (`+macroCols+`, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 				id, in.Name, store.Nullable(owner), in.ReplyKind, in.ReplyMD, in.Status, in.Priority, store.MustJSON(in.AddTags),
-				store.MustJSON(in.RemoveTags), in.Assignee, now, now, store.Nullable(createdBy))
+				store.MustJSON(in.RemoveTags), in.Assignee, now, now, in.ProjectID, store.Nullable(createdBy))
 			return err
 		}
 		_, err := tx.ExecContext(ctx, `UPDATE macros SET name = ?, reply_kind = ?, reply_md = ?, status = ?, priority = ?, add_tags = ?,
-			remove_tags = ?, assignee = ?, updated_at = ? WHERE id = ?`,
-			in.Name, in.ReplyKind, in.ReplyMD, in.Status, in.Priority, store.MustJSON(in.AddTags), store.MustJSON(in.RemoveTags), in.Assignee, now, id)
+			remove_tags = ?, assignee = ?, project_id = ?, updated_at = ? WHERE id = ?`,
+			in.Name, in.ReplyKind, in.ReplyMD, in.Status, in.Priority, store.MustJSON(in.AddTags), store.MustJSON(in.RemoveTags), in.Assignee,
+			in.ProjectID, now, id)
 		return err
 	})
 	if err != nil {
@@ -238,6 +269,9 @@ func (s *Service) ApplyMacro(ctx context.Context, p *domain.Principal, ticketID,
 		}
 		if ifMatch != "" && strings.TrimSpace(ifMatch) != t.etag() && strings.TrimSpace(ifMatch) != "*" {
 			return problems.PreconditionFailed()
+		}
+		if mac.ProjectID != nil && *mac.ProjectID != t.ProjectID {
+			return problems.Validation(problems.Field("macro_id", "wrong_project", "the macro belongs to another project"))
 		}
 		m := &mutation{t: t}
 		need := func(a authz.Action) error { return authz.Can(p, a, t.view(pol, now)) }
@@ -333,8 +367,9 @@ func (s *Service) macroReply(ctx context.Context, tx *store.Tx, p *domain.Princi
 		return err
 	}
 	name := refs[t.RequesterID].Name
+	s.fillKey(ctx, t)
 	body, err := validBody("reply_md", RenderCanned(mac.ReplyMD, map[string]string{"customer.name": name, "requester.name": name,
-		"ticket.number": strconv.FormatInt(t.Number, 10), "agent.name": refs[p.UserID].Name}))
+		"ticket.number": strconv.FormatInt(t.Number, 10), "ticket.ref": t.Ref(), "agent.name": refs[p.UserID].Name}))
 	if err != nil {
 		return err
 	}
@@ -366,13 +401,31 @@ func (s *Service) macroReply(ctx context.Context, tx *store.Tx, p *domain.Princi
 
 // ---- HTTP ----
 
+// agentListMacros: shared and own macros of every project the caller works
+// in plus the global ones; `project` narrows to one project's (and global).
 func (m *Module) agentListMacros(w http.ResponseWriter, r *http.Request) error {
 	if err := readScope(r); err != nil {
 		return err
 	}
-	out, err := listMacros(r.Context(), m.svc.db.Read(), `owner_id IS NULL OR owner_id = ?`, principal(r).UserID)
+	p := principal(r)
+	filter := ""
+	if v := r.URL.Query().Get("project"); v != "" {
+		pid, err := m.svc.projectParam(r.Context(), v)
+		if err != nil {
+			return err
+		}
+		filter = pid
+	}
+	all, err := listMacros(r.Context(), m.svc.db.Read(), `owner_id IS NULL OR owner_id = ?`, p.UserID)
 	if err != nil {
 		return err
+	}
+	out := make([]macroDTO, 0, len(all))
+	for _, mac := range all {
+		if mac.ProjectID != nil && (!p.InProject(*mac.ProjectID) || (filter != "" && *mac.ProjectID != filter)) {
+			continue
+		}
+		out = append(out, mac)
 	}
 	writeJSON(w, http.StatusOK, out)
 	return nil
@@ -387,7 +440,7 @@ func (m *Module) agentCreateMacro(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 	p := principal(r)
-	mac, err := m.svc.saveMacro(r.Context(), "", p.UserID, p.UserID, in)
+	mac, err := m.svc.saveMacro(r.Context(), p, "", p.UserID, p.UserID, in)
 	if err != nil {
 		return err
 	}
@@ -423,7 +476,7 @@ func (m *Module) agentUpdateMacro(w http.ResponseWriter, r *http.Request) error 
 	if err := decodeJSON(r, &in); err != nil {
 		return err
 	}
-	mac, err := m.svc.saveMacro(r.Context(), cur.ID, *cur.OwnerID, "", in)
+	mac, err := m.svc.saveMacro(r.Context(), principal(r), cur.ID, *cur.OwnerID, "", in)
 	if err != nil {
 		return err
 	}
@@ -454,13 +507,35 @@ func (m *Module) deleteMacro(w http.ResponseWriter, r *http.Request, id string) 
 	return nil
 }
 
+// adminListMacros: shared macros; project admins see those of their
+// projects (D-20), `project` narrows to one project.
 func (m *Module) adminListMacros(w http.ResponseWriter, r *http.Request) error {
 	if err := adminScope(r); err != nil {
 		return err
 	}
-	out, err := listMacros(r.Context(), m.svc.db.Read(), `owner_id IS NULL`)
+	p := principal(r)
+	filter := ""
+	if v := r.URL.Query().Get("project"); v != "" {
+		pid, err := m.svc.projectParam(r.Context(), v)
+		if err != nil {
+			return err
+		}
+		filter = pid
+	}
+	all, err := listMacros(r.Context(), m.svc.db.Read(), `owner_id IS NULL`)
 	if err != nil {
 		return err
+	}
+	out := make([]macroDTO, 0, len(all))
+	for _, mac := range all {
+		pid := ""
+		if mac.ProjectID != nil {
+			pid = *mac.ProjectID
+		}
+		if (filter != "" && pid != filter) || (!p.IsSupervisorOrAdmin() && (pid == "" || !p.AdminsProject(pid))) {
+			continue
+		}
+		out = append(out, mac)
 	}
 	writeJSON(w, http.StatusOK, out)
 	return nil
@@ -474,7 +549,7 @@ func (m *Module) adminCreateMacro(w http.ResponseWriter, r *http.Request) error 
 	if err := decodeJSON(r, &in); err != nil {
 		return err
 	}
-	mac, err := m.svc.saveMacro(r.Context(), "", "", principal(r).UserID, in)
+	mac, err := m.svc.saveMacro(r.Context(), principal(r), "", "", principal(r).UserID, in)
 	if err != nil {
 		return err
 	}
@@ -489,6 +564,10 @@ func (m *Module) sharedMacro(r *http.Request) (*macroDTO, error) {
 		return nil, err
 	}
 	if !mac.Shared {
+		return nil, problems.NotFound()
+	}
+	p := principal(r)
+	if !p.IsSupervisorOrAdmin() && (mac.ProjectID == nil || !p.AdminsProject(*mac.ProjectID)) {
 		return nil, problems.NotFound()
 	}
 	return mac, nil
@@ -506,7 +585,7 @@ func (m *Module) adminUpdateMacro(w http.ResponseWriter, r *http.Request) error 
 	if err := decodeJSON(r, &in); err != nil {
 		return err
 	}
-	mac, err := m.svc.saveMacro(r.Context(), cur.ID, "", "", in)
+	mac, err := m.svc.saveMacro(r.Context(), principal(r), cur.ID, "", "", in)
 	if err != nil {
 		return err
 	}

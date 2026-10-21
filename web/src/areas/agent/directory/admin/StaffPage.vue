@@ -5,9 +5,14 @@ import { onMounted, ref } from 'vue'
 import { mdiMagnify, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import { useI18n } from 'vue-i18n'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import TierChip from '@/components/TierChip.vue'
 import RelativeTime from '@/components/RelativeTime.vue'
 import StaffForm from './StaffForm.vue'
+import ProjectCell from '../../shared/ProjectCell.vue'
+import { useConfigProjects } from '../../shared/useConfigProjects'
 import PrivacyActions from '../../privacy/PrivacyActions.vue'
 import UserMfaCard from './UserMfaCard.vue'
 import { api, unwrap } from '@/api/client'
@@ -18,6 +23,7 @@ import UserAvatar from '@/components/UserAvatar.vue'
 
 type S = components['schemas']
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
 const q = ref('')
 const role = ref<S['StaffRole'] | null>(null)
 const dialog = ref(false)
@@ -49,6 +55,16 @@ function onSaved() {
   void list.reload()
 }
 const teamNames = (ids?: string[]) => (ids ?? []).map((id) => lookups.teamName(id)).filter(Boolean).join(', ')
+const { t } = useI18n()
+const cols = useTableColumns('admin-staff', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'role', label: t('agent.staff.role') },
+  { key: 'tier', label: t('tier.label'), lowPriority: true },
+  { key: 'projects', label: t('projects.config.staffColumn'), lowPriority: true },
+  { key: 'teams', label: t('agent.staff.teams'), lowPriority: true },
+  { key: 'status', label: t('agent.common.status') },
+  { key: 'lastLogin', label: t('agent.staff.lastLogin'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -84,21 +100,24 @@ const teamNames = (ids?: string[]) => (ids ?? []).map((id) => lookups.teamName(i
     <v-card border flat>
       <v-progress-linear v-if="list.loading.value" indeterminate />
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.staff.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="staff-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="staff-table">
         <thead>
           <tr>
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.staff.role') }}</th>
-            <th>{{ $t('tier.label') }}</th>
-            <th>{{ $t('agent.staff.teams') }}</th>
-            <th>{{ $t('agent.common.status') }}</th>
-            <th>{{ $t('agent.staff.lastLogin') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('role')">{{ $t('agent.staff.role') }}</th>
+            <th v-if="cols.show('tier')">{{ $t('tier.label') }}</th>
+            <th v-if="cols.show('projects')">{{ $t('projects.config.staffColumn') }}</th>
+            <th v-if="cols.show('teams')">{{ $t('agent.staff.teams') }}</th>
+            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+            <th v-if="cols.show('lastLogin')">{{ $t('agent.staff.lastLogin') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in list.items.value" :key="u.id" data-testid="staff-row">
-            <td>
+            <td v-if="cols.show('name')">
               <div class="d-flex align-center ga-2">
                 <UserAvatar :name="u.name" :size="32" />
                 <div>
@@ -107,10 +126,11 @@ const teamNames = (ids?: string[]) => (ids ?? []).map((id) => lookups.teamName(i
                 </div>
               </div>
             </td>
-            <td>{{ $t(`agent.staff.roles.${u.role}`) }}</td>
-            <td><TierChip v-if="u.tier" :tier="u.tier" /></td>
-            <td>{{ teamNames(u.team_ids) || '—' }}</td>
-            <td>
+            <td v-if="cols.show('role')">{{ $t(`agent.staff.roles.${u.role}`) }}</td>
+            <td v-if="cols.show('tier')"><TierChip v-if="u.tier" :tier="u.tier" /></td>
+            <td v-if="cols.show('projects')"><ProjectCell :ids="(u.projects ?? []).map((m) => m.project_id)" /></td>
+            <td v-if="cols.show('teams')">{{ teamNames(u.team_ids) || '—' }}</td>
+            <td v-if="cols.show('status')">
               <v-chip size="small" label :color="u.status === 'active' ? 'success' : 'error'">
                 {{ u.status === 'active' ? $t('agent.common.active') : $t('agent.common.disabled') }}
               </v-chip>
@@ -119,13 +139,14 @@ const teamNames = (ids?: string[]) => (ids ?? []).map((id) => lookups.teamName(i
               </v-chip>
               <v-chip v-if="u.break_glass" size="small" label color="warning" class="ml-1">{{ $t('agent.staff.breakGlassShort') }}</v-chip>
             </td>
-            <td><RelativeTime v-if="u.last_login_at" :value="u.last_login_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+            <td v-if="cols.show('lastLogin')"><RelativeTime v-if="u.last_login_at" :value="u.last_login_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
             <td class="text-right">
               <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="staff-edit" @click="openForm(u)" />
             </td>
           </tr>
         </tbody>
       </v-table>
+      </template>
       <div v-if="list.next.value" class="pa-2 text-center">
         <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
       </div>
@@ -133,7 +154,7 @@ const teamNames = (ids?: string[]) => (ids ?? []).map((id) => lookups.teamName(i
     <v-dialog v-model="dialog" max-width="600">
       <v-card :title="editing ? $t('agent.staff.edit') : $t('agent.staff.new')">
         <v-card-text>
-          <StaffForm v-if="dialog" :staff="editing" :teams="lookups.teams" @saved="onSaved" @cancel="dialog = false" />
+          <StaffForm v-if="dialog" :staff="editing" :teams="lookups.teams" :projects="cp.all.value" @saved="onSaved" @cancel="dialog = false" />
           <PrivacyActions v-if="dialog && editing" :user="editing" @erased="onSaved" />
           <UserMfaCard v-if="dialog && editing" :user-id="editing.id" />
         </v-card-text>

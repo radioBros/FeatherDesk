@@ -422,7 +422,7 @@ func BenchmarkFanout_1000Subscribers(b *testing.B) {
 	for i := range subs {
 		switch i % 3 {
 		case 0:
-			subs[i] = &domain.Principal{UserID: "s", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1 + i%3, Teams: []string{"team-a"}}
+			subs[i] = &domain.Principal{UserID: "s", Kind: domain.KindStaff, Role: domain.RoleAgent, Tier: 1 + i%3, Teams: []string{"team-a"}, Projects: []string{domain.DefaultProjectID}}
 		case 1:
 			subs[i] = &domain.Principal{UserID: "c1", Kind: domain.KindCustomer, Role: domain.RoleRequester, OrganizationID: "o1"}
 		default:

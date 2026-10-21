@@ -122,8 +122,8 @@ func eligibleAgents(ctx context.Context, q store.Querier, t *ticketRow) ([]strin
 	rows, err := q.QueryContext(ctx, `SELECT u.id FROM users u
 		JOIN team_members m ON m.user_id = u.id AND m.team_id = ?
 		WHERE u.kind = 'staff' AND u.status = 'active' AND u.away_since IS NULL
-		  AND (u.role IN ('admin', 'supervisor') OR u.tier >= ?)
-		ORDER BY u.id`, t.TeamID, t.Tier)
+		  AND (u.role IN ('admin', 'supervisor') OR u.tier >= ?) AND `+projectMemberSQL+`
+		ORDER BY u.id`, t.TeamID, t.Tier, t.ProjectID)
 	if err != nil {
 		return nil, err
 	}

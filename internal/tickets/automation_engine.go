@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/radioBros/SimpleTickets/internal/authz"
 	"github.com/radioBros/SimpleTickets/internal/automation"
 	"github.com/radioBros/SimpleTickets/internal/directory"
 	"github.com/radioBros/SimpleTickets/internal/domain"
@@ -227,7 +228,7 @@ func inBusinessHours(cal *directory.Calendar, now time.Time) bool {
 func (s *Service) loadFacts(ctx context.Context, q store.Querier, t *ticketRow, body string, now time.Time, statusSince bool) (automation.Facts, error) {
 	f := automation.Facts{
 		Subject: t.Subject, Body: body, Channel: string(t.Channel), Priority: string(t.Priority), Status: string(t.Status),
-		Tier: t.Tier, CategoryID: t.CategoryID, TeamID: t.TeamID, OrganizationID: t.OrganizationID,
+		Tier: t.Tier, CategoryID: t.CategoryID, TeamID: t.TeamID, ProjectID: t.ProjectID, OrganizationID: t.OrganizationID,
 		HoursSinceUpdate: now.Sub(t.UpdatedAt).Hours(),
 	}
 	var err error
@@ -427,8 +428,12 @@ func (r *ruleRun) action(ctx context.Context, rule *automation.Rule, a automatio
 			return unchanged()
 		}
 		if cat != "" {
-			if _, err := s.dir.Category(ctx, cat); err != nil {
+			c, err := s.dir.Category(ctx, cat)
+			if err != nil {
 				return skip("unknown category")
+			}
+			if c.ProjectID != t.ProjectID {
+				return skip("the category belongs to another project")
 			}
 		}
 		m.add(events.TicketCategoryChanged, events.Change{From: nilIfEmpty(t.CategoryID), To: nilIfEmpty(cat)})
@@ -502,7 +507,7 @@ func (r *ruleRun) action(ctx context.Context, rule *automation.Rule, a automatio
 			if err != nil {
 				return skipped(a.Type, err)
 			}
-			if !satisfiesM4(st, t.TeamID, t.Tier) {
+			if !satisfiesM4(st, t) {
 				return skip("the agent cannot own this ticket (team, tier or status)")
 			}
 			if err := s.setAssigneeAuto(ctx, tx, m, a.UserID); err != nil {
@@ -675,7 +680,7 @@ type dryRunDTO struct {
 // DryRun evaluates one rule (enabled or not) against a ticket and reports
 // what its actions would do. It runs the real executor in a transaction that
 // is always rolled back, so the report matches a real run exactly.
-func (s *Service) DryRun(ctx context.Context, ruleID, ticketID string) (*dryRunDTO, error) {
+func (s *Service) DryRun(ctx context.Context, p *domain.Principal, ruleID, ticketID string) (*dryRunDTO, error) {
 	rule, err := s.loadRule(ctx, s.db.Read(), ruleID)
 	if err != nil {
 		return nil, err
@@ -684,8 +689,11 @@ func (s *Service) DryRun(ctx context.Context, ruleID, ticketID string) (*dryRunD
 		return nil, problems.Validation(problems.Field("ticket_id", "not_found", "unknown ticket"))
 	}
 	q := s.db.Read()
+	// The ticket must be visible to the caller (a project admin is an agent,
+	// I-4/I-11): an invisible ticket is an unknown one.
+	pred, pargs := authz.TicketPredicate(p, s.Policy(ctx), "t")
 	var n int
-	if err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM tickets WHERE id = ?`, ticketID).Scan(&n); err != nil {
+	if err := q.QueryRowContext(ctx, `SELECT COUNT(*) FROM tickets t WHERE t.id = ? AND `+pred, append([]any{ticketID}, pargs...)...).Scan(&n); err != nil {
 		return nil, err
 	}
 	if n == 0 {

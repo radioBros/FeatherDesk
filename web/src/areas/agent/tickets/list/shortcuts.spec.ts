@@ -36,7 +36,7 @@ describe('list keyboard shortcuts (FE-038)', () => {
     expect(h.wrapper.find('[data-testid="bulk-bar"]').exists()).toBe(true)
     key('Enter')
     await h.flush()
-    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/1042')
+    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/WEB-1042')
   })
 
   it('j/k are ignored while an input has focus', async () => {

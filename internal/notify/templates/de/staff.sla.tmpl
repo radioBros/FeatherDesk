@@ -3,7 +3,7 @@
 {{define "subject"}}{{if .SLABreached}}SLA verletzt{{else}}SLA-Warnung{{end}}: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hallo {{.RecipientName}},
 
-Das Ziel für {{if eq .SLAWhich "first_response"}}Erstreaktion{{else}}Lösung{{end}} des Tickets **#{{.Ticket.Number}} {{.Ticket.Subject}}** {{if .SLABreached}}wurde verfehlt{{else}}ist fällig{{end}} um {{.SLADue}} (UTC).
+Das Ziel für {{if eq .SLAWhich "first_response"}}Erstreaktion{{else}}Lösung{{end}} des Tickets **{{.Ticket.Ref}} {{.Ticket.Subject}}** {{if .SLABreached}}wurde verfehlt{{else}}ist fällig{{end}} um {{.SLADue}} (UTC).
 
 - **Betreff:** {{.Ticket.Subject}}
 - **Priorität:** {{.Ticket.Priority}}

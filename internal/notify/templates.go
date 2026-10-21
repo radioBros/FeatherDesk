@@ -168,7 +168,7 @@ type Rendered struct {
 // inject the brand and read ticket context.
 type branded interface {
 	setBrand(Brand)
-	ticketNumber() int64 // 0 = not a ticket mail (no [#n], no marker)
+	ticketRef() string // "" = not a ticket mail (no [KEY-123] tag, no marker)
 }
 
 // Render executes key in locale with data (a *CustomerData, *StaffData or
@@ -191,8 +191,8 @@ func (t *Templates) Render(key, locale string, brand Brand, data branded) (Rende
 	}
 	subject := strings.Join(strings.Fields(sb.String()), " ")
 	marker := ""
-	if n := data.ticketNumber(); n > 0 {
-		subject = fmt.Sprintf("[#%d] %s", n, subject)
+	if ref := data.ticketRef(); ref != "" {
+		subject = fmt.Sprintf("[%s] %s", ref, subject)
 		marker = thread.ReplyMarker(locale)
 	}
 	body := strings.TrimSpace(bb.String())

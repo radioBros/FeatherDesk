@@ -20,6 +20,7 @@ type teamRef struct {
 
 type catRef struct {
 	ID, Key, Name, Team string
+	Project             string // project key (D-20)
 }
 
 type fieldRef struct {
@@ -34,6 +35,8 @@ type person struct {
 	org                    string   // organization key (customers)
 	signature              string
 	idp                    bool
+	projects               []string // staff: project keys (nil = every project, D-20)
+	projectAdmin           []string // staff: project keys administered
 	id                     string
 	cl                     *client
 }
@@ -56,6 +59,7 @@ var orgDefs = []orgDef{
 	{"acme", "Acme Corp", []string{"acme.test", "acme-corp.test"}, "Key account since 2021. Premium support."},
 	{"globex", "Globex", []string{"globex.test"}, "Mid-size customer. Billing contact: accounts@globex.test."},
 	{"initech", "Initech", []string{"initech.test"}, "Evaluation customer, trial ends next quarter."},
+	{"hq", "Demo HQ (internal)", []string{"demo-hq.test"}, "Our own employees: they file Internal IT tickets through the IT desk."},
 }
 
 type teamDef struct {
@@ -137,7 +141,8 @@ var staffDefs = []person{
 		signature: "Sam Supervisor\nSupport Operations\n\n_We are here Mon-Fri, 9-18 CET._"},
 	{key: "fd1", email: "fiona.ferris@demo.test", name: "Fiona Ferris", role: "agent", tier: 1, teams: []string{"front"}, signature: "Fiona\nFront desk, L1"},
 	{key: "fd2", email: "felix.ford@demo.test", name: "Felix Ford", role: "agent", tier: 2, teams: []string{"front"}},
-	{key: "fd3", email: "freya.fields@demo.test", name: "Freya Fields", role: "agent", tier: 3, teams: []string{"front"}, signature: "Freya Fields\nSenior support engineer"},
+	{key: "fd3", email: "freya.fields@demo.test", name: "Freya Fields", role: "agent", tier: 3, teams: []string{"front"}, signature: "Freya Fields\nSenior support engineer",
+		projectAdmin: []string{"mob"}},
 	{key: "te1", email: "theo.turner@demo.test", name: "Theo Turner", role: "agent", tier: 1, teams: []string{"tech"}, signature: "Theo\nTechnical support L1"},
 	{key: "te2", email: "tina.torres@demo.test", name: "Tina Torres", role: "agent", tier: 2, teams: []string{"tech"}},
 	{key: "te3", email: "tomas.tran@demo.test", name: "Tomas Tran", role: "agent", tier: 3, teams: []string{"tech"}, signature: "Tomas Tran\nPlatform engineer (L3)\n\nhttps://status.demo.test"},
@@ -145,6 +150,9 @@ var staffDefs = []person{
 	{key: "bi2", email: "ben.blake@demo.test", name: "Ben Blake", role: "agent", tier: 2, teams: []string{"billing"}, signature: "Ben Blake\nBilling specialist"},
 	{key: "bi3", email: "bianca.bell@demo.test", name: "Bianca Bell", role: "agent", tier: 3, teams: []string{"billing"}},
 	{key: "idp", email: "ivy.identity@demo.test", name: "Ivy Identity", role: "agent", tier: 2, teams: []string{"tech"}, idp: true},
+	// D-20: works in the Mobile project only (I-11: sees no other project's tickets).
+	{key: singleProjectKey, email: "mona.mobile@demo.test", name: "Mona Mobile", role: "agent", tier: 2, teams: []string{"tech"},
+		projects: []string{"mob"}, signature: "Mona Mobile\nMobile apps support"},
 }
 
 // setupAdmin creates the break-glass admin (sixty-four days back, before the
@@ -176,7 +184,8 @@ func (s *seeder) setupStaff() error {
 		for _, k := range d.teams {
 			teams = append(teams, s.teams[k].ID)
 		}
-		body := map[string]any{"email": d.email, "name": d.name, "role": d.role, "tier": d.tier, "team_ids": teams, "password": s.opt.Password}
+		body := map[string]any{"email": d.email, "name": d.name, "role": d.role, "tier": d.tier, "team_ids": teams, "password": s.opt.Password,
+			"projects": s.memberships(&d)}
 		var out idResp
 		if err := s.admin.post("/admin/staff", body, &out); err != nil {
 			return fmt.Errorf("staff %s: %w", d.email, err)
@@ -208,6 +217,8 @@ var custDefs = []custDef{
 	{"ivan", "ivan.ivanov@initech.test", "Ivan Ivanov", "requester", "initech", "", "es"},
 	{"pia", "pia.pending@initech.test", "Pia Pending", "requester", "initech", "pending_verification", "en"},
 	{"dan", "dan.disabled@initech.test", "Dan Departed", "requester", "initech", "disabled", "en"},
+	{"eva", "eva.employee@demo-hq.test", "Eva Employee", "requester", "hq", "", "en"},
+	{"omar", "omar.office@demo-hq.test", "Omar Office", "org_manager", "hq", "", "it"},
 }
 
 func (s *seeder) setupCustomers() error {

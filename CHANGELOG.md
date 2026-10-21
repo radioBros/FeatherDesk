@@ -13,6 +13,31 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+### Added
+- **Projects (D-20):** tickets belong to projects with their own key and references
+  (`WEB-12`, `/agent/tickets/by-ref/{ref}`, `[WEB-12]` email subjects, `ticket://WEB-12`
+  in MCP), categories, team mapping, per-project SLA overrides, mailboxes, KB categories,
+  scoped rules, macros, canned responses, custom fields and webhooks, project members and
+  project admins, organization limits and per-project portal branding (`/p/{key}`).
+  Agents see only the tickets of their projects (invariant I-11). See
+  `docs/features/projects.md`.
+
+### Migrations
+- `0140_projects`: adds `projects`, `project_members`, `project_teams`,
+  `organization_projects` and `users.current_project_id`, creates the **Default project**
+  (key `HD`, named after the branding product name), makes every staff user a member and
+  maps every team to it. Fast; no operator action.
+- `0141_project_tickets`: adds `tickets.project_id` (every existing ticket joins the
+  Default project) and `tickets.project_seq` (set to the ticket number, so `#1042`
+  becomes `HD-1042`), its unique index and sequence counter. Rewrites every ticket row
+  once (`UPDATE tickets SET project_seq = number`): allow a few seconds per 100 000
+  tickets. Not reversible by a down migration (restore the pre-migration backup).
+- `0142_project_scoping`: adds the project columns of categories, inbound mailboxes,
+  KB categories, automation rules, macros, canned responses, custom fields and webhooks
+  (existing categories and mailboxes join the Default project; everything else stays
+  global), and rebuilds `sla_policies` with a surrogate `id` and `project_id` (existing
+  rows become the global defaults). Fast; no operator action.
+
 ## [1.0.0] - 2026-10-21
 
 First stable release of SimpleTickets, developed by [RadioBros](https://radiobros.com/). Everything below is new.

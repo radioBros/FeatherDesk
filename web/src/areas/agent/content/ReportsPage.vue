@@ -5,7 +5,7 @@
  * breakdowns per tier and team for a date range. Agents get their own stats;
  * the API scopes the numbers. Charts are hand-written SVG.
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -18,29 +18,37 @@ import { api, unwrap } from '@/api/client'
 import { ApiProblem } from '@/api/problem'
 import { useConfigStore } from '@/stores/config'
 import { useSessionStore } from '@/stores/session'
+import { useProjectsStore } from '@/stores/projects'
+import ProjectChip from '@/components/ProjectChip.vue'
 import { useLookupsStore } from '../shared/lookups'
 import { formatMinutes, type ReportFilter } from './format'
 import type { components } from '@/api/schema'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 
 type Report = components['schemas']['Report']
 const { t, locale } = useI18n()
 const config = useConfigStore()
 const session = useSessionStore()
 const lookups = useLookupsStore()
+const projects = useProjectsStore()
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10)
 const today = new Date()
-const initial: ReportFilter = {
+const initial = reactive<ReportFilter>({
   from: isoDay(new Date(today.getTime() - 29 * 86400000)),
   to: isoDay(today),
   team_id: null,
+  project: null,
   calendar_mode: null,
-}
+})
+let last: ReportFilter = { ...initial }
 const report = ref<Report | null>(null)
 const loading = ref(false)
 const failed = ref<string | null>(null)
 
 async function apply(f: ReportFilter) {
+  last = { ...f }
   loading.value = true
   failed.value = null
   try {
@@ -51,6 +59,7 @@ async function apply(f: ReportFilter) {
             from: `${f.from}T00:00:00Z`,
             to: `${f.to}T23:59:59Z`,
             team_id: f.team_id ?? undefined,
+            project: f.project ?? undefined,
             calendar_mode: f.calendar_mode ?? undefined,
           },
         },
@@ -62,9 +71,16 @@ async function apply(f: ReportFilter) {
     loading.value = false
   }
 }
-onMounted(() => {
-  void apply(initial)
+onMounted(async () => {
   if (session.isSupervisor) void lookups.ensure('teams')
+  await projects.load()
+  initial.project = projects.currentId
+  void apply({ ...initial })
+})
+// The top-bar switcher drives the report: a new choice reloads it.
+watch(() => projects.currentId, (id) => {
+  initial.project = id
+  void apply({ ...last, project: id })
 })
 
 const nf = computed(() => new Intl.NumberFormat(locale.value))
@@ -92,22 +108,49 @@ const tierGroups = computed(() =>
 const teamGroups = computed(() =>
   (report.value?.by_team ?? []).map((r) => ({ label: r.name || t('agent.reports.triage'), values: [r.created ?? 0, r.resolved ?? 0] })),
 )
+const projectGroups = computed(() =>
+  (report.value?.by_project ?? []).map((r) => ({ label: r.key, values: [r.created, r.resolved] })),
+)
+const showProjects = computed(() => !report.value?.project_id && projectGroups.value.length > 1)
+const projectRef = (id: string, key: string, name: string) => ({ key, name, color: projects.byId(id)?.color })
+const projectCols = useTableColumns('reports-project', () => [
+  { key: 'project', label: t('projects.reports.project'), locked: true },
+  { key: 'created', label: t('agent.reports.created') },
+  { key: 'resolved', label: t('agent.reports.resolved') },
+])
 const sla = computed(() => report.value?.sla)
 const slaParts = computed(() => [
   { label: t('agent.reports.slaMet'), value: sla.value?.met ?? 0, color: 'success' },
   { label: t('agent.reports.slaBreached'), value: sla.value?.breached ?? 0, color: 'error' },
 ])
 const isEmpty = computed(() => !!report.value && !Object.values(report.value.totals ?? {}).some((v) => (v ?? 0) > 0))
+
+const tierCols = useTableColumns('reports-tier', () => [
+  { key: 'tier', label: t('tier.label'), locked: true },
+  { key: 'created', label: t('agent.reports.created') },
+  { key: 'resolved', label: t('agent.reports.resolved') },
+  { key: 'escalatedIn', label: t('agent.reports.escalatedIn'), lowPriority: true },
+])
+
+const teamCols = useTableColumns('reports-team', () => [
+  { key: 'team', label: t('agent.common.team'), locked: true },
+  { key: 'created', label: t('agent.reports.created') },
+  { key: 'resolved', label: t('agent.reports.resolved') },
+])
 </script>
 
 <template>
   <v-container fluid class="pa-4">
     <PageHeader :title="$t('nav.reports')" :subtitle="session.isSupervisor ? $t('agent.reports.subtitleAll') : $t('agent.reports.subtitleOwn')" />
     <v-card border flat class="pa-3 mb-4">
-      <ReportsFilterForm :initial="initial" :teams="lookups.teams" :show-team="session.isSupervisor" @apply="apply" />
+      <ReportsFilterForm :initial="initial" :teams="lookups.teams" :projects="projects.active" :show-team="session.isSupervisor" @apply="apply" />
     </v-card>
 
     <v-alert v-if="failed" type="error" variant="tonal" class="mb-4" data-testid="reports-error">{{ failed }}</v-alert>
+    <div v-if="report?.project_id" class="mb-2" data-testid="reports-applied-project">
+      <span class="text-caption text-medium-emphasis mr-2">{{ $t('projects.reports.project') }}</span>
+      <ProjectChip v-if="projects.byId(report.project_id)" :project="projects.byId(report.project_id)" show-name size="small" />
+    </div>
     <v-progress-linear v-if="loading" indeterminate class="mb-4" />
 
     <template v-if="report && !failed">
@@ -151,16 +194,31 @@ const isEmpty = computed(() => !!report.value && !Object.values(report.value.tot
         <RatioBar :parts="slaParts" :label="$t('agent.reports.sla')" />
       </v-card>
 
+      <v-card v-if="showProjects" border flat class="pa-3 mt-2" data-testid="reports-by-project">
+        <div class="text-subtitle-2 mb-2">{{ $t('projects.reports.byProject') }}</div>
+        <GroupedBarChart :groups="projectGroups" :series="series" :label="$t('projects.reports.byProject')" />
+        <ColumnsMenu :cols="projectCols" />
+        <v-table density="compact" class="mt-2" data-testid="reports-project-table">
+          <thead><tr><th v-if="projectCols.show('project')">{{ $t('projects.reports.project') }}</th><th v-if="projectCols.show('created')">{{ $t('agent.reports.created') }}</th><th v-if="projectCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></tr></thead>
+          <tbody>
+            <tr v-for="r in report.by_project ?? []" :key="r.project_id">
+              <td v-if="projectCols.show('project')"><ProjectChip :project="projectRef(r.project_id, r.key, r.name)" show-name /></td><td v-if="projectCols.show('created')">{{ n(r.created) }}</td><td v-if="projectCols.show('resolved')">{{ n(r.resolved) }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </v-card>
+
       <v-row density="compact" class="mt-2">
         <v-col v-if="tierGroups.length" cols="12" md="6">
           <v-card border flat class="pa-3 h-100">
             <div class="text-subtitle-2 mb-2">{{ $t('agent.reports.byTier') }}</div>
             <GroupedBarChart :groups="tierGroups" :series="series" :label="$t('agent.reports.byTier')" />
+            <ColumnsMenu :cols="tierCols" />
             <v-table density="compact" class="mt-2" data-testid="reports-tier-table">
-              <thead><tr><th>{{ $t('tier.label') }}</th><th>{{ $t('agent.reports.created') }}</th><th>{{ $t('agent.reports.resolved') }}</th><th>{{ $t('agent.reports.escalatedIn') }}</th></tr></thead>
+              <thead><tr><th v-if="tierCols.show('tier')">{{ $t('tier.label') }}</th><th v-if="tierCols.show('created')">{{ $t('agent.reports.created') }}</th><th v-if="tierCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th><th v-if="tierCols.show('escalatedIn')">{{ $t('agent.reports.escalatedIn') }}</th></tr></thead>
               <tbody>
                 <tr v-for="r in report.by_tier ?? []" :key="r.tier">
-                  <td>{{ config.tierLabel(r.tier ?? 1) }}</td><td>{{ n(r.created) }}</td><td>{{ n(r.resolved) }}</td><td>{{ n(r.escalated_in) }}</td>
+                  <td v-if="tierCols.show('tier')">{{ config.tierLabel(r.tier ?? 1) }}</td><td v-if="tierCols.show('created')">{{ n(r.created) }}</td><td v-if="tierCols.show('resolved')">{{ n(r.resolved) }}</td><td v-if="tierCols.show('escalatedIn')">{{ n(r.escalated_in) }}</td>
                 </tr>
               </tbody>
             </v-table>
@@ -170,11 +228,12 @@ const isEmpty = computed(() => !!report.value && !Object.values(report.value.tot
           <v-card border flat class="pa-3 h-100">
             <div class="text-subtitle-2 mb-2">{{ $t('agent.reports.byTeam') }}</div>
             <GroupedBarChart :groups="teamGroups" :series="series" :label="$t('agent.reports.byTeam')" />
+            <ColumnsMenu :cols="teamCols" />
             <v-table density="compact" class="mt-2" data-testid="reports-team-table">
-              <thead><tr><th>{{ $t('agent.common.team') }}</th><th>{{ $t('agent.reports.created') }}</th><th>{{ $t('agent.reports.resolved') }}</th></tr></thead>
+              <thead><tr><th v-if="teamCols.show('team')">{{ $t('agent.common.team') }}</th><th v-if="teamCols.show('created')">{{ $t('agent.reports.created') }}</th><th v-if="teamCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></tr></thead>
               <tbody>
                 <tr v-for="r in report.by_team ?? []" :key="r.team_id ?? 'triage'">
-                  <td>{{ r.name || $t('agent.reports.triage') }}</td><td>{{ n(r.created) }}</td><td>{{ n(r.resolved) }}</td>
+                  <td v-if="teamCols.show('team')">{{ r.name || $t('agent.reports.triage') }}</td><td v-if="teamCols.show('created')">{{ n(r.created) }}</td><td v-if="teamCols.show('resolved')">{{ n(r.resolved) }}</td>
                 </tr>
               </tbody>
             </v-table>

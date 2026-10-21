@@ -34,6 +34,7 @@ type EmailTicket struct {
 	InboundMessageID string // inbound_messages.id, stored on the message
 	MailboxID        string
 	TeamID           string // the mailbox's team; "" = triage
+	ProjectID        string // the mailbox's project (D-20); "" = the default project
 	RequesterID      string // customer, already resolved by mailin
 	CCUserIDs        []string
 	Subject          string
@@ -147,6 +148,16 @@ func (s *Service) CreateFromEmailMessage(ctx context.Context, in EmailTicket) (t
 	if in.TeamID != "" {
 		ci.fixedTeam = &in.TeamID
 	}
+	if in.ProjectID != "" {
+		if _, err := s.dir.Project(ctx, in.ProjectID); err == nil {
+			ci.fixedProject = in.ProjectID
+		}
+	}
+	if ci.fixedProject == "" {
+		if pr, err := s.dir.DefaultProject(ctx); err == nil {
+			ci.fixedProject = pr.ID
+		}
+	}
 	id, err := s.Create(ctx, p, ci)
 	if err != nil {
 		return "", "", err
@@ -224,7 +235,7 @@ func (s *Service) ReplyFromEmailMessage(ctx context.Context, in EmailReply) (tic
 		if err != nil || st.Status != domain.UserActive {
 			return "", "", ErrNotParticipant
 		}
-		p := &domain.Principal{UserID: st.ID, Kind: domain.KindStaff, Role: st.Role, Tier: st.Tier, Teams: st.Teams}
+		p := st.principal()
 		if !authz.CanSeeTicket(p, t.view(pol, s.clock())) {
 			return "", "", ErrNotParticipant
 		}

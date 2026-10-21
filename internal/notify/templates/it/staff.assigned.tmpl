@@ -2,7 +2,7 @@
 {{define "subject"}}Assegnato a te: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Ciao {{.RecipientName}},
 
-{{.ActorName}} ti ha assegnato il ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**.
+{{.ActorName}} ti ha assegnato il ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**.
 
 - **Oggetto:** {{.Ticket.Subject}}
 - **Priorità:** {{.Ticket.Priority}}

@@ -4,9 +4,12 @@ package tickets
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/radioBros/SimpleTickets/internal/authz"
 	"github.com/radioBros/SimpleTickets/internal/domain"
@@ -242,6 +245,8 @@ func (s *Service) RecomputeDue(ctx context.Context, calendarID string) (int, err
 func (m *Module) mountSLA(g server.Groups) {
 	g.Support.Method(http.MethodGet, "/sla-policies", handler(m.listSLA))
 	g.Support.Method(http.MethodPut, "/sla-policies", handler(m.putSLA))
+	g.ProjectAdmin.Method(http.MethodGet, "/projects/{id}/sla-policies", handler(m.getProjectSLA))
+	g.ProjectAdmin.Method(http.MethodPut, "/projects/{id}/sla-policies", handler(m.putProjectSLA))
 }
 
 func slaList(byPr map[domain.Priority]SLAPolicy) []SLAPolicy {
@@ -277,11 +282,21 @@ func (m *Module) putSLA(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	var errs []problems.FieldError
-	seen := map[string]bool{}
 	if len(in.Policies) == 0 || len(in.Policies) > 4 {
 		errs = append(errs, problems.Field("policies", "length", "1..4 policies"))
 	}
-	for i, p := range in.Policies {
+	errs = append(errs, validateSLAPolicies(in.Policies)...)
+	if len(errs) > 0 {
+		return problems.Validation(errs...)
+	}
+	return m.putSLAApply(w, r, in.Policies)
+}
+
+// validateSLAPolicies checks a policies list (global or project override).
+func validateSLAPolicies(policies []SLAPolicy) []problems.FieldError {
+	var errs []problems.FieldError
+	seen := map[string]bool{}
+	for i, p := range policies {
 		f := func(k string) string { return "policies[" + itoa64(int64(i)) + "]." + k }
 		if !domain.Priority(p.Priority).Valid() || seen[p.Priority] {
 			errs = append(errs, problems.Field(f("priority"), "enum", "a priority, once"))
@@ -297,20 +312,20 @@ func (m *Module) putSLA(w http.ResponseWriter, r *http.Request) error {
 			errs = append(errs, problems.Field(f("first_response_minutes"), "order", "must not exceed resolution_minutes"))
 		}
 		if p.CalendarMode == "" {
-			in.Policies[i].CalendarMode = "24x7"
+			policies[i].CalendarMode = "24x7"
 		} else if p.CalendarMode != "24x7" && p.CalendarMode != "team" {
 			errs = append(errs, problems.Field(f("calendar_mode"), "enum", "24x7 or team"))
 		}
 	}
-	if len(errs) > 0 {
-		return problems.Validation(errs...)
-	}
+	return errs
+}
+
+func (m *Module) putSLAApply(w http.ResponseWriter, r *http.Request, policies []SLAPolicy) error {
+	in := struct{ Policies []SLAPolicy }{policies}
 	ctx := r.Context()
 	err := m.svc.db.Tx(ctx, func(tx *store.Tx) error {
 		for _, p := range in.Policies {
-			if _, err := tx.ExecContext(ctx, `INSERT INTO sla_policies (priority, first_response_minutes, resolution_minutes, calendar_mode, updated_at) VALUES (?, ?, ?, ?, ?)
-				ON CONFLICT (priority) DO UPDATE SET first_response_minutes = excluded.first_response_minutes, resolution_minutes = excluded.resolution_minutes,
-				calendar_mode = excluded.calendar_mode, updated_at = excluded.updated_at`, p.Priority, p.FirstResponseMinutes, p.ResolutionMinutes, p.CalendarMode, store.Now()); err != nil {
+			if err := upsertSLA(ctx, tx, "", p); err != nil {
 				return err
 			}
 		}
@@ -325,5 +340,150 @@ func (m *Module) putSLA(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	writeJSON(w, http.StatusOK, slaList(pols))
+	return nil
+}
+
+// upsertSLA writes one policy row: the global default (projectID "") or a
+// project override (D-20).
+func upsertSLA(ctx context.Context, tx *store.Tx, projectID string, p SLAPolicy) error {
+	now := store.Now()
+	var res sql.Result
+	var err error
+	if projectID == "" {
+		res, err = tx.ExecContext(ctx, `UPDATE sla_policies SET first_response_minutes = ?, resolution_minutes = ?, calendar_mode = ?, updated_at = ?
+			WHERE project_id IS NULL AND priority = ?`, p.FirstResponseMinutes, p.ResolutionMinutes, p.CalendarMode, now, p.Priority)
+	} else {
+		res, err = tx.ExecContext(ctx, `UPDATE sla_policies SET first_response_minutes = ?, resolution_minutes = ?, calendar_mode = ?, updated_at = ?
+			WHERE project_id = ? AND priority = ?`, p.FirstResponseMinutes, p.ResolutionMinutes, p.CalendarMode, now, projectID, p.Priority)
+	}
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		return nil
+	}
+	id := "sla-global-" + p.Priority
+	if projectID != "" {
+		id = store.NewID()
+	}
+	_, err = tx.ExecContext(ctx, `INSERT INTO sla_policies (id, project_id, priority, first_response_minutes, resolution_minutes, calendar_mode, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`, id, store.Nullable(projectID), p.Priority, p.FirstResponseMinutes, p.ResolutionMinutes, p.CalendarMode, now)
+	return err
+}
+
+// ProjectSLAPolicy is one effective policy of a project (ProjectSlaPolicy):
+// the override, or the inherited global default.
+type ProjectSLAPolicy struct {
+	SLAPolicy
+	Inherited bool `json:"inherited"`
+}
+
+func (m *Module) projectSLAOut(ctx context.Context, projectID string) ([]ProjectSLAPolicy, error) {
+	global, err := m.svc.slaPolicies(ctx)
+	if err != nil {
+		return nil, err
+	}
+	over, err := m.svc.projectSLAPolicies(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	out := []ProjectSLAPolicy{}
+	for _, pr := range []domain.Priority{domain.PriorityLow, domain.PriorityNormal, domain.PriorityHigh, domain.PriorityUrgent} {
+		if p, ok := over[pr]; ok {
+			out = append(out, ProjectSLAPolicy{SLAPolicy: p})
+		} else if p, ok := global[pr]; ok {
+			out = append(out, ProjectSLAPolicy{SLAPolicy: p, Inherited: true})
+		}
+	}
+	return out, nil
+}
+
+// adminProjectFor loads {id} for a caller who administers the project
+// (D-20): unknown or foreign projects are 404.
+func (m *Module) adminProjectFor(r *http.Request) (string, error) {
+	p := principal(r)
+	pr, err := m.svc.dir.Project(r.Context(), chi.URLParam(r, "id"))
+	if err != nil || !p.AdminsProject(pr.ID) {
+		return "", problems.NotFound()
+	}
+	return pr.ID, nil
+}
+
+// projectConfigScope: PATs need admin to write project configuration, and
+// admin or directory:read to read it (like the project routes of directory).
+func projectConfigScope(p *domain.Principal, write bool) error {
+	if write && !authz.HasAnyScope(p, domain.ScopeAdmin) {
+		return problems.Forbidden("token lacks admin")
+	}
+	if !write && !authz.HasAnyScope(p, domain.ScopeAdmin, domain.ScopeDirectoryRead) {
+		return problems.Forbidden("token lacks directory:read")
+	}
+	return nil
+}
+
+func (m *Module) getProjectSLA(w http.ResponseWriter, r *http.Request) error {
+	if err := projectConfigScope(principal(r), false); err != nil {
+		return err
+	}
+	id, err := m.adminProjectFor(r)
+	if err != nil {
+		return err
+	}
+	out, err := m.projectSLAOut(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, out)
+	return nil
+}
+
+// putProjectSLA replaces a project's overrides: listed priorities override
+// the global defaults, the others inherit them ([] = inherit everything).
+func (m *Module) putProjectSLA(w http.ResponseWriter, r *http.Request) error {
+	if err := projectConfigScope(principal(r), true); err != nil {
+		return err
+	}
+	id, err := m.adminProjectFor(r)
+	if err != nil {
+		return err
+	}
+	var in struct {
+		Policies []SLAPolicy `json:"policies"`
+	}
+	if err := decodeJSON(r, &in); err != nil {
+		return err
+	}
+	var errs []problems.FieldError
+	if in.Policies == nil {
+		errs = append(errs, problems.Field("policies", "required", "the full override list is required ([] inherits every default)"))
+	}
+	if len(in.Policies) > 4 {
+		errs = append(errs, problems.Field("policies", "length", "0..4 policies"))
+	}
+	errs = append(errs, validateSLAPolicies(in.Policies)...)
+	if len(errs) > 0 {
+		return problems.Validation(errs...)
+	}
+	ctx := r.Context()
+	err = m.svc.db.Tx(ctx, func(tx *store.Tx) error {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM sla_policies WHERE project_id = ?`, id); err != nil {
+			return err
+		}
+		for _, p := range in.Policies {
+			if err := upsertSLA(ctx, tx, id, p); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	m.svc.invalidateSLA()
+	out, err := m.projectSLAOut(ctx, id)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, out)
 	return nil
 }

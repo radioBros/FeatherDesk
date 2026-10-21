@@ -7,6 +7,7 @@ import (
 	"embed"
 	"fmt"
 	"io/fs"
+	"math"
 	"sort"
 	"strconv"
 	"strings"
@@ -61,7 +62,11 @@ func Migrations(d Dialect) ([]Migration, error) {
 
 // Migrate applies every pending migration. It refuses to run when the database
 // already has a version newer than this binary knows (downgrade protection).
-func (db *DB) Migrate(ctx context.Context) error {
+func (db *DB) Migrate(ctx context.Context) error { return db.migrateUntil(ctx, math.MaxInt) }
+
+// migrateUntil applies the pending migrations up to version limit (tests
+// build databases at an older schema, e.g. the D-20 backfill test).
+func (db *DB) migrateUntil(ctx context.Context, limit int) error {
 	ts := "TIMESTAMP"
 	if db.Dialect == Postgres {
 		ts = "TIMESTAMPTZ"
@@ -104,7 +109,7 @@ func (db *DB) Migrate(ctx context.Context) error {
 		}
 	}
 	for _, m := range ms {
-		if applied[m.Version] {
+		if applied[m.Version] || m.Version > limit {
 			continue
 		}
 		err := db.Tx(ctx, func(tx *Tx) error {

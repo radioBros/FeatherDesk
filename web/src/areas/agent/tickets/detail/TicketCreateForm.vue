@@ -14,12 +14,14 @@ import { api, unwrap, newIdempotencyKey } from '@/api/client'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import AttachmentUploader from '@/components/AttachmentUploader.vue'
 import CustomFieldInput from '@/components/CustomFieldInput.vue'
+import ProjectChip from '@/components/ProjectChip.vue'
+import type { AgentProject } from '@/stores/projects'
 import type { components } from '@/api/schema'
 
 type S = components['schemas']
 const props = withDefaults(
-  defineProps<{ categories?: S['Category'][]; teams?: S['Team'][]; customFields?: S['CustomFieldDef'][]; requester?: S['User'] | null }>(),
-  { categories: () => [], teams: () => [], customFields: () => [], requester: null },
+  defineProps<{ categories?: S['Category'][]; teams?: S['Team'][]; customFields?: S['CustomFieldDef'][]; requester?: S['User'] | null; projects?: AgentProject[]; defaultProjectId?: string | null }>(),
+  { categories: () => [], teams: () => [], customFields: () => [], requester: null, projects: () => [], defaultProjectId: null },
 )
 const emit = defineEmits<{ created: [S['Ticket']] }>()
 const PRIORITIES: S['Priority'][] = ['low', 'normal', 'high', 'urgent']
@@ -29,6 +31,7 @@ const model = reactive({
   requester: props.requester as S['User'] | null,
   requester_name: '',
   requester_email: '',
+  project_id: (props.defaultProjectId ?? (props.projects.length === 1 ? props.projects[0]!.id : null)) as string | null,
   subject: '',
   category_id: null as string | null,
   priority: 'normal' as S['Priority'],
@@ -59,6 +62,21 @@ watch(search, (q) => {
     }
   }, 300)
 })
+/** The picker shows only when there is a choice; with one project the server's default applies. */
+const projectItems = computed(() => props.projects.filter((p) => p.active))
+const showProject = computed(() => projectItems.value.length > 1)
+/** Categories and teams of the chosen project (the lists carry `project_id` / `project_ids`). */
+const categoryItems = computed(() =>
+  props.categories.filter((c) => c.active && (!model.project_id || !c.project_id || c.project_id === model.project_id)),
+)
+const teamItems = computed(() => props.teams.filter((tm) => !model.project_id || !tm.project_ids?.length || tm.project_ids.includes(model.project_id)))
+watch(
+  () => model.project_id,
+  () => {
+    if (model.category_id && !categoryItems.value.some((c) => c.id === model.category_id)) model.category_id = null
+    if (model.team_id && !teamItems.value.some((tm) => tm.id === model.team_id)) model.team_id = null
+  },
+)
 const customerItems = computed(() => (model.requester && !found.value.some((f) => f.id === model.requester!.id) ? [model.requester, ...found.value] : found.value))
 
 /** Fields for the chosen category (no scope = every category). */
@@ -83,6 +101,7 @@ const onSubmit = submit(async () => {
     subject: model.subject.trim(),
     body_md: model.body,
     priority: model.priority,
+    ...(model.project_id ? { project_id: model.project_id } : {}),
     category_id: model.category_id,
     team_id: model.team_id,
     ...(newCustomer.value
@@ -141,6 +160,21 @@ const onSubmit = submit(async () => {
       class="mb-2"
       data-testid="requester-search"
     />
+    <v-select
+      v-if="showProject"
+      v-model="model.project_id"
+      :items="projectItems"
+      item-title="name"
+      item-value="id"
+      :label="$t('projects.ticket.project')"
+      :rules="[validations.required.any]"
+      :error-messages="fieldErrors.project_id"
+      data-testid="ticket-project"
+    >
+      <template #item="{ item, props: p }">
+        <v-list-item v-bind="p" :title="item.name"><template #prepend><ProjectChip :project="item" size="small" class="mr-2" /></template></v-list-item>
+      </template>
+    </v-select>
     <v-text-field
       v-model="model.subject"
       :label="$t('agent.newTicket.subject')"
@@ -150,7 +184,7 @@ const onSubmit = submit(async () => {
     />
     <v-row dense>
       <v-col cols="12" sm="4">
-        <v-select v-model="model.category_id" :items="categories.filter((c) => c.active)" item-title="name" item-value="id" :label="$t('agent.common.category')" clearable data-testid="ticket-category" />
+        <v-select v-model="model.category_id" :items="categoryItems" item-title="name" item-value="id" :label="$t('agent.common.category')" clearable :error-messages="fieldErrors.category_id" data-testid="ticket-category" />
       </v-col>
       <v-col cols="12" sm="4">
         <v-select
@@ -162,7 +196,7 @@ const onSubmit = submit(async () => {
         />
       </v-col>
       <v-col cols="12" sm="4">
-        <v-select v-model="model.team_id" :items="teams" item-title="name" item-value="id" :label="$t('agent.common.team')" clearable data-testid="ticket-team" />
+        <v-select v-model="model.team_id" :items="teamItems" item-title="name" item-value="id" :label="$t('agent.common.team')" clearable :error-messages="fieldErrors.team_id" data-testid="ticket-team" />
       </v-col>
     </v-row>
     <CustomFieldInput v-for="d in defs" :key="d.id" v-model="model.custom[d.key]" :def="d" :error-messages="fieldErrors[`custom_fields.${d.key}`]" />

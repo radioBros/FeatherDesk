@@ -66,8 +66,26 @@ func policyFrom(sup settings.Support) authz.TicketPolicy {
 
 // emit writes one ticket_events row for t (its state after the change) in tx.
 func (s *Service) emit(ctx context.Context, tx *store.Tx, t *ticketRow, actorID, typ string, data any) error {
+	s.fillKey(ctx, t)
 	e := &events.Event{TicketID: t.ID, ActorID: actorID, Type: typ, Snapshot: t.snapshot()}
 	return events.Write(ctx, tx, e, data)
+}
+
+// fillKey sets t.ProjectKey (for Ref) from the directory snapshot, falling
+// back to the database for a project the snapshot does not know yet.
+func (s *Service) fillKey(ctx context.Context, t *ticketRow) {
+	if t == nil || t.ProjectKey != "" {
+		return
+	}
+	if pr, err := s.dir.Project(ctx, t.ProjectID); err == nil {
+		t.ProjectKey = pr.Key
+		return
+	}
+	var key string
+	if s.db.Read().QueryRowContext(ctx, `SELECT key FROM projects WHERE id = ?`, t.ProjectID).Scan(&key) == nil {
+		t.ProjectKey = key
+		s.dir.Invalidate()
+	}
 }
 
 // userRef is the UserRef schema.

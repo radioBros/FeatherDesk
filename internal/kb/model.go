@@ -104,6 +104,7 @@ type categoryDTO struct {
 	Sort         int               `json:"sort"`
 	Visibility   string            `json:"visibility"`
 	ArticleCount int               `json:"article_count"`
+	ProjectID    *string           `json:"project_id"` // D-20: nil = global
 }
 
 // ---- rows ----

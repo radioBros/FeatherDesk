@@ -4,18 +4,21 @@
  * Create / edit a KB category (FE-052): parent (never itself or a
  * descendant), slug, per-locale titles, visibility, sort.
  */
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import LocalizedTextFields from '../shared/LocalizedTextFields.vue'
 import { useForm } from '@/composables/useForm'
 import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import { localized } from '@/utils/localized'
+import ProjectSelect, { type ProjectOption } from '@/components/ProjectSelect.vue'
 import { descendantsOf, flattenTree, VISIBILITIES, type KbCategory, type KbVisibility } from './kb'
 
-const props = withDefaults(defineProps<{ category?: KbCategory | null; categories?: KbCategory[] }>(), {
+const props = withDefaults(defineProps<{ category?: KbCategory | null; categories?: KbCategory[]; projects?: ProjectOption[]; canGlobal?: boolean }>(), {
   category: null,
   categories: () => [],
+  projects: () => [],
+  canGlobal: true,
 })
 const emit = defineEmits<{ saved: [KbCategory]; cancel: [] }>()
 const { t, locale } = useI18n()
@@ -25,6 +28,7 @@ const model = reactive({
   slug: props.category?.slug ?? '',
   title: { ...(props.category?.title ?? {}) } as Record<string, string>,
   visibility: (props.category?.visibility ?? null) as KbVisibility | null,
+  project_id: (props.category?.project_id ?? null) as string | null,
   sort: props.category?.sort !== undefined && props.category?.sort !== null ? String(props.category.sort) : '',
 })
 
@@ -33,6 +37,11 @@ const parentItems = computed(() => {
   return flattenTree(props.categories, (c) => localized(c.title, locale.value) || c.slug)
     .filter(({ item }) => !excluded.has(item.id))
     .map(({ item, depth }) => ({ value: item.id, title: `${'— '.repeat(depth)}${localized(item.title, locale.value) || item.slug}` }))
+})
+// A sub-category belongs to its parent's project.
+const parent = computed(() => props.categories.find((c) => c.id === model.parent_id))
+watch(parent, (p) => {
+  if (p) model.project_id = p.project_id ?? null
 })
 const visibilityItems = computed(() => VISIBILITIES.map((v) => ({ value: v, title: t(`agent.kb.vis.${v}`) })))
 
@@ -43,6 +52,7 @@ const onSave = submit(async () => {
     slug: model.slug.trim(),
     title: model.title,
     visibility: model.visibility!,
+    ...(props.projects.length ? { project_id: model.project_id } : {}),
     sort: model.sort === '' ? undefined : Number(model.sort),
   }
   const saved = props.category
@@ -72,6 +82,19 @@ const onSave = submit(async () => {
       clearable
       :error-messages="fieldErrors.parent_id"
       data-testid="kbcat-parent"
+    />
+    <ProjectSelect
+      v-if="projects.length"
+      v-model="model.project_id"
+      :projects="projects"
+      :nullable="canGlobal"
+      :null-label="$t('projects.config.global')"
+      :disabled="!!parent"
+      :label="$t('projects.config.project')"
+      :hint="parent ? $t('projects.config.subHint') : $t('projects.config.scopeHint')"
+      :rules="canGlobal ? [] : [validations.required.any]"
+      :error-messages="fieldErrors.project_id"
+      testid="kbcat-project"
     />
     <v-select
       v-model="model.visibility"

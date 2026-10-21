@@ -39,13 +39,19 @@ const label = computed(() => (store.unread ? t('notifications.bell.labelUnread',
 <template>
   <v-menu v-model="open" location="bottom end" :close-on-content-click="false">
     <template #activator="{ props: p }">
-      <v-btn v-bind="p" icon variant="text" color="nav-notifications" :aria-label="label" data-testid="notification-bell">
-        <v-badge :model-value="store.unread > 0" color="error" data-testid="notification-badge">
-          <template #badge><span data-testid="notification-count">{{ badge }}</span></template>
+      <!-- The badge wraps the button (not the icon inside it): a v-btn clips its content. -->
+      <v-badge :model-value="store.unread > 0" color="error" data-testid="notification-badge" class="st-bell-badge">
+        <template #badge><span data-testid="notification-count">{{ badge }}</span></template>
+        <v-btn v-bind="p" icon variant="text" color="nav-notifications" :aria-label="label" data-testid="notification-bell">
           <v-icon :icon="mdiBellOutline" />
-        </v-badge>
-      </v-btn>
+        </v-btn>
+      </v-badge>
     </template>
     <NotificationMenu v-if="open" :area="area" @close="open = false" />
   </v-menu>
 </template>
+
+<style scoped>
+/* Keep the 40 px button the only thing in the flow; the badge hangs on its top-right corner and stays inside the bar. */
+.st-bell-badge :deep(.v-badge__badge) { inset-block-start: 2px !important; inset-inline-start: auto !important; inset-inline-end: -2px; min-width: 18px; height: 18px; padding: 0 4px; font-size: 0.6875rem; line-height: 1; z-index: 1; }
+</style>

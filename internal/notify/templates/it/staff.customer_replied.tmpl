@@ -2,7 +2,7 @@
 {{define "subject"}}Il cliente ha risposto: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Ciao {{.RecipientName}},
 
-il cliente ha risposto al ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**:{{range .Messages}}
+il cliente ha risposto al ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

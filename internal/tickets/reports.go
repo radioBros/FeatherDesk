@@ -65,12 +65,25 @@ type Report struct {
 		Average *float64 `json:"average"`
 		Count   int      `json:"count"`
 	} `json:"csat"`
+	// ProjectID is the `project` filter applied (D-20), ByProject the
+	// created/resolved split per project.
+	ProjectID *string      `json:"project_id"`
+	ByProject []projectRow `json:"by_project"`
+}
+
+type projectRow struct {
+	ProjectID string `json:"project_id"`
+	Key       string `json:"key"`
+	Name      string `json:"name"`
+	Created   int    `json:"created"`
+	Resolved  int    `json:"resolved"`
 }
 
 // ReportQuery selects the report scope.
 type ReportQuery struct {
 	From, To     time.Time
 	TeamID       string
+	ProjectID    string // D-20: "" = all projects the caller works in
 	CalendarMode string // 24x7 (default) or team
 }
 
@@ -93,10 +106,21 @@ func (s *Service) Summary(ctx context.Context, p *domain.Principal, rq ReportQue
 	scope, args := "1=1", []any{}
 	if !p.IsSupervisorOrAdmin() {
 		scope, args = "t.assignee_id = ?", []any{p.UserID}
+		// I-11: an agent's own stats cover the projects they work in.
+		if len(p.Projects) == 0 {
+			scope = "1=0"
+		} else {
+			scope += " AND t.project_id IN (" + placeholders(len(p.Projects)) + ")"
+			args = append(args, anyStrings(p.Projects)...)
+		}
 	}
 	if rq.TeamID != "" {
 		scope += " AND t.team_id = ?"
 		args = append(args, rq.TeamID)
+	}
+	if rq.ProjectID != "" {
+		scope += " AND t.project_id = ?"
+		args = append(args, rq.ProjectID)
 	}
 	q := s.db.Read()
 	rows, err := q.QueryContext(ctx, `SELECT `+ticketCols+` FROM tickets t WHERE `+scope+` AND (
@@ -123,7 +147,22 @@ func (s *Service) Summary(ctx context.Context, p *domain.Principal, rq ReportQue
 		c, _ := s.dir.TeamCalendar(ctx, t.TeamID)
 		return c
 	}
-	rep := &Report{From: rq.From, To: rq.To, CalendarMode: rq.CalendarMode, ByTier: []tierRow{}, ByTeam: []teamRow{}}
+	rep := &Report{From: rq.From, To: rq.To, CalendarMode: rq.CalendarMode, ByTier: []tierRow{}, ByTeam: []teamRow{}, ByProject: []projectRow{},
+		ProjectID: strOrNil(rq.ProjectID)}
+	projects := map[string]*projectRow{}
+	project := func(t *ticketRow) *projectRow {
+		if r, ok := projects[t.ProjectID]; ok {
+			return r
+		}
+		s.fillKey(ctx, t)
+		ref := s.dir.ProjectRefOf(ctx, t.ProjectID)
+		r := &projectRow{ProjectID: t.ProjectID, Key: t.ProjectKey, Name: ref.Name}
+		if r.Name == "" {
+			r.Name = t.ProjectKey
+		}
+		projects[t.ProjectID] = r
+		return r
+	}
 	tiers := map[int]*tierRow{1: {Tier: 1}, 2: {Tier: 2}, 3: {Tier: 3}}
 	teams := map[string]*teamRow{}
 	team := func(id string) *teamRow {
@@ -146,6 +185,7 @@ func (s *Service) Summary(ctx context.Context, p *domain.Principal, rq ReportQue
 			rep.Totals.Created++
 			tiers[t.Tier].Created++
 			team(t.TeamID).Created++
+			project(t).Created++
 			if t.FirstRespondedAt.Valid {
 				frt = append(frt, directory.BusinessDuration(cal(t), t.CreatedAt, t.FirstRespondedAt.Time).Minutes())
 			}
@@ -154,6 +194,7 @@ func (s *Service) Summary(ctx context.Context, p *domain.Principal, rq ReportQue
 			rep.Totals.Resolved++
 			tiers[t.Tier].Resolved++
 			team(t.TeamID).Resolved++
+			project(t).Resolved++
 			d := directory.BusinessDuration(cal(t), t.CreatedAt, t.ResolvedAt.Time).Minutes() - float64(t.SLAPausedMinutes)
 			res = append(res, math.Max(0, d))
 			if t.ResolutionDueAt.Valid {
@@ -216,6 +257,10 @@ func (s *Service) Summary(ctx context.Context, p *domain.Principal, rq ReportQue
 		rep.ByTeam = append(rep.ByTeam, *r)
 	}
 	sort.Slice(rep.ByTeam, func(i, j int) bool { return rep.ByTeam[i].Name < rep.ByTeam[j].Name })
+	for _, r := range projects {
+		rep.ByProject = append(rep.ByProject, *r)
+	}
+	sort.Slice(rep.ByProject, func(i, j int) bool { return rep.ByProject[i].Key < rep.ByProject[j].Key })
 	return rep, nil
 }
 
@@ -237,6 +282,13 @@ func (m *Module) reportSummary(w http.ResponseWriter, r *http.Request) error {
 			}
 			*dst = t.UTC()
 		}
+	}
+	if v := qv.Get("project"); v != "" {
+		pid, err := m.svc.projectParam(r.Context(), v)
+		if err != nil {
+			return err
+		}
+		rq.ProjectID = pid
 	}
 	if rq.CalendarMode != "" && rq.CalendarMode != "24x7" && rq.CalendarMode != "team" {
 		errs = append(errs, problems.Field("calendar_mode", "enum", "24x7 or team"))

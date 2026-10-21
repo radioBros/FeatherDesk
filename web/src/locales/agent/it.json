@@ -1015,7 +1015,8 @@
         "ticket_children_resolved": "Tutti i ticket figli risolti",
         "unknown": "Evento {type}",
         "reason": "Motivo: {reason}",
-        "unassigned": "Non assegnato"
+        "unassigned": "Non assegnato",
+        "ticket_project_changed": "Spostato in un altro progetto"
       },
       "timeline": {
         "empty": "Ancora nessun evento",
@@ -1083,7 +1084,8 @@
       "custom_field": "Campo personalizzato",
       "business_hours": "In orario lavorativo",
       "hours_since_update": "Ore dall'ultimo aggiornamento",
-      "hours_since_status": "Ore nello stato attuale"
+      "hours_since_status": "Ore nello stato attuale",
+      "project": "Progetto"
     },
     "ops": {
       "is": "è",
@@ -1239,6 +1241,114 @@
       "actor": "Automazione",
       "rule": "«{name}»",
       "truncated": "interrotta al limite di 10 azioni"
+    }
+  },
+  "projects": {
+    "nav": {
+      "title": "Progetti"
+    },
+    "switcher": {
+      "label": "Progetto",
+      "all": "Tutti i progetti",
+      "error": "Impossibile cambiare progetto."
+    },
+    "reports": {
+      "project": "Progetto",
+      "byProject": "Per progetto"
+    },
+    "config": {
+      "all": "Tutti i progetti",
+      "project": "Progetto",
+      "projects": "Progetti",
+      "filter": "Filtra per progetto",
+      "lockedHint": "Il progetto non può cambiare quando la categoria ha ticket.",
+      "teamHint": "Progetti serviti dal team. I nuovi team entrano nel progetto predefinito.",
+      "orgHint": "Progetti in cui i suoi clienti possono aprire ticket. Vuoto: ogni progetto visibile nel portale.",
+      "webhookHint": "Vuoto: vengono consegnati gli eventi di ogni progetto.",
+      "fieldHint": "Vuoto: il campo vale in ogni progetto.",
+      "scopeHint": "Vuoto: vale per tutti i progetti.",
+      "mailboxHint": "I nuovi ticket di questa casella entrano in questo progetto.",
+      "memberships": "Appartenenze ai progetti",
+      "membershipsHint": "Gli agenti vedono solo i ticket dei propri progetti. Supervisori e amministratori vedono ogni progetto.",
+      "role": "Ruolo nel progetto",
+      "member": "Membro",
+      "project_admin": "Amministratore del progetto",
+      "addMembership": "Aggiungi progetto",
+      "removeMembership": "Rimuovi",
+      "noMemberships": "Nessun progetto: si usa quello predefinito.",
+      "staffColumn": "Progetti",
+      "ruleProject": "Progetto",
+      "pick": "Seleziona progetti",
+      "global": "Tutti i progetti (globale)",
+      "subHint": "Una sottocategoria appartiene al progetto della categoria padre."
+    },
+    "ticket": {
+      "ref": "Rif.",
+      "project": "Progetto",
+      "move": {
+        "title": "Sposta in un progetto",
+        "target": "Progetto di destinazione",
+        "hint": "{ref} riceve il prossimo riferimento del progetto di destinazione; il vecchio riferimento non funziona più.",
+        "confirm": "Sposta",
+        "done": "Spostato: ora {ref}",
+        "handedOver": "Il ticket è stato spostato in un progetto che non vedi più."
+      }
+    },
+    "admin": {
+      "subtitle": "Raggruppa i ticket per prodotto, cliente o servizio, ciascuno con la propria chiave e numerazione.",
+      "new": "Nuovo progetto",
+      "edit": "Modifica {name}",
+      "empty": "Nessun progetto",
+      "emptyBody": "Crea il primo progetto per iniziare a raggruppare i ticket.",
+      "key": "Chiave",
+      "keyHint": "Da 2 a 10 caratteri, ad esempio WEB. I ticket diventano WEB-1, WEB-2 e così via.",
+      "keyLocked": "La chiave non può più cambiare: il progetto ha dei ticket.",
+      "color": "Colore",
+      "icon": "Icona",
+      "sort": "Ordine",
+      "tickets": "Ticket",
+      "defaultTeam": "Team predefinito",
+      "defaultTeamHint": "Riceve i nuovi ticket senza team di categoria. Deve essere uno dei team che servono il progetto.",
+      "defaultTeamNew": "Sceglilo dopo aver creato il progetto, quando i suoi team sono assegnati.",
+      "portalSection": "Portale clienti",
+      "portalVisible": "I clienti possono aprire ticket in questo progetto",
+      "portalTitle": "Titolo del portale",
+      "portalFallback": "Vuoto: il titolo globale del portale",
+      "portalIntro": "Introduzione del portale (Markdown)",
+      "primaryColor": "Colore primario del portale",
+      "tabs": {
+        "settings": "Impostazioni",
+        "members": "Membri",
+        "teams": "Team",
+        "sla": "SLA"
+      },
+      "logo": {
+        "title": "Logo del portale",
+        "label": "File del logo",
+        "hint": "PNG, JPEG o SVG, fino a 1 MB. Vuoto: il logo globale.",
+        "remove": "Rimuovi logo"
+      },
+      "members": {
+        "add": "Aggiungi un membro dello staff",
+        "role": "Ruolo",
+        "empty": "Nessun membro. Gli agenti vedono solo i ticket dei progetti a cui appartengono.",
+        "readOnly": "Solo supervisori e amministratori modificano i membri.",
+        "roles": {
+          "member": "Membro",
+          "project_admin": "Amministratore del progetto"
+        }
+      },
+      "teams": {
+        "hint": "I team che servono questo progetto: ricevono i suoi ticket, possono essere assegnati e usati dalle sue regole.",
+        "default": "predefinito",
+        "defaultStays": "Il team predefinito deve restare nell'elenco."
+      },
+      "sla": {
+        "hint": "Ogni priorità usa il valore globale oppure obiettivi propri per questo progetto.",
+        "override": "Sostituisci",
+        "inherited": "Predefinito globale",
+        "clear": "Usa i valori globali per tutte"
+      }
     }
   }
 }

@@ -66,8 +66,8 @@ func TestAllTemplatesParse(t *testing.T) {
 				}
 			}
 			if strings.HasPrefix(key, "customer.") || (strings.HasPrefix(key, "staff.") && key != TplStaffWebhookDisabled) {
-				if !strings.HasPrefix(r.Subject, "[#1042] ") {
-					t.Errorf("%s/%s: subject %q lacks [#1042]", loc, key, r.Subject)
+				if !strings.HasPrefix(r.Subject, "[HD-1042] ") {
+					t.Errorf("%s/%s: subject %q lacks [HD-1042]", loc, key, r.Subject)
 				}
 				if !strings.Contains(r.Text, ReplyMarkerFor(loc)) {
 					t.Errorf("%s/%s: no reply marker", loc, key)
@@ -231,7 +231,7 @@ func TestNoSVGLogo(t *testing.T) {
 func TestCustomerViewAllowList(t *testing.T) {
 	allowed := map[reflect.Type][]string{
 		reflect.TypeOf(CustomerData{}):        {"Brand", "RecipientName", "Ticket", "Message", "Signature", "CSATURL"},
-		reflect.TypeOf(CustomerTicketView{}):  {"Number", "Subject", "URL"},
+		reflect.TypeOf(CustomerTicketView{}):  {"Number", "Ref", "Subject", "URL"},
 		reflect.TypeOf(CustomerMessageView{}): {"AuthorName", "Body"},
 	}
 	for typ, want := range allowed {

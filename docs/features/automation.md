@@ -51,7 +51,9 @@ works. The switch stays on until the agent turns it off.
 
 ## 2. Automation rules
 
-Supervisors and admins manage rules in **Administration → Support setup → Automation rules**.
+Supervisors and admins manage rules in **Administration → Support setup → Automation rules**. A rule can be limited to one
+[project](projects.md): it then runs only on that project's tickets, and that project's **project admins** manage it too (they
+see and change only their projects' rules; global rules and the order stay with supervisors and admins).
 
 A rule has:
 
@@ -82,6 +84,7 @@ Rules run in the order of the list. Use the arrows to reorder them.
 | Channel, Priority, Status | is, is not | One value or a list (up to 50) |
 | Support level (tier) | is, is not, at least, at most | 1–3 |
 | Category, Team, Organization | is, is not | |
+| Project | is, is not | Project ids or keys (the API stores ids) |
 | Requester email domain | is, is not | For example `example.com` |
 | Tag | is present, is missing | |
 | Custom field | equals, contains | Pick the field by its label (the API uses its key). For a multi-select, both operators match one of the chosen options |
@@ -142,7 +145,7 @@ written. The dry run tests the saved rule, and works for inactive rules too, so 
 A macro is a reusable bundle. It can have any of:
 
 - a reply, either **public** or an **internal** note (up to 64 KiB). It can use the canned-response placeholders
-  `{{customer.name}}` (alias `{{requester.name}}`), `{{ticket.number}}` and `{{agent.name}}` (whoever applies the macro);
+  `{{customer.name}}` (alias `{{requester.name}}`), `{{ticket.number}}`, `{{ticket.ref}}` and `{{agent.name}}` (whoever applies the macro);
 - a status;
 - a priority;
 - tags to add, and tags to remove (up to 20 each);
@@ -155,7 +158,9 @@ There are two kinds:
 - **Personal macros** (**My macros**, in the user menu at the top right, under the *Away* switch) belong to one agent, and only
   that agent sees and applies them.
 - **Shared macros** (*Administration → Support setup → Shared macros*) are offered to every agent. Only supervisors and admins can
-  create, edit or delete them.
+  create, edit or delete them, and the project admins of a project for the macros limited to it.
+
+A macro can be limited to one [project](projects.md); it is then offered and applied only on that project's tickets.
 
 To apply a macro, open a ticket and choose the **Macros** button in the ticket header (next to the status, priority and tier
 chips), then pick one. The button shows when you may reply, add a note or set the status. It applies as you, in one step: the

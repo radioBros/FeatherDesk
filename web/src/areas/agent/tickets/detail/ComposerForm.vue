@@ -32,7 +32,7 @@ type S = components['schemas']
 type Mode = 'public' | 'internal'
 
 const props = defineProps<{
-  ticket: Pick<S['Ticket'], 'id' | 'number' | 'allowed_actions'> & { requester?: S['UserRef'] }
+  ticket: Pick<S['Ticket'], 'id' | 'number' | 'allowed_actions'> & { ref?: string } & { requester?: S['UserRef'] }
   /** Names of other staff currently typing on this ticket (presence, FE-046). */
   typing?: string[]
 }>()
@@ -65,6 +65,7 @@ const vars = computed(() => ({
   'customer.name': props.ticket.requester?.name ?? '',
   'requester.name': props.ticket.requester?.name ?? '',
   'ticket.number': String(props.ticket.number),
+  'ticket.ref': props.ticket.ref ?? String(props.ticket.number),
   'agent.name': session.me?.name ?? '',
 }))
 

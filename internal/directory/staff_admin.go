@@ -211,6 +211,8 @@ type staffCreate struct {
 	Password   *string     `json:"password"`
 	BreakGlass bool        `json:"break_glass"`
 	SendInvite bool        `json:"send_invite"`
+	// Projects (D-20): memberships; omitted = member of the default project.
+	Projects *[]Membership `json:"projects"`
 }
 
 func (s *StaffAdmin) create(w http.ResponseWriter, r *http.Request) {
@@ -253,6 +255,14 @@ func (s *StaffAdmin) create(w http.ResponseWriter, r *http.Request) {
 			f = append(f, problems.Field("password", c, ""))
 		}
 	}
+	if in.Projects != nil {
+		pf, err := validateMembershipsSQL(ctx, s.d.DB.Read(), "projects", *in.Projects)
+		if err != nil {
+			problems.Write(w, r, err)
+			return
+		}
+		f = append(f, pf...)
+	}
 	if len(f) > 0 {
 		problems.Write(w, r, problems.Validation(f...))
 		return
@@ -290,6 +300,13 @@ func (s *StaffAdmin) create(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		if _, err := staffSetLocalTeams(ctx, tx, id, in.TeamIDs); err != nil {
+			return err
+		}
+		if in.Projects != nil {
+			if _, err := SetMemberships(ctx, tx, id, *in.Projects); err != nil {
+				return err
+			}
+		} else if err := JoinDefaultProject(ctx, tx, id); err != nil {
 			return err
 		}
 		if invite {
@@ -385,6 +402,8 @@ type staffPatch struct {
 	Status     *domain.UserStatus `json:"status"`
 	TeamIDs    *[]string          `json:"team_ids"`
 	BreakGlass *bool              `json:"break_glass"`
+	// Projects (D-20) replaces the memberships when present.
+	Projects *[]Membership `json:"projects"`
 }
 
 func (s *StaffAdmin) patch(w http.ResponseWriter, r *http.Request) {
@@ -414,6 +433,14 @@ func (s *StaffAdmin) patch(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.Status != nil && *in.Status != domain.UserActive && *in.Status != domain.UserDisabled {
 		f = append(f, problems.Field("status", "invalid", "active or disabled"))
+	}
+	if in.Projects != nil {
+		pf, err := validateMembershipsSQL(ctx, s.d.DB.Read(), "projects", *in.Projects)
+		if err != nil {
+			problems.Write(w, r, err)
+			return
+		}
+		f = append(f, pf...)
 	}
 	if len(f) > 0 {
 		problems.Write(w, r, problems.Validation(f...))
@@ -487,6 +514,13 @@ func (s *StaffAdmin) patch(w http.ResponseWriter, r *http.Request) {
 				return err
 			}
 		}
+		var leftProjects []string
+		if in.Projects != nil {
+			changes["projects"] = *in.Projects
+			if leftProjects, err = SetMemberships(ctx, tx, id, *in.Projects); err != nil {
+				return err
+			}
+		}
 		if in.Status != nil && *in.Status != u.Status {
 			changes["status"] = *in.Status
 			if disabling {
@@ -503,7 +537,7 @@ func (s *StaffAdmin) patch(w http.ResponseWriter, r *http.Request) {
 		// longer satisfy team + tier + active are unassigned with an event.
 		// A role, tier or status change affects every team (""); leaving a
 		// team affects that team only.
-		if roleChange || tierChange || disabling {
+		if roleChange || tierChange || disabling || len(leftProjects) > 0 {
 			if err := MembershipChanged(ctx, tx, p.UserID, "", []string{id}); err != nil {
 				return err
 			}

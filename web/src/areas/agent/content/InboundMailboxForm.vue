@@ -15,11 +15,12 @@ import { useForm } from '@/composables/useForm'
 import { validations, type Rule } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
+import ProjectSelect, { type ProjectOption } from '@/components/ProjectSelect.vue'
 
 type S = components['schemas']
 type Mailbox = S['InboundMailbox']
 
-const props = withDefaults(defineProps<{ mailbox?: Mailbox | null; teams?: S['Team'][] }>(), { mailbox: null, teams: () => [] })
+const props = withDefaults(defineProps<{ mailbox?: Mailbox | null; teams?: S['Team'][]; projects?: ProjectOption[] }>(), { mailbox: null, teams: () => [], projects: () => [] })
 const emit = defineEmits<{ saved: [Mailbox, boolean]; cancel: [] }>()
 const { t } = useI18n()
 
@@ -28,6 +29,7 @@ const model = reactive({
   name: m?.name ?? '',
   kind: (m?.kind ?? null) as Mailbox['kind'] | null,
   team_id: m?.team_id ?? (null as string | null),
+  project_id: (m?.project_id ?? props.projects[0]?.id ?? null) as string | null,
   address: m?.address ?? '',
   active: m?.active ?? true,
   host: m?.imap?.host ?? '',
@@ -69,6 +71,7 @@ function buildBody(): S['InboundMailboxCreate'] {
   put('name', model.name.trim())
   put('kind', model.kind)
   put('team_id', model.team_id)
+  if (model.project_id) put('project_id', model.project_id)
   put('address', model.address.trim())
   put('active', model.active)
   if (model.kind === 'imap') {
@@ -115,6 +118,16 @@ const onTest = submit(async () => {
 <template>
   <v-form ref="formRef" data-testid="inbound-form" @submit.prevent="onSave">
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3" data-testid="inbound-form-error">{{ formError }}</v-alert>
+    <ProjectSelect
+      v-if="projects.length"
+      v-model="model.project_id"
+      :projects="projects"
+      :label="$t('projects.config.project')"
+      :hint="$t('projects.config.mailboxHint')"
+      :rules="[validations.required.any]"
+      :error-messages="fieldErrors.project_id"
+      testid="inbound-project"
+    />
     <v-row density="compact">
       <v-col cols="12" sm="6">
         <v-text-field v-model="model.name" :label="$t('agent.common.name')" :rules="nameRules" :disabled="locked('name')" :error-messages="fieldErrors.name" data-testid="inbound-name" />

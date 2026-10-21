@@ -94,11 +94,16 @@ func (m *Module) handlePublicCategories(w http.ResponseWriter, r *http.Request) 
 		problems.Write(w, r, err)
 		return
 	}
-	if cacheHeaders(w, r, aud, weakETag("categories", stamp, aud.String(), locale)) {
+	if cacheHeaders(w, r, aud, weakETag("categories", stamp, aud.String(), locale, r.URL.Query().Get("project"))) {
 		notModified(w)
 		return
 	}
-	out, err := m.listCategories(r.Context(), aud, locale, false)
+	project, err := m.projectParam(r)
+	if err != nil {
+		problems.Write(w, r, err)
+		return
+	}
+	out, err := m.listCategories(r.Context(), aud, locale, false, project)
 	if err != nil {
 		problems.Write(w, r, err)
 		return
@@ -125,8 +130,13 @@ func (m *Module) handlePublicList(w http.ResponseWriter, r *http.Request) {
 		notModified(w)
 		return
 	}
+	project, err := m.projectParam(r)
+	if err != nil {
+		problems.Write(w, r, err)
+		return
+	}
 	page, err := m.list(r.Context(), listQuery{
-		Aud: aud, Statuses: []string{"published"}, Q: q.Get("q"), Category: q.Get("category"),
+		Aud: aud, Statuses: []string{"published"}, Q: q.Get("q"), Category: q.Get("category"), Project: project,
 		Locale: locale, Limit: limit, Offset: decodeCursor(q.Get("cursor")), Order: "published",
 	})
 	if err != nil {

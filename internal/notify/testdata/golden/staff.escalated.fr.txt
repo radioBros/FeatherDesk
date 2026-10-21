@@ -1,10 +1,10 @@
-Subject: [#1042] Escaladé : Printer on floor 3 is offline
+Subject: [HD-1042] Escaladé : Printer on floor 3 is offline
 
 ##- Répondez au-dessus de cette ligne -##
 
 Bonjour Grace Hopper,
 
-Alan Turing a escaladé le ticket **#1042 Printer on floor 3 is offline** de L1 à L2.
+Alan Turing a escaladé le ticket **HD-1042 Printer on floor 3 is offline** de L1 à L2.
 
 **Motif:** Needs network access
 

@@ -16,6 +16,8 @@ declare module 'vue-router' {
     guestOnly?: boolean
     public?: boolean
     roles?: Role[]
+    /** Also allowed when `GET /me` lists this area in `allowed_areas` (e.g. `project_admin`). */
+    orArea?: string
     title?: string
   }
 }
@@ -60,6 +62,6 @@ export function decide(to: RouteLocationNormalized, s: GuardState): true | Route
   }
   if (area === 'agent' && s.me.kind !== 'staff') return { path: '/tickets' }
   if (area === 'portal' && s.me.kind !== 'customer') return { path: '/agent/tickets' }
-  if (to.meta.roles && !to.meta.roles.includes(s.me.role)) return { path: homeFor(s.me) }
+  if (to.meta.roles && !to.meta.roles.includes(s.me.role) && !(to.meta.orArea && s.me.allowed_areas?.includes(to.meta.orArea))) return { path: homeFor(s.me) }
   return true
 }

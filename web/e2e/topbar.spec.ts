@@ -69,3 +69,109 @@ test('on a phone the theme and language choices live in the user menu', async ({
   await page.getByText('Dark', { exact: true }).click()
   await expect(page.locator('.v-theme--dark').first()).toBeVisible()
 })
+
+// The unread badge sits on the bell's corner and must be fully visible: inside the viewport, not clipped by the
+// button or the bar, and not overlapping the neighbouring buttons. Before/after shots: test-results/badge/<BADGE_SHOT>/.
+const SHOT = process.env.BADGE_SHOT ?? 'after'
+const CUSTOMER = {
+  email: process.env.E2E_CUSTOMER_EMAIL ?? 'chloe.chen@acme.test',
+  password: process.env.E2E_CUSTOMER_PASSWORD ?? 'demo-password-123',
+}
+
+async function expectBadgeVisible(page: Page, shot: string) {
+  const count = page.getByTestId('notification-count')
+  await expect(count).toBeVisible()
+  const badgeEl = page.locator('[data-testid="notification-badge"] .v-badge__badge')
+  // The badge scales in (a transition): measure once its box stopped moving.
+  await badgeEl.evaluate(
+    (el) =>
+      new Promise<void>((done) => {
+        let last = ''
+        let still = 0
+        const tick = () => {
+          const r = el.getBoundingClientRect()
+          const now = `${r.left}|${r.width}|${r.top}`
+          still = now === last ? still + 1 : 0
+          last = now
+          if (still >= 5) done()
+          else requestAnimationFrame(tick)
+        }
+        tick()
+      }),
+  )
+  const r = await badgeEl.evaluate((el) => {
+    const b = el.getBoundingClientRect()
+    const bell = document.querySelector('[data-testid="notification-bell"]')!.getBoundingClientRect()
+    const bar = document.querySelector('header.v-toolbar')!.getBoundingClientRect()
+    const vw = document.documentElement.clientWidth
+    // The badge is a pill: probe its four extreme edge points (inset 1.5 px); each must hit the badge itself,
+    // so nothing clips or covers it.
+    const mx = (b.left + b.right) / 2
+    const my = (b.top + b.bottom) / 2
+    const corners = [[b.left + 1.5, my], [b.right - 1.5, my], [mx, b.top + 1.5], [mx, b.bottom - 1.5]]
+    const hits = corners.map(([x, y]) => {
+      const top = document.elementFromPoint(x!, y!)
+      return !!top && (el === top || el.contains(top))
+    })
+    const others = [...document.querySelectorAll('header.v-toolbar button, header.v-toolbar a.v-btn')]
+      .filter((n) => !n.closest('[data-testid="notification-badge"]') && n.getAttribute('data-testid') !== 'notification-bell')
+      .map((n) => n.getBoundingClientRect())
+      .filter((o) => o.width > 0)
+    const overlaps = others.some((o) => b.left < o.right && b.right > o.left && b.top < o.bottom && b.bottom > o.top)
+    return {
+      hits,
+      overlaps,
+      box: { left: b.left, right: b.right, top: b.top, bottom: b.bottom },
+      vw,
+      barTop: bar.top,
+      barBottom: bar.bottom,
+      bell: { w: bell.width, h: bell.height },
+      scrollW: document.documentElement.scrollWidth,
+    }
+  })
+  await page.screenshot({ path: `test-results/badge/${SHOT}/${shot}.png`, clip: { x: Math.max(0, r.vw - 260), y: 0, width: Math.min(260, r.vw), height: 72 } })
+  expect(r.hits, 'badge edge points are the topmost element (not clipped)').toEqual([true, true, true, true])
+  expect(r.box.left, 'badge inside left').toBeGreaterThanOrEqual(0)
+  expect(r.box.right, 'badge inside right').toBeLessThanOrEqual(r.vw)
+  expect(r.box.top, 'badge inside top').toBeGreaterThanOrEqual(r.barTop)
+  expect(r.box.bottom, 'badge inside bar').toBeLessThanOrEqual(r.barBottom)
+  expect(r.overlaps, 'badge overlaps a neighbouring button').toBe(false)
+  expect(r.bell.w).toBeGreaterThanOrEqual(39.5)
+  expect(r.bell.h).toBeGreaterThanOrEqual(39.5)
+  expect(r.scrollW, 'no horizontal scroll').toBeLessThanOrEqual(r.vw)
+}
+
+const withUnread = async (page: Page, n: number) => {
+  await page.route('**/api/v1/me/notifications/unread-count', (route) => route.fulfill({ json: { unread_count: n } }))
+}
+
+for (const [label, size] of [['desktop', { width: 1280, height: 720 }], ['phone', { width: 360, height: 740 }]] as const) {
+  for (const scheme of ['light', 'dark'] as const) {
+    test.describe(`unread badge, ${label}, ${scheme}`, () => {
+      test.use({ viewport: size, colorScheme: scheme })
+      test.skip(({ isMobile }) => isMobile, 'the viewport is set per test')
+
+      for (const [n, text] of [[7, '7'], [250, '99+']] as const) {
+        test(`agent panel, ${text}`, async ({ page }) => {
+          await withUnread(page, n)
+          await loginAs(page, 'staff', ADMIN)
+          await page.goto('/agent/tickets')
+          await expect(page.getByTestId('notification-count')).toHaveText(text)
+          await expectBadgeVisible(page, `agent-${label}-${scheme}-${text.replace('+', 'plus')}`)
+        })
+
+        test(`portal, ${text}`, async ({ browser }) => {
+          const ctx = await browser.newContext({ viewport: size, colorScheme: scheme, extraHTTPHeaders: clientIp() })
+          const page = await ctx.newPage()
+          await withUnread(page, n)
+          const res = await page.request.post('/api/v1/auth/login', { data: { audience: 'customer', ...CUSTOMER } })
+          test.skip(!res.ok(), 'needs a customer account (seed --demo, or E2E_CUSTOMER_EMAIL/PASSWORD)')
+          await page.goto('/tickets')
+          await expect(page.getByTestId('notification-count')).toHaveText(text)
+          await expectBadgeVisible(page, `portal-${label}-${scheme}-${text.replace('+', 'plus')}`)
+          await ctx.close()
+        })
+      }
+    })
+  }
+}

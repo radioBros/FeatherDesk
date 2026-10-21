@@ -156,7 +156,8 @@ func TestValidateResponse(t *testing.T) {
 
 // I-9 / I-2 at the contract level: the customer ticket schema rejects staff-only fields.
 func TestCustomerTicketSchemaHasNoStaffFields(t *testing.T) {
-	base := `{"id":"0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f","number":1042,"subject":"x","status":"open","priority":"normal",
+	base := `{"id":"0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f","number":1042,"ref":"HD-1042","project_id":"00000000-0000-7000-8000-000000000001",
+"project":{"id":"00000000-0000-7000-8000-000000000001","key":"HD","name":"Help Desk","color":""},"subject":"x","status":"open","priority":"normal",
 "requester":{"id":"0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e60","name":"Ada","kind":"customer"},"messages":[],"allowed_actions":["reply"],
 "created_at":"2026-10-20T10:00:00Z","updated_at":"2026-10-20T10:00:00Z"%s}`
 	path := "/api/v1/portal/tickets/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f"
@@ -242,6 +243,7 @@ func TestEnumsMatchOpenAPI(t *testing.T) {
 		"Audience":     str(string(domain.AudienceStaff), string(domain.AudienceCustomer)),
 		"KbVisibility": str(string(domain.KBPublic), string(domain.KBCustomers), string(domain.KBInternal)),
 		"KbStatus":     str(string(domain.KBDraft), string(domain.KBPublished), string(domain.KBArchived)),
+		"ProjectRole":  conv(len(domain.ProjectRoles), func(i int) string { return string(domain.ProjectRoles[i]) }),
 		"Role": append(conv(len(domain.StaffRoles), func(i int) string { return string(domain.StaffRoles[i]) }),
 			conv(len(domain.CustomerRoles), func(i int) string { return string(domain.CustomerRoles[i]) })...),
 	}

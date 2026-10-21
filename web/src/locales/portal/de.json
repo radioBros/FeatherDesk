@@ -151,6 +151,14 @@
       "enable": "Aktivieren",
       "disabled": "Deaktiviert",
       "pending": "Einladung ausstehend"
+    },
+    "projects": {
+      "project": "Projekt",
+      "ref": "Ref.",
+      "allProjects": "Alle Projekte",
+      "newTicket": "Ticket eröffnen",
+      "notFoundTitle": "Dieses Projekt gibt es nicht",
+      "notFoundBody": "Das Projekt wurde nicht gefunden oder nimmt keine neuen Tickets an. Prüfen Sie den Link oder gehen Sie zur Startseite."
     }
   }
 }

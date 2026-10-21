@@ -8,20 +8,22 @@ import (
 	"time"
 )
 
-type cannedDef struct{ team, title, body string }
+type cannedDef struct{ team, title, body, project string }
 
 var cannedDefs = []cannedDef{
-	{"", "Greeting", "Hi {{customer.name}},\n\nthank you for contacting us. My name is {{agent.name}} and I am looking into ticket #{{ticket.number}} right now."},
-	{"", "Need more information", "Hi {{customer.name}},\n\nto move forward with ticket #{{ticket.number}} I need a little more detail:\n\n- What exactly did you do right before the problem appeared?\n- Does it happen every time?\n- A screenshot or the exact error text would help a lot.\n\nThanks,\n{{agent.name}}"},
-	{"", "Resolved, anything else?", "Hi {{customer.name}},\n\nwe believe ticket #{{ticket.number}} is resolved. Please reply if something is still not working; you can reopen it within seven days.\n\nBest regards,\n{{agent.name}}"},
-	{"", "Closing: no response", "Hi {{customer.name}},\n\nwe have not heard back about ticket #{{ticket.number}}, so we are marking it as solved. Reply any time to continue.\n\n{{agent.name}}"},
-	{"front", "Password reset steps", "Hi {{requester.name}},\n\nplease use **Forgot password** on the sign-in page. The link is valid for one hour. If the email does not arrive, check your spam folder and tell me which address you used.\n\n{{agent.name}}"},
-	{"front", "Where to find the portal", "Hi {{customer.name}},\n\nyou can follow every request in the customer portal. Sign in with the email address you used to contact us.\n\n{{agent.name}}"},
-	{"tech", "Please send logs", "Hi {{customer.name}},\n\ncould you attach the application log from the time of the incident (ticket #{{ticket.number}})? On desktop it is under *Help > Diagnostics > Export logs*.\n\n{{agent.name}}"},
-	{"tech", "Escalated to engineering", "Hi {{customer.name}},\n\nI have escalated ticket #{{ticket.number}} to our engineers. You do not need to do anything; we will update you here as soon as we know more.\n\n{{agent.name}}"},
-	{"billing", "Invoice copy", "Hi {{customer.name}},\n\nattached is a copy of the invoice you asked for (ticket #{{ticket.number}}). Let me know if you need it addressed differently.\n\n{{agent.name}}"},
-	{"billing", "Refund issued", "Hi {{customer.name}},\n\nwe have issued the refund. It usually shows up on your statement within 5-7 business days.\n\nKind regards,\n{{agent.name}}"},
-	{"", "Outside business hours", "Hi {{customer.name}},\n\nthank you for your message. Our team is offline right now; we will pick up ticket #{{ticket.number}} first thing on the next business day.\n\nSimpleTickets Demo Support"},
+	{"", "Greeting", "Hi {{customer.name}},\n\nthank you for contacting us. My name is {{agent.name}} and I am looking into ticket #{{ticket.number}} right now.", ""},
+	{"", "Need more information", "Hi {{customer.name}},\n\nto move forward with ticket #{{ticket.number}} I need a little more detail:\n\n- What exactly did you do right before the problem appeared?\n- Does it happen every time?\n- A screenshot or the exact error text would help a lot.\n\nThanks,\n{{agent.name}}", ""},
+	{"", "Resolved, anything else?", "Hi {{customer.name}},\n\nwe believe ticket #{{ticket.number}} is resolved. Please reply if something is still not working; you can reopen it within seven days.\n\nBest regards,\n{{agent.name}}", ""},
+	{"", "Closing: no response", "Hi {{customer.name}},\n\nwe have not heard back about ticket #{{ticket.number}}, so we are marking it as solved. Reply any time to continue.\n\n{{agent.name}}", ""},
+	{"front", "Password reset steps", "Hi {{requester.name}},\n\nplease use **Forgot password** on the sign-in page. The link is valid for one hour. If the email does not arrive, check your spam folder and tell me which address you used.\n\n{{agent.name}}", ""},
+	{"front", "Where to find the portal", "Hi {{customer.name}},\n\nyou can follow every request in the customer portal. Sign in with the email address you used to contact us.\n\n{{agent.name}}", ""},
+	{"tech", "Please send logs", "Hi {{customer.name}},\n\ncould you attach the application log from the time of the incident (ticket #{{ticket.number}})? On desktop it is under *Help > Diagnostics > Export logs*.\n\n{{agent.name}}", ""},
+	{"tech", "Escalated to engineering", "Hi {{customer.name}},\n\nI have escalated ticket #{{ticket.number}} to our engineers. You do not need to do anything; we will update you here as soon as we know more.\n\n{{agent.name}}", ""},
+	{"billing", "Invoice copy", "Hi {{customer.name}},\n\nattached is a copy of the invoice you asked for (ticket #{{ticket.number}}). Let me know if you need it addressed differently.\n\n{{agent.name}}", ""},
+	{"billing", "Refund issued", "Hi {{customer.name}},\n\nwe have issued the refund. It usually shows up on your statement within 5-7 business days.\n\nKind regards,\n{{agent.name}}", ""},
+	{"", "Outside business hours", "Hi {{customer.name}},\n\nthank you for your message. Our team is offline right now; we will pick up ticket #{{ticket.number}} first thing on the next business day.\n\nSimpleTickets Demo Support", ""},
+	// D-20: offered only on Mobile tickets.
+	{"", "Mobile: update the app", "Hi {{customer.name}},\n\nplease update the app to the latest version from the App Store or Google Play and try again (ticket {{ticket.ref}}). The fix is included in version 3.9.\n\n{{agent.name}}", "mob"},
 }
 
 func (s *seeder) setupCanned() error {
@@ -29,6 +31,9 @@ func (s *seeder) setupCanned() error {
 		body := map[string]any{"title": c.title, "body_md": c.body}
 		if c.team != "" {
 			body["team_id"] = s.teams[c.team].ID
+		}
+		if c.project != "" {
+			body["project_id"] = s.projects[c.project].ID
 		}
 		var out idResp
 		if err := s.admin.post("/admin/canned-responses", body, &out); err != nil {

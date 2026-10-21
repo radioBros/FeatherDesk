@@ -51,6 +51,16 @@ func (m *Module) registerRealtime(h *realtime.Hub) {
 		team := strings.TrimPrefix(topic, "queue:")
 		return p.IsStaff() && canRead(p) && (p.IsSupervisorOrAdmin() || p.InTeam(team))
 	}))
+	// project:<id> (D-20): staff working in the project. Frames are still
+	// filtered per event with CanSeeEvent (team, tier, I-11).
+	h.Authorize("project:", realtime.TopicAuthorizerFunc(func(ctx context.Context, p *domain.Principal, topic string) bool {
+		id := strings.TrimPrefix(topic, "project:")
+		if !p.IsStaff() || !canRead(p) || !p.InProject(id) {
+			return false
+		}
+		_, err := m.svc.dir.Project(ctx, id)
+		return err == nil
+	}))
 	// ticket:<id> uses the same SQL predicate as REST (TKT-001), once per subscribe.
 	h.Authorize("ticket:", realtime.TopicAuthorizerFunc(func(ctx context.Context, p *domain.Principal, topic string) bool {
 		id := strings.TrimPrefix(topic, "ticket:")
@@ -224,6 +234,13 @@ func (rt *realtimeRouter) route(ctx context.Context, e events.Event) {
 	}
 	rt.h.PublishFunc("tickets", build("tickets"))
 	rt.h.PublishFunc("ticket:"+e.TicketID, build("ticket:"+e.TicketID))
+	projectTopic := "project:" + e.Snapshot.Project()
+	rt.h.PublishFunc(projectTopic, func(p *domain.Principal) (realtime.Frame, bool) {
+		if !p.IsStaff() {
+			return realtime.Frame{}, false
+		}
+		return frameFor(projectTopic, e, pl, p, pol)
+	})
 	if queueEvents[e.Type] && e.Snapshot.TeamID != "" {
 		rt.h.PublishFunc("queue:"+e.Snapshot.TeamID, func(p *domain.Principal) (realtime.Frame, bool) {
 			if !p.IsStaff() {
@@ -307,10 +324,10 @@ func (rt *realtimeRouter) flushCounts() {
 
 // Replay implements realtime.Replayer: the events after lastEventID that p
 // may see on its topics, capped at 1 000 events / 24 h (else resync,
-// realtime_spec §5). That is at most 3 000 frames (one per subscribed
-// topic among tickets, ticket:<id> and queue:<team>); the hub streams them
-// through the bounded send buffer with backpressure, so there is no
-// separate frame cap.
+// realtime_spec §5). That is at most 4 000 frames (one per subscribed
+// topic among tickets, ticket:<id>, queue:<team> and project:<id>); the
+// hub streams them through the bounded send buffer with backpressure, so
+// there is no separate frame cap.
 func (rt *realtimeRouter) Replay(ctx context.Context, p *domain.Principal, topics []string, lastEventID string) ([]realtime.Frame, bool) {
 	if !validID(lastEventID) {
 		return nil, false
@@ -341,8 +358,11 @@ func (rt *realtimeRouter) Replay(ctx context.Context, p *domain.Principal, topic
 	pls := rt.buildPayloads(ctx, visible)
 	var frames []realtime.Frame
 	for _, e := range visible {
-		for _, topic := range []string{"tickets", "ticket:" + e.TicketID, "queue:" + e.Snapshot.TeamID} {
+		for _, topic := range []string{"tickets", "ticket:" + e.TicketID, "queue:" + e.Snapshot.TeamID, "project:" + e.Snapshot.Project()} {
 			if !subs[topic] || (strings.HasPrefix(topic, "queue:") && !queueEvents[e.Type]) {
+				continue
+			}
+			if strings.HasPrefix(topic, "project:") && !p.IsStaff() {
 				continue
 			}
 			if f, ok := frameFor(topic, e, pls[e.ID], p, pol); ok {

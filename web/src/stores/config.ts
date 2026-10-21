@@ -7,6 +7,7 @@ import type { AuthConfig, Branding, AreaColors } from '@/types'
 import type { components } from '@/api/schema'
 
 type ApiBranding = components['schemas']['BrandingSettings']
+export type PortalProject = components['schemas']['PortalProject']
 
 export const DEFAULT_BRANDING: Branding = {
   product_name: 'SimpleTickets',
@@ -39,6 +40,8 @@ export const DEFAULT_CONFIG: AuthConfig = {
 export const useConfigStore = defineStore('config', () => {
   const config = ref<AuthConfig>(structuredClone(DEFAULT_CONFIG))
   const loaded = ref(false)
+  /** The `/p/{key}` entry's project (D-20): branding overrides; null everywhere else. */
+  const project = ref<PortalProject | null>(null)
 
   async function load(): Promise<AuthConfig> {
     try {
@@ -51,6 +54,20 @@ export const useConfigStore = defineStore('config', () => {
     return config.value
   }
 
+  /** Loads one project's public portal view; null when unknown or not open to customers. */
+  async function loadProject(key: string): Promise<PortalProject | null> {
+    try {
+      const data = await apiFetch<{ project?: PortalProject | null }>(`/auth/config?project=${encodeURIComponent(key)}`)
+      project.value = data?.project ?? null
+    } catch {
+      project.value = null
+    }
+    return project.value
+  }
+  function clearProject() {
+    project.value = null
+  }
+
   function setBranding(b: Partial<Branding>) {
     config.value = { ...config.value, branding: { ...config.value.branding, ...b } }
   }
@@ -58,7 +75,7 @@ export const useConfigStore = defineStore('config', () => {
   const branding = computed(() => config.value.branding)
   const tierLabel = (tier: number | string) => config.value.tier_labels[String(tier)] ?? `L${tier}`
 
-  return { config, loaded, branding, load, setBranding, tierLabel }
+  return { config, loaded, branding, project, load, loadProject, clearProject, setBranding, tierLabel }
 })
 
 const FONT_FAMILIES = ['system', 'serif', 'mono'] as const

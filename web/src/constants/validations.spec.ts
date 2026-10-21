@@ -108,6 +108,13 @@ describe('validations (FE-004)', () => {
     expect(validations.setupToken('abcdefghijklmnop1234')).toBe(true)
     expect(validations.setupToken('short')).toBe(en('validation.setupToken'))
   })
+  it('projectKey accepts 2-10 upper-case characters (after upper-casing)', () => {
+    expect(validations.projectKey('WEB')).toBe(true)
+    expect(validations.projectKey('web2')).toBe(true)
+    expect(validations.projectKey('W')).toBe(en('validation.projectKey'))
+    expect(validations.projectKey('1AB')).toBe(en('validation.projectKey'))
+    expect(validations.projectKey('A'.repeat(11))).toBe(en('validation.projectKey'))
+  })
   it('forField builds rules from a custom field definition', () => {
     const num = validations.forField({ key: 'n', type: 'number', required: true, min: 1, max: 10 })
     const run = (rules: ReturnType<typeof validations.forField>, v: unknown) => rules.map((r) => r(v)).find((x) => x !== true) ?? true

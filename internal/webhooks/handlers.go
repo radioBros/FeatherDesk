@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -34,21 +35,25 @@ type webhookDTO struct {
 	SecretSet           bool      `json:"secret_set"`
 	ConsecutiveFailures int       `json:"consecutive_failures"`
 	DisabledReason      *string   `json:"disabled_reason"`
+	ProjectIDs          []string  `json:"project_ids"` // D-20: [] = every project
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
 	Secret              string    `json:"secret,omitempty"` // only on create / rotate
 }
 
-const selectWebhook = `SELECT id, name, url, secret_enc, events, active, include_internal, consecutive_failures, disabled_reason, created_at, updated_at FROM webhooks`
+const selectWebhook = `SELECT id, name, url, secret_enc, events, active, include_internal, consecutive_failures, disabled_reason, created_at, updated_at, project_ids FROM webhooks`
 
 func scanDTO(row interface{ Scan(...any) error }) (webhookDTO, error) {
 	var d webhookDTO
 	var enc, reason string
-	var evs store.JSON[[]string]
-	if err := row.Scan(&d.ID, &d.Name, &d.URL, &enc, &evs, &d.Active, &d.IncludeInternal, &d.ConsecutiveFailures, &reason, &d.CreatedAt, &d.UpdatedAt); err != nil {
+	var evs, projects store.JSON[[]string]
+	if err := row.Scan(&d.ID, &d.Name, &d.URL, &enc, &evs, &d.Active, &d.IncludeInternal, &d.ConsecutiveFailures, &reason, &d.CreatedAt, &d.UpdatedAt, &projects); err != nil {
 		return d, err
 	}
-	d.Events = evs.V
+	d.Events, d.ProjectIDs = evs.V, projects.V
+	if d.ProjectIDs == nil {
+		d.ProjectIDs = []string{}
+	}
 	if d.Events == nil {
 		d.Events = []string{}
 	}
@@ -114,6 +119,7 @@ type webhookInput struct {
 	Active          *bool     `json:"active"`
 	IncludeInternal *bool     `json:"include_internal"`
 	RotateSecret    bool      `json:"rotate_secret"`
+	ProjectIDs      *[]string `json:"project_ids"` // D-20: ids or keys; [] = every project
 }
 
 func decode(r *http.Request, v any) error {
@@ -153,6 +159,21 @@ func (m *Module) validate(ctx context.Context, in webhookInput, create bool) err
 	}
 	if in.Name != nil && len(*in.Name) > 120 {
 		fields = append(fields, problems.Field("name", "max_length", "at most 120 characters"))
+	}
+	if in.ProjectIDs != nil {
+		ids := []string{}
+		for i, ref := range *in.ProjectIDs {
+			var id string
+			err := m.db.Read().QueryRowContext(ctx, `SELECT id FROM projects WHERE id = ? OR key = ?`, ref, strings.ToUpper(ref)).Scan(&id)
+			if err != nil {
+				fields = append(fields, problems.Field("project_ids["+strconv.Itoa(i)+"]", "not_found", "unknown project"))
+				continue
+			}
+			if !slices.Contains(ids, id) {
+				ids = append(ids, id)
+			}
+		}
+		*in.ProjectIDs = ids
 	}
 	if len(fields) > 0 {
 		return problems.Validation(fields...)
@@ -207,10 +228,14 @@ func (m *Module) create(w http.ResponseWriter, r *http.Request) {
 	active := in.Active == nil || *in.Active
 	internal := in.IncludeInternal != nil && *in.IncludeInternal
 	evs := dedupe(*in.Events)
+	projects := []string{}
+	if in.ProjectIDs != nil {
+		projects = *in.ProjectIDs
+	}
 	now := store.Now()
 	err = m.db.Tx(ctx, func(tx *store.Tx) error {
-		if _, err := tx.ExecContext(ctx, `INSERT INTO webhooks (id, name, url, secret_enc, events, include_internal, active, consecutive_failures, disabled_reason, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, '', ?, ?)`,
-			id, name, *in.URL, enc, store.MustJSON(evs), internal, active, now, now); err != nil {
+		if _, err := tx.ExecContext(ctx, `INSERT INTO webhooks (id, name, url, secret_enc, events, include_internal, active, consecutive_failures, disabled_reason, project_ids, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, '', ?, ?, ?)`,
+			id, name, *in.URL, enc, store.MustJSON(evs), internal, active, store.MustJSON(projects), now, now); err != nil {
 			return err
 		}
 		return audit(ctx, tx, r, "webhook.create", id, map[string]any{"url": *in.URL, "events": evs, "active": active, "include_internal": internal})
@@ -261,6 +286,9 @@ func (m *Module) patch(w http.ResponseWriter, r *http.Request) {
 	if in.IncludeInternal != nil {
 		upd.IncludeInternal, changed["include_internal"] = *in.IncludeInternal, *in.IncludeInternal
 	}
+	if in.ProjectIDs != nil {
+		upd.ProjectIDs, changed["project_ids"] = *in.ProjectIDs, *in.ProjectIDs
+	}
 	reactivate := false
 	if in.Active != nil {
 		upd.Active, changed["active"] = *in.Active, *in.Active
@@ -276,8 +304,8 @@ func (m *Module) patch(w http.ResponseWriter, r *http.Request) {
 		changed["rotate_secret"] = true
 	}
 	err = m.db.Tx(ctx, func(tx *store.Tx) error {
-		q := `UPDATE webhooks SET name = ?, url = ?, events = ?, include_internal = ?, active = ?, updated_at = ?`
-		args := []any{upd.Name, upd.URL, store.MustJSON(upd.Events), upd.IncludeInternal, upd.Active, store.Now()}
+		q := `UPDATE webhooks SET name = ?, url = ?, events = ?, include_internal = ?, active = ?, project_ids = ?, updated_at = ?`
+		args := []any{upd.Name, upd.URL, store.MustJSON(upd.Events), upd.IncludeInternal, upd.Active, store.MustJSON(upd.ProjectIDs), store.Now()}
 		if enc != "" {
 			q += `, secret_enc = ?`
 			args = append(args, enc)
@@ -343,7 +371,7 @@ func (m *Module) delete(w http.ResponseWriter, r *http.Request) {
 func (m *Module) test(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
-	row := m.db.Read().QueryRowContext(ctx, `SELECT id, name, url, secret_enc, events, include_internal, consecutive_failures FROM webhooks WHERE id = ?`, id)
+	row := m.db.Read().QueryRowContext(ctx, `SELECT id, name, url, secret_enc, events, include_internal, consecutive_failures, project_ids FROM webhooks WHERE id = ?`, id)
 	h, err := m.scanHook(row)
 	if err != nil {
 		problems.Write(w, r, store.NotFound(err))

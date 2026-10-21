@@ -54,6 +54,7 @@ type listQuery struct {
 	Statuses []string
 	Q        string
 	Category string // id or slug
+	Project  string // D-20: project id; keeps its categories and the global ones
 	Locale   string
 	Limit    int
 	Offset   int
@@ -115,6 +116,10 @@ func (m *Module) runSearch(ctx context.Context, lq listQuery, sub string, sargs 
 		sb.WriteString(` AND (c.id = ? OR c.slug = ?)`)
 		args = append(args, lq.Category, lq.Category)
 	}
+	if lq.Project != "" {
+		sb.WriteString(` AND (c.project_id IS NULL OR c.project_id = ?)`)
+		args = append(args, lq.Project)
+	}
 	// Fetch from the start so the caller can tell whether the window held
 	// enough articles; the offset is applied below.
 	sb.WriteString(` GROUP BY a.id ORDER BY r, a.id LIMIT ?`)
@@ -146,6 +151,10 @@ func (m *Module) runIDs(ctx context.Context, lq listQuery, _ int) ([]string, boo
 	if lq.Category != "" {
 		sb.WriteString(` AND (c.id = ? OR c.slug = ?)`)
 		args = append(args, lq.Category, lq.Category)
+	}
+	if lq.Project != "" {
+		sb.WriteString(` AND (c.project_id IS NULL OR c.project_id = ?)`)
+		args = append(args, lq.Project)
 	}
 	sb.WriteString(` ORDER BY ` + col + ` DESC, a.id DESC LIMIT ? OFFSET ?`)
 	args = append(args, lq.Limit+1, lq.Offset)

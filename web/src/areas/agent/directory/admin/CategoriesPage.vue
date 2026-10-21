@@ -9,8 +9,12 @@ import { useI18n } from 'vue-i18n'
 import { mdiDragVertical, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import PriorityChip from '@/components/PriorityChip.vue'
 import CategoryForm from './CategoryForm.vue'
+import ProjectCell from '../../shared/ProjectCell.vue'
+import { useConfigProjects } from '../../shared/useConfigProjects'
 import { api, unwrap } from '@/api/client'
 import { useLookupsStore } from '../../shared/lookups'
 import { useAction } from '../../shared/useAction'
@@ -20,6 +24,8 @@ type S = components['schemas']
 const { t } = useI18n()
 const lookups = useLookupsStore()
 const { run } = useAction()
+const cp = useConfigProjects()
+const projectFilter = ref<string | null>(null)
 const items = ref<S['Category'][]>([])
 const loading = ref(true)
 const failed = ref(false)
@@ -27,7 +33,7 @@ const editing = ref<S['Category'] | null>(null)
 const dialog = ref(false)
 const dragIndex = ref<number | null>(null)
 
-const sorted = computed(() => [...items.value].sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)))
+const sorted = computed(() => [...items.value].filter((c) => !projectFilter.value || c.project_id === projectFilter.value).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)))
 
 async function load() {
   loading.value = true
@@ -78,6 +84,13 @@ async function drop(to: number) {
   }, t('agent.common.saved'))
   lookups.invalidate('categories')
 }
+const cols = useTableColumns('admin-categories', () => [
+  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true },
+  { key: 'team', label: t('agent.categories.defaultTeam'), lowPriority: true },
+  { key: 'priority', label: t('agent.categories.defaultPriority'), lowPriority: true },
+  { key: 'active', label: t('agent.common.active') },
+])
 </script>
 
 <template>
@@ -91,14 +104,34 @@ async function drop(to: number) {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !sorted.length" :title="$t('agent.categories.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="category-table">
+      <template v-else>
+      <div class="d-flex align-center justify-space-between px-2 pt-1">
+        <v-select
+          v-if="cp.all.value.length > 1"
+          v-model="projectFilter"
+          :items="cp.all.value"
+          item-title="name"
+          item-value="id"
+          :label="$t('projects.config.filter')"
+          density="compact"
+          variant="outlined"
+          hide-details
+          clearable
+          max-width="260"
+          data-testid="category-project-filter"
+        />
+        <v-spacer />
+        <ColumnsMenu :cols="cols" :bar="false" />
+      </div>
+      <v-table density="comfortable" data-testid="category-table">
         <thead>
           <tr>
             <th class="st-handle" />
-            <th>{{ $t('agent.common.name') }}</th>
-            <th>{{ $t('agent.categories.defaultTeam') }}</th>
-            <th>{{ $t('agent.categories.defaultPriority') }}</th>
-            <th>{{ $t('agent.common.active') }}</th>
+            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+            <th v-if="cols.show('team')">{{ $t('agent.categories.defaultTeam') }}</th>
+            <th v-if="cols.show('priority')">{{ $t('agent.categories.defaultPriority') }}</th>
+            <th v-if="cols.show('active')">{{ $t('agent.common.active') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
@@ -113,22 +146,24 @@ async function drop(to: number) {
             @drop.prevent="drop(i)"
           >
             <td class="st-handle"><v-icon :icon="mdiDragVertical" :aria-label="$t('agent.categories.dragToSort')" /></td>
-            <td>{{ c.name }}</td>
-            <td>{{ lookups.teamName(c.default_team_id) || '—' }}</td>
-            <td><PriorityChip v-if="c.default_priority" :priority="c.default_priority" /><span v-else>—</span></td>
-            <td><v-switch :model-value="c.active" hide-details density="compact" color="primary" inset :aria-label="$t('agent.common.active')" @update:model-value="toggle(c)" /></td>
+            <td v-if="cols.show('name')">{{ c.name }}</td>
+            <td v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
+            <td v-if="cols.show('team')">{{ lookups.teamName(c.default_team_id) || '—' }}</td>
+            <td v-if="cols.show('priority')"><PriorityChip v-if="c.default_priority" :priority="c.default_priority" /><span v-else>—</span></td>
+            <td v-if="cols.show('active')"><v-switch :model-value="c.active" hide-details density="compact" color="primary" inset :aria-label="$t('agent.common.active')" @update:model-value="toggle(c)" /></td>
             <td class="text-right">
               <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
             </td>
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="520">
       <v-card :title="editing ? $t('agent.categories.edit') : $t('agent.categories.new')">
         <v-card-text>
-          <CategoryForm v-if="dialog" :category="editing" :teams="lookups.teams" @saved="onSaved" @cancel="dialog = false" />
+          <CategoryForm v-if="dialog" :category="editing" :teams="lookups.teams" :projects="cp.options.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

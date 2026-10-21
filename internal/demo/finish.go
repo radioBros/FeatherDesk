@@ -199,6 +199,7 @@ func (s *seeder) summary(cfg *config.Config) (*Summary, error) {
 		{"organizations", `SELECT COUNT(*) FROM organizations`},
 		{"staff", `SELECT COUNT(*) FROM users WHERE kind = 'staff'`},
 		{"customers", `SELECT COUNT(*) FROM users WHERE kind = 'customer'`},
+		{"projects", `SELECT COUNT(*) FROM projects`},
 		{"teams", `SELECT COUNT(*) FROM teams`},
 		{"business calendars", `SELECT COUNT(*) FROM business_calendars`},
 		{"categories", `SELECT COUNT(*) FROM categories`},
@@ -273,6 +274,12 @@ func (s *seeder) summary(cfg *config.Config) (*Summary, error) {
 		if p.key == "fd2" {
 			a.Note += "; marked away (no automatic assignments)"
 		}
+		switch p.key {
+		case singleProjectKey:
+			a.Note += "; works in the Mobile project only (sees no other project's tickets)"
+		case projectAdminKey:
+			a.Note += "; project admin of Mobile"
+		}
 		for _, m := range s.mfa {
 			if m.Email == p.email {
 				a.Note += "; two-step verification on (TOTP secret and recovery codes below)"
@@ -298,6 +305,11 @@ func (s *seeder) summary(cfg *config.Config) (*Summary, error) {
 	if s.opt.SMTPMailpit {
 		sum.MailpitURL = "http://localhost:8025"
 	}
+	projects, err := s.projectSummary(s.ctx)
+	if err != nil {
+		return nil, err
+	}
+	sum.Projects = projects
 	sum.Notes = append(sum.Notes,
 		"Staff other than the admin sign in locally only when ST_AUTH_STAFF_LOCAL=true.",
 		"Restart the server after seeding: it caches settings, teams and categories in memory.",
@@ -315,6 +327,17 @@ func (s *Summary) Print(w io.Writer) {
 	fmt.Fprintln(w, strings.Repeat("-", 40))
 	for _, c := range s.Counts {
 		fmt.Fprintf(w, "  %-22s %6d\n", c.Name, c.N)
+	}
+	if len(s.Projects) > 0 {
+		fmt.Fprintln(w, "\nProjects")
+		fmt.Fprintln(w, strings.Repeat("-", 40))
+		for _, p := range s.Projects {
+			portal := "portal /p/" + p.Key
+			if !p.PortalVisible {
+				portal = "staff only"
+			}
+			fmt.Fprintf(w, "  %-5s %-14s %-14s %3d tickets  e.g. %s\n", p.Key, p.Name, portal, p.Tickets, strings.Join(p.SampleRefs, ", "))
+		}
 	}
 	fmt.Fprintf(w, "\nPortal (customers): %s\nAgent panel (staff): %s\n", s.PortalURL, s.AgentURL)
 	if s.MailpitURL != "" {

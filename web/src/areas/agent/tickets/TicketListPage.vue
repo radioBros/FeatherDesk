@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * /agent/tickets (FE-021, FE-038, FE-054). The URL query is the only filter
  * state: changing a filter replaces the query, the query drives the API call,
@@ -32,11 +33,15 @@ import { useViewsStore } from './list/views'
 import SaveViewForm from './list/SaveViewForm.vue'
 import BulkActionForm from './list/BulkActionForm.vue'
 import type { BulkResult } from './list/bulk'
-import ColumnChooser from './list/ColumnChooser.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { COLUMNS_PREFIX, useTableColumns, type ColumnDef } from '@/composables/useTableColumns'
 import { SORTS, cfFromString, cfToString, filtersFromQuery, toApiParams, toRouteQuery, type ListFilters } from './list/query'
 import type { components } from '@/api/schema'
 import type { ServerEvent } from '@/realtime/client'
 import UserAvatar from '@/components/UserAvatar.vue'
+import ProjectChip from '@/components/ProjectChip.vue'
+import TicketNumber from '@/components/TicketNumber.vue'
+import { useProjectsStore } from '@/stores/projects'
 
 type S = components['schemas']
 type Row = S['TicketSummary'] & { links?: S['TicketLink'][] }
@@ -48,6 +53,7 @@ const session = useSessionStore()
 const config = useConfigStore()
 const lookups = useLookupsStore()
 const viewsStore = useViewsStore()
+const projects = useProjectsStore()
 const { confirm } = useConfirm()
 const { run } = useAction()
 
@@ -63,32 +69,50 @@ const qInput = ref('')
 let seq = 0
 
 const filters = computed<ListFilters>(() => filtersFromQuery(route.query))
+/** What the API gets: an explicit `?project=` wins over the switcher's saved choice. */
+const apiFilters = computed<ListFilters>(() => ({ ...filters.value, project: filters.value.project ?? projects.filter }))
 const activeView = computed(() => viewsStore.views.find((v) => v.id === filters.value.view_id) ?? null)
-
-const COLUMNS_KEY = 'st.v1.agent.columns'
-function readColumns(): string[] {
-  try {
-    const raw = localStorage.getItem(COLUMNS_KEY)
-    const v = raw ? JSON.parse(raw) : []
-    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []
-  } catch {
-    return []
-  }
-}
-const cfColumns = ref<string[]>(readColumns())
-watch(cfColumns, (v) => {
-  try {
-    localStorage.setItem(COLUMNS_KEY, JSON.stringify(v))
-  } catch {
-    /* private mode: columns are kept for this page only */
-  }
-})
 
 const activeDefs = computed(() => lookups.customFields.filter((d) => d.active))
 const defByKey = (k: string) => lookups.customFields.find((d) => d.key === k)
 
-const headers = computed(() => [
-  { title: '#', key: 'number', sortable: false, width: 80 },
+// Column visibility per user (useTableColumns). Custom-field columns are optional (hidden by default).
+const colDefs = computed<ColumnDef[]>(() => [
+  { key: 'number', label: t('projects.ticket.ref'), locked: true },
+  { key: 'project', label: t('projects.ticket.project'), lowPriority: true },
+  { key: 'subject', label: t('agent.list.columns.subject'), locked: true },
+  { key: 'requester', label: t('agent.list.columns.requester') },
+  { key: 'status', label: t('agent.list.columns.status') },
+  { key: 'priority', label: t('agent.list.columns.priority'), lowPriority: true },
+  { key: 'tier', label: t('agent.list.columns.tier'), lowPriority: true },
+  { key: 'team', label: t('agent.list.columns.team'), lowPriority: true },
+  { key: 'assignee', label: t('agent.list.columns.assignee'), lowPriority: true },
+  ...activeDefs.value.map((d) => ({ key: `cf.${d.key}`, label: localized(d.label, locale.value) || d.key, defaultHidden: true })),
+  { key: 'updated_at', label: t('agent.list.columns.updated'), lowPriority: true },
+  { key: 'due', label: t('agent.list.columns.due'), lowPriority: true },
+])
+// The old custom-field column picker stored its keys under one global key: carry them over once.
+try {
+  const old = localStorage.getItem('st.v1.agent.columns')
+  if (old) {
+    const target = `${COLUMNS_PREFIX}${session.me?.id ?? 'anon'}.agent-tickets`
+    const keys = JSON.parse(old)
+    if (Array.isArray(keys) && !localStorage.getItem(target)) {
+      const o: Record<string, boolean> = {}
+      for (const k of keys) if (typeof k === 'string') o[`cf.${k}`] = true
+      localStorage.setItem(target, JSON.stringify(o))
+    }
+    localStorage.removeItem('st.v1.agent.columns')
+  }
+} catch {
+  /* ignore */
+}
+const cols = useTableColumns('agent-tickets', colDefs)
+const cfColumns = computed(() => activeDefs.value.map((d) => d.key).filter((k) => cols.show(`cf.${k}`)))
+
+const ALL_HEADERS = computed(() => [
+  { title: t('projects.ticket.ref'), key: 'number', sortable: false, width: 110 },
+  { title: t('projects.ticket.project'), key: 'project', sortable: false },
   { title: t('agent.list.columns.subject'), key: 'subject', sortable: false },
   { title: t('agent.list.columns.requester'), key: 'requester', sortable: false },
   { title: t('agent.list.columns.status'), key: 'status', sortable: false },
@@ -96,13 +120,11 @@ const headers = computed(() => [
   { title: t('agent.list.columns.tier'), key: 'tier', sortable: false },
   { title: t('agent.list.columns.team'), key: 'team', sortable: false },
   { title: t('agent.list.columns.assignee'), key: 'assignee', sortable: false },
-  ...cfColumns.value
-    .map((k) => defByKey(k))
-    .filter((d): d is S['CustomFieldDef'] => !!d)
-    .map((d) => ({ title: localized(d.label, locale.value) || d.key, key: `cf.${d.key}`, sortable: false })),
+  ...activeDefs.value.map((d) => ({ title: localized(d.label, locale.value) || d.key, key: `cf.${d.key}`, sortable: false })),
   { title: t('agent.list.columns.updated'), key: 'updated_at', sortable: false },
   { title: t('agent.list.columns.due'), key: 'due', sortable: false },
 ])
+const headers = computed(() => ALL_HEADERS.value.filter((h) => cols.show(h.key)))
 
 const title = computed(() => {
   if (activeView.value) return activeView.value.name
@@ -118,7 +140,7 @@ async function fetchPage(cursor: string | null) {
   loading.value = true
   failed.value = false
   try {
-    const page = await apiFetch<S['TicketPage']>('/agent/tickets?' + toApiParams(filters.value, cursor).toString())
+    const page = await apiFetch<S['TicketPage']>('/agent/tickets?' + toApiParams(apiFilters.value, cursor).toString())
     if (mine !== seq) return
     items.value = cursor ? [...items.value, ...(page.items ?? [])] : page.items ?? []
     next.value = page.next_cursor ?? null
@@ -159,11 +181,17 @@ async function onQuery() {
   await reload()
 }
 watch(() => route.fullPath, () => void onQuery())
+let projectsReady = false
+watch(() => projects.currentId, () => projectsReady && void reload())
 
 onMounted(() => {
   void lookups.ensure('teams', 'categories', 'staff', 'customFields')
   if (!viewsStore.loaded) void viewsStore.load()
-  void onQuery()
+  // The saved switcher project must be known before the first query (one request, already filtered).
+  void projects.load().then(() => {
+    projectsReady = true
+    return onQuery()
+  })
 })
 
 function setFilters(patch: Partial<ListFilters>) {
@@ -184,7 +212,7 @@ function clearFilters() {
 }
 const hasFilters = computed(() => {
   const f = filters.value
-  return !!(f.status.length || f.priority.length || f.team_id || f.assignee || f.category_id || f.tag || f.q || f.breached || Object.keys(f.cf).length)
+  return !!(f.status.length || f.priority.length || f.team_id || f.assignee || f.category_id || f.project || f.tag || f.q || f.breached || Object.keys(f.cf).length)
 })
 
 // ---- realtime --------------------------------------------------------------
@@ -202,6 +230,9 @@ onBeforeUnmount(() => {
 })
 function onEvent(ev: ServerEvent) {
   const tk = (ev.data?.ticket ?? null) as Row | null
+  const pid = apiFilters.value.project
+  // With a project selected by id, other projects' events never touch the list (keys are matched by the API refetch).
+  if (pid && tk?.project_id && /^[0-9a-f-]{36}$/i.test(pid) && tk.project_id !== pid) return
   if (tk?.id) {
     const i = items.value.findIndex((r) => r.id === tk.id)
     if (i >= 0) {
@@ -216,7 +247,7 @@ useRealtime(['tickets'], { onEvent, onResync: () => void reload() })
 // ---- rows, selection, shortcuts ---------------------------------------------
 
 function open(row: Row) {
-  void router.push(`/agent/tickets/${row.number}`)
+  void router.push(`/agent/tickets/${row.ref ?? row.number}`)
 }
 function toggleSelect(row: Row) {
   selected.value = selected.value.includes(row.id) ? selected.value.filter((id) => id !== row.id) : [...selected.value, row.id]
@@ -323,13 +354,12 @@ const currentFilter = computed(() => {
           :items="statusItems"
           :label="$t('agent.list.filters.status')"
           multiple
-          chips
-          closable-chips
           density="compact"
           hide-details
           data-testid="filter-status"
-          @update:model-value="(v: string[]) => setFilters({ status: v })"
-        />
+          @update:model-value="(v: string[]) => setFilters({ status: v })">
+          <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(filters.status ?? []).length" /></template>
+        </v-select>
         <v-select
           :model-value="filters.priority"
           :items="priorityItems"
@@ -338,8 +368,9 @@ const currentFilter = computed(() => {
           density="compact"
           hide-details
           data-testid="filter-priority"
-          @update:model-value="(v: string[]) => setFilters({ priority: v })"
-        />
+          @update:model-value="(v: string[]) => setFilters({ priority: v })">
+          <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(filters.priority ?? []).length" /></template>
+        </v-select>
         <v-select
           :model-value="filters.tier ?? null"
           :items="tierItems"
@@ -414,7 +445,7 @@ const currentFilter = computed(() => {
           {{ $t('agent.list.filters.more') }}
           <v-badge v-if="Object.keys(filters.cf).length" :content="Object.keys(filters.cf).length" inline color="primary" />
         </v-btn>
-        <ColumnChooser v-model="cfColumns" :defs="activeDefs" />
+        <ColumnsMenu :cols="cols" :bar="false" />
         <v-spacer />
         <v-btn v-if="hasFilters" variant="text" size="small" :prepend-icon="mdiFilterRemoveOutline" data-testid="filter-clear" @click="clearFilters">
           {{ $t('agent.common.clearFilters') }}
@@ -457,8 +488,9 @@ const currentFilter = computed(() => {
         @click:row="(_e: unknown, { item }: { item: Row }) => open(item)"
       >
         <template #[`item.number`]="{ item }">
-          <span class="font-weight-medium">#{{ item.number }}</span>
+          <TicketNumber :number="item.number" :reftext="item.ref" />
         </template>
+        <template #[`item.project`]="{ item }"><ProjectChip :project="item.project" /></template>
         <template #[`item.subject`]="{ item }">
           <span>{{ item.subject }}</span>
           <v-chip v-if="hasParent(item)" size="x-small" class="ml-1" label :prepend-icon="mdiLinkVariant">{{ $t('agent.list.child') }}</v-chip>

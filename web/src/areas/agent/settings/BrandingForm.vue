@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * Branding settings form (FE-047): identity, colours (+ per-area overrides),
  * theme, login and portal texts, email look, legal links, locales. Emits the
@@ -135,9 +136,9 @@ const onSave = submit(async () => {
         :label="$t('agent.branding.availableLocales')"
         :rules="localeRules"
         multiple
-        chips
-        data-testid="brand-locales"
-      />
+        data-testid="brand-locales">
+        <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.available_locales ?? []).length" /></template>
+      </v-select>
       <v-select v-model="model.default_locale" :items="defaultLocales" :label="$t('agent.branding.defaultLocale')" />
     </section>
 

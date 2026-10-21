@@ -54,7 +54,7 @@ func (u *userRow) recipient() Recipient {
 	return Recipient{UserID: u.ID, Addr: u.Email, Name: u.Name, Locale: u.Locale, Audience: aud}
 }
 
-// Visibility is the staff visibility predicate (I-4) evaluated against the
+// Visibility is the staff visibility predicate (I-4, I-11) evaluated against the
 // event snapshot plus current team membership. The default is a local
 // implementation (authz does not exist yet); swap with SetVisibility.
 type Visibility interface {
@@ -63,13 +63,18 @@ type Visibility interface {
 
 type localVisibility struct{ m *Module }
 
-// StaffCanSee: admins and supervisors see everything; the assignee sees the
-// ticket; triage tickets are visible to agents when the support setting
+// StaffCanSee: admins and supervisors see everything; agents nothing outside
+// their projects (I-11); the assignee sees the ticket; triage tickets are visible to agents when the support setting
 // allows it; otherwise the user must be in the ticket's team with an
 // effective tier ≥ the ticket tier (D-05).
 func (v localVisibility) StaffCanSee(ctx context.Context, userID, role string, tier int, snap events.Snapshot) bool {
 	if role == "admin" || role == "supervisor" {
 		return true
+	}
+	// I-11 (D-20): agents only hear about tickets of their projects.
+	var member int
+	if err := v.m.db.Read().QueryRowContext(ctx, `SELECT 1 FROM project_members WHERE project_id = ? AND user_id = ?`, snap.Project(), userID).Scan(&member); err != nil {
+		return false
 	}
 	if snap.AssigneeID != "" && snap.AssigneeID == userID {
 		return true

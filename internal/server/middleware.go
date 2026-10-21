@@ -372,6 +372,17 @@ func requireRole(roles ...domain.Role) func(http.Handler) http.Handler {
 	}
 }
 
+// requireProjectAdmin admits supervisors, admins and project admins (D-20).
+func requireProjectAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if p := PrincipalFrom(r.Context()); p == nil || !p.IsProjectAdmin() {
+			problems.Write(w, r, problems.Forbidden(""))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // ---- body limit ----
 
 type limitKey struct{}

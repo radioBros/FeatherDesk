@@ -395,12 +395,15 @@ func TestE2E_MCP(t *testing.T) {
 		// Resources respect the same visibility.
 		rl, _ := cu.rpc("resources/list", map[string]any{})
 		rraw, _ := json.Marshal(rl)
-		if !strings.Contains(string(rraw), fmt.Sprintf("ticket://%d", n)) || strings.Contains(string(rraw), "kb://staff-runbook") {
+		// D-20: resources are ticket://KEY-123; the legacy ticket://<number> still reads.
+		if !strings.Contains(string(rraw), fmt.Sprintf("ticket://HD-%d", n)) || strings.Contains(string(rraw), "kb://staff-runbook") {
 			t.Fatalf("customer resources/list: %s", rraw)
 		}
-		rr, _ := cu.rpc("resources/read", map[string]any{"uri": fmt.Sprintf("ticket://%d", n)})
-		if b, _ := json.Marshal(rr); strings.Contains(string(b), "SECRET-NOTE-7731") || !strings.Contains(string(b), "Logs attached") {
-			t.Fatalf("I-2 via resources/read: %s", b)
+		for _, uri := range []string{fmt.Sprintf("ticket://HD-%d", n), fmt.Sprintf("ticket://%d", n)} {
+			rr, _ := cu.rpc("resources/read", map[string]any{"uri": uri})
+			if b, _ := json.Marshal(rr); strings.Contains(string(b), "SECRET-NOTE-7731") || !strings.Contains(string(b), "Logs attached") {
+				t.Fatalf("I-2 via resources/read %s: %s", uri, b)
+			}
 		}
 		if _, e := cu.rpc("resources/read", map[string]any{"uri": "kb://staff-runbook"}); e == nil || e["code"] != float64(-32002) {
 			t.Fatalf("hidden KB resource: %v", e)

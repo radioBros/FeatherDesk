@@ -1015,7 +1015,8 @@
         "ticket_children_resolved": "Alle untergeordneten Tickets gelöst",
         "unknown": "Ereignis {type}",
         "reason": "Grund: {reason}",
-        "unassigned": "Nicht zugewiesen"
+        "unassigned": "Nicht zugewiesen",
+        "ticket_project_changed": "In ein anderes Projekt verschoben"
       },
       "timeline": {
         "empty": "Noch keine Ereignisse",
@@ -1083,7 +1084,8 @@
       "custom_field": "Benutzerdefiniertes Feld",
       "business_hours": "Innerhalb der Geschäftszeiten",
       "hours_since_update": "Stunden seit der letzten Änderung",
-      "hours_since_status": "Stunden im aktuellen Status"
+      "hours_since_status": "Stunden im aktuellen Status",
+      "project": "Projekt"
     },
     "ops": {
       "is": "ist",
@@ -1239,6 +1241,114 @@
       "actor": "Automatisierung",
       "rule": "„{name}“",
       "truncated": "beim Limit von 10 Aktionen abgebrochen"
+    }
+  },
+  "projects": {
+    "nav": {
+      "title": "Projekte"
+    },
+    "switcher": {
+      "label": "Projekt",
+      "all": "Alle Projekte",
+      "error": "Das Projekt konnte nicht gewechselt werden."
+    },
+    "reports": {
+      "project": "Projekt",
+      "byProject": "Nach Projekt"
+    },
+    "config": {
+      "all": "Alle Projekte",
+      "project": "Projekt",
+      "projects": "Projekte",
+      "filter": "Nach Projekt filtern",
+      "lockedHint": "Das Projekt lässt sich nicht mehr ändern, sobald die Kategorie Tickets hat.",
+      "teamHint": "Projekte, die das Team betreut. Neue Teams gehören zum Standardprojekt.",
+      "orgHint": "Projekte, in denen die Kunden Tickets eröffnen dürfen. Leer: jedes im Portal sichtbare Projekt.",
+      "webhookHint": "Leer: Ereignisse aller Projekte werden zugestellt.",
+      "fieldHint": "Leer: Das Feld gilt in jedem Projekt.",
+      "scopeHint": "Leer: gilt für alle Projekte.",
+      "mailboxHint": "Neue Tickets dieses Postfachs gehören zu diesem Projekt.",
+      "memberships": "Projektzugehörigkeiten",
+      "membershipsHint": "Agenten sehen nur Tickets ihrer Projekte. Supervisoren und Admins sehen jedes Projekt.",
+      "role": "Rolle im Projekt",
+      "member": "Mitglied",
+      "project_admin": "Projektadmin",
+      "addMembership": "Projekt hinzufügen",
+      "removeMembership": "Entfernen",
+      "noMemberships": "Noch kein Projekt: Das Standardprojekt wird verwendet.",
+      "staffColumn": "Projekte",
+      "ruleProject": "Projekt",
+      "pick": "Projekte auswählen",
+      "global": "Alle Projekte (global)",
+      "subHint": "Eine Unterkategorie gehört zum Projekt ihrer übergeordneten Kategorie."
+    },
+    "ticket": {
+      "ref": "Ref.",
+      "project": "Projekt",
+      "move": {
+        "title": "In Projekt verschieben",
+        "target": "Zielprojekt",
+        "hint": "{ref} erhält die nächste Referenz des Zielprojekts; die alte Referenz funktioniert nicht mehr.",
+        "confirm": "Verschieben",
+        "done": "Verschoben: jetzt {ref}",
+        "handedOver": "Das Ticket wurde in ein Projekt verschoben, das Sie nicht mehr sehen."
+      }
+    },
+    "admin": {
+      "subtitle": "Tickets nach Produkt, Kunde oder Service gruppieren, jeweils mit eigenem Kürzel und eigener Nummerierung.",
+      "new": "Neues Projekt",
+      "edit": "{name} bearbeiten",
+      "empty": "Noch keine Projekte",
+      "emptyBody": "Legen Sie das erste Projekt an, um Tickets zu gruppieren.",
+      "key": "Kürzel",
+      "keyHint": "2 bis 10 Zeichen, zum Beispiel WEB. Tickets heißen dann WEB-1, WEB-2 und so weiter.",
+      "keyLocked": "Das Kürzel lässt sich nicht mehr ändern: Das Projekt hat Tickets.",
+      "color": "Farbe",
+      "icon": "Symbol",
+      "sort": "Reihenfolge",
+      "tickets": "Tickets",
+      "defaultTeam": "Standardteam",
+      "defaultTeamHint": "Erhält neue Tickets ohne Kategorie-Team. Es muss eines der Teams sein, die das Projekt betreuen.",
+      "defaultTeamNew": "Wählen Sie es nach dem Anlegen, sobald die Teams zugeordnet sind.",
+      "portalSection": "Kundenportal",
+      "portalVisible": "Kunden können in diesem Projekt Tickets eröffnen",
+      "portalTitle": "Portaltitel",
+      "portalFallback": "Leer: der globale Portaltitel",
+      "portalIntro": "Portal-Einleitung (Markdown)",
+      "primaryColor": "Primärfarbe des Portals",
+      "tabs": {
+        "settings": "Einstellungen",
+        "members": "Mitglieder",
+        "teams": "Teams",
+        "sla": "SLA"
+      },
+      "logo": {
+        "title": "Portal-Logo",
+        "label": "Logo-Datei",
+        "hint": "PNG, JPEG oder SVG, bis 1 MB. Leer: das globale Logo.",
+        "remove": "Logo entfernen"
+      },
+      "members": {
+        "add": "Mitarbeiter hinzufügen",
+        "role": "Rolle",
+        "empty": "Noch keine Mitglieder. Agenten sehen nur Tickets der Projekte, denen sie angehören.",
+        "readOnly": "Nur Supervisoren und Administratoren ändern die Mitglieder.",
+        "roles": {
+          "member": "Mitglied",
+          "project_admin": "Projektadministrator"
+        }
+      },
+      "teams": {
+        "hint": "Die Teams, die dieses Projekt betreuen: Sie erhalten seine Tickets, können zugewiesen werden und kommen in seinen Regeln vor.",
+        "default": "Standard",
+        "defaultStays": "Das Standardteam muss in der Liste bleiben."
+      },
+      "sla": {
+        "hint": "Jede Priorität nutzt den globalen Standard oder eigene Ziele für dieses Projekt.",
+        "override": "Überschreiben",
+        "inherited": "Globaler Standard",
+        "clear": "Für alle den globalen Standard verwenden"
+      }
     }
   }
 }

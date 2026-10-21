@@ -1,4 +1,4 @@
-Subject: [#1042] Nous avons bien reçu votre demande : Printer on floor 3 is offline
+Subject: [HD-1042] Nous avons bien reçu votre demande : Printer on floor 3 is offline
 
 ##- Répondez au-dessus de cette ligne -##
 
@@ -6,7 +6,7 @@ Bonjour Ada Lovelace,
 
 merci de nous avoir contactés. Nous avons bien reçu votre demande **Printer on floor 3 is offline** et nous vous répondrons dans les meilleurs délais.
 
-Votre numéro de référence est **#1042**.
+Votre numéro de référence est **HD-1042**.
 
 [Voir votre demande](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
 

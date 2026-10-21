@@ -67,6 +67,7 @@ Examples use `https://help.example.com` as the public address of the help desk a
    - [Privacy and GDPR](#718-privacy-and-gdpr-people--privacy-admin)
    - [Notification centre](#719-notification-centre)
    - [AI assistants (MCP)](#720-ai-assistants-mcp-system--support-settings-admin)
+   - [Projects](#721-projects-administration--projects-supervisor)
 8. [Agent guide](#8-agent-guide)
    - [Layout](#81-layout)
    - [Ticket list](#82-ticket-list)
@@ -184,7 +185,7 @@ The server works out which actions the current user may take on a ticket and ret
 
 | Who | Sees a ticket when… |
 |---|---|
-| Agent | it is assigned to them, **or** it is in one of their teams and its tier is ≤ their tier, **or** they watch it. Triage tickets (no team) are visible to agents only while the support setting **Agents can see the triage queue** is on, which is the default |
+| Agent | it is in one of **their projects** (I-11), **and** it is assigned to them, **or** it is in one of their teams and its tier is ≤ their tier, **or** they watch it. Triage tickets (no team) are visible to agents only while the support setting **Agents can see the triage queue** is on, which is the default |
 | Supervisor, admin | always |
 | Requester | they are the requester, or a watcher |
 | Organization manager | the ticket belongs to their organization, or they are the requester or a watcher |
@@ -1115,7 +1116,7 @@ Who gets what:
 
 **Language.** Templates exist in English, Italian, German, French and Spanish. Each recipient gets their own language setting, otherwise the instance default language. Team mailboxes always get the default language.
 
-**Subject and threading headers.** The subject includes the ticket number, e.g. `[#1042]`. `Message-ID` and `References` headers are set so mail clients group the conversation and replies can be matched to the ticket.
+**Subject and threading headers.** The subject includes the ticket reference, e.g. `[WEB-12]` (see [Projects](features/projects.md)). `Message-ID` and `References` headers are set so mail clients group the conversation and replies can be matched to the ticket.
 
 ### 6.4 Inbound email
 
@@ -1191,7 +1192,7 @@ A message is attached to an existing ticket if one of these matches, tried in or
 
 1. `In-Reply-To` or `References` contains one of SimpleTickets' own message ids: `<ticket-<id>@host>` or `<<event id>.<hash>@host>`.
 2. A recipient address carries a valid plus-address token, `local+t-<token>@domain`. The headers checked are `To`, `Cc`, `Delivered-To`, `X-Original-To` and `Envelope-To`.
-3. The subject contains `[#<ticket number>]`.
+3. The subject contains the ticket reference `[KEY-123]` (any letter case) or, as before projects, `[#<ticket number>]`.
 
 In every case, a customer sender must be the requester or a watcher of that ticket; otherwise a new ticket is created. Staff senders are handled as described below.
 
@@ -1495,6 +1496,25 @@ The **Integrations** card has one switch, **AI assistants (MCP)**. It turns on t
 
 Details, tools and client setup: [features/mcp.md](features/mcp.md).
 
+### 7.21 Projects (Administration → Projects, supervisor+)
+
+A project groups tickets under a key: `WEB-12`, `MOB-3`. Every installation has at least one, the **Default project** (key `HD`), which the upgrade creates and fills with everything that existed; a single-project installation works exactly as before and the agent panel hides the project switcher.
+
+- **Supervisors and admins** create, rename, deactivate and delete projects, choose the key (2–10 upper-case letters and digits, fixed once the project has tickets) and manage the **members**.
+- **Agents see only the tickets of the projects they are members of** (on top of the team and tier rules). Supervisors and admins see every project. New staff join the default project unless you choose their projects.
+- A member with the **project admin** role manages that project's categories, the teams serving it, its SLA overrides, KB categories, automation rules, shared macros, canned responses and portal branding, and nothing global.
+- Each category, inbound mailbox and ticket belongs to one project. Teams can serve several. SLA policies fall back to the global ones.
+- **Customers** pick a project when several are open to them. An organization can be limited to some projects. A portal-visible project has its own entry at `/p/{key}` with its own title, introduction, logo and colour.
+- Email subjects carry `[KEY-123]`; replies thread with it or with the old `[#1042]`.
+
+**Admin guide.** Open *Administration → Projects*: create a project (key, name, colour), set its default team, add members and give the trusted ones the *project admin* role, map the teams that serve it and, if needed, override the SLA per priority (empty rows inherit the global policy). Pick the project on categories, mailboxes, KB categories, rules, macros, canned responses, custom fields, teams, organizations and webhooks. In *Staff* you edit a person's projects. The portal fields (title, introduction, colour, logo) brand the project's entry `/p/{key}`.
+
+**Agent guide.** With several projects a **project menu** in the top bar limits every list, queue badge and report to one project (or *All projects*); your choice is remembered. Tickets show `WEB-123` and a coloured project chip; `/agent/tickets/WEB-123` and the search box open a ticket by reference. *Move to project* in the ticket moves it and gives it the next reference of the target.
+
+**Portal.** Customers who may open tickets in several projects pick one in the new-ticket form (hidden when there is only one). `/p/WEB` is a branded entry that preselects the project; an unknown or non-public key shows a "not found" page.
+
+Details, permissions and API: [features/projects.md](features/projects.md) (the screens: [§11](features/projects.md#11-the-user-interface)).
+
 ---
 
 ## 8. Agent guide
@@ -1745,7 +1765,8 @@ The web app uses exactly the same API that integrations use, so anything the UI 
   - A static, script-free reference page listing every operation and its scopes is at `GET /api/docs`.
 - **Base path:** `/api/v1`. Bodies are JSON (`application/json`), except uploads (`multipart/form-data`) and downloads.
 - **Timestamps:** RFC 3339 in UTC, e.g. `2026-10-20T10:00:00Z`.
-- **Ids:** UUIDv7 strings. Staff can also fetch a ticket by its number: `GET /api/v1/agent/tickets/by-number/1042`.
+- **Ids:** UUIDv7 strings. A ticket can also be fetched by its reference, `GET /api/v1/agent/tickets/by-ref/WEB-12` (customers: `/portal/tickets/by-ref/…`), or by its global number, `GET /api/v1/agent/tickets/by-number/1042`.
+- **Projects:** tickets carry `project_id`, `ref` and `project`; lists, counts, reports and lookups take a `project` filter (id or key). See [features/projects.md](features/projects.md).
 
 ### 10.1 Areas
 
@@ -1755,7 +1776,7 @@ The web app uses exactly the same API that integrations use, so anything the UI 
 | `/api/v1/me*` | any signed-in user | Profile, tokens, sessions, email signature (staff), notifications, two-step verification, My data, availability (staff) |
 | `/api/v1/portal/*` | customers only (staff get 404) | Tickets, replies, attachments, categories, custom fields, organization members, KB suggestions |
 | `/api/v1/agent/*` | staff only (customers get 404) | Tickets, messages, escalation, links, merge, split, watchers, customers, organizations, views, canned responses, macros, reports, KB editor |
-| `/api/v1/admin/*` | admins, and supervisors for support configuration | Staff, teams, categories, SLA, calendars, custom fields, automation rules and shared macros (supervisor+), settings, security policy and two-step resets, privacy, branding, email, inbound, webhooks, tokens, jobs, queue, system |
+| `/api/v1/admin/*` | admins; supervisors for support configuration; project admins for their projects' configuration | Staff, teams, categories, SLA, calendars, custom fields, automation rules and shared macros (supervisor+), settings, security policy and two-step resets, privacy, branding, email, inbound, webhooks, tokens, jobs, queue, system |
 | `/api/v1/kb/*` | anyone; results depend on who asks | Knowledge base browse, search, feedback |
 | `/api/v1/ws` | any signed-in user or token | WebSocket (see §11) |
 
@@ -2019,6 +2040,7 @@ Each feature guide has the complete route table, with request bodies and status 
 | Assignment | `GET`/`PATCH /me/availability`; team field `assignment_strategy` on `/admin/teams` | staff; supervisor+ for teams | [automation.md](features/automation.md#availability-and-team-strategy) |
 | Two-step verification | `/auth/mfa/*` (second sign-in step), `/me/mfa*` (self-service, session only), `/admin/security`, `/admin/users/{id}/mfa`, `/admin/users/{id}/mfa/reset` | anyone / the user / admin | [mfa.md](features/mfa.md#api) |
 | Privacy | `/me/privacy*` (own exports and deletion request), `/admin/privacy/*` (requests, per-user export and erasure, settings, retention preview) | the user / admin | [gdpr.md](features/gdpr.md#for-integrators) |
+| Projects | `/admin/projects*` (CRUD, members, teams, SLA overrides, logo), `/agent/projects`, `/portal/projects`, `by-ref` lookups, `project` filters, `GET /auth/config?project=KEY` | supervisor+; project admins for their project; staff; customers | [projects.md](features/projects.md#9-administration-api) |
 | Notifications | `/me/notifications`, `/me/notifications/unread-count`, `/me/notifications/{id}/read`, `/me/notifications/read-all`, `DELETE /me/notifications/{id}`; `notification_prefs` on `PATCH /me` | the user | [notifications.md](features/notifications.md#for-integrators) |
 
 Things to know:
@@ -2033,7 +2055,7 @@ Things to know:
 
 - **Authentication:** `Authorization: Bearer st_pat_…` only; no cookie, no CSRF token. Recommended scopes: staff `tickets:read tickets:write directory:read kb:read`, customers `tickets:read tickets:write kb:read` (drop `tickets:write` for read-only use).
 - **Same rules as REST:** each tool runs the matching REST operation in-process with the token, so scopes, visibility, the lifecycle, `allowed_actions` and the customer views apply unchanged. Changes are ticket events by the token owner with the channel `api`.
-- **Tools:** `search_tickets`, `list_my_tickets`, `get_ticket`, `create_ticket`, `reply_to_ticket`, `update_ticket`, `search_kb`, `get_kb_article`, `list_categories`; staff also `add_internal_note`, `escalate_ticket`, `deescalate_ticket`, `apply_macro`, `list_teams`. Failures are tool results with `isError: true` and the REST problem slug. Resources: `ticket://{number}`, `kb://{slug}`.
+- **Tools:** `search_tickets`, `list_my_tickets`, `get_ticket`, `create_ticket`, `reply_to_ticket`, `update_ticket`, `search_kb`, `get_kb_article`, `list_categories`; staff also `add_internal_note`, `escalate_ticket`, `deescalate_ticket`, `apply_macro`, `list_teams`. Failures are tool results with `isError: true` and the REST problem slug. Resources: `ticket://{ref}` (e.g. `ticket://WEB-12`; `ticket://{number}` still resolves), `kb://{slug}`.
 - **Protocol revisions:** 2026-07-28 (stateless, per-request `_meta` and `MCP-Protocol-Version`/`Mcp-Method`/`Mcp-Name` headers, `server/discover`) and 2025-11-25, 2025-06-18, 2025-03-26 (`initialize` and `Mcp-Session-Id`; batches in 2025-03-26 only).
 - **Origin:** a request whose `Origin` header is not the origin of `ST_PUBLIC_URL` (or listed in `ST_ALLOWED_ORIGINS`) is refused with 403.
 - `GET /api/v1/integrations/mcp` (any signed-in user) returns whether MCP is on, the endpoint URL and the recommended scopes; `GET`/`PATCH /api/v1/admin/integrations` reads and sets `mcp_enabled` (admin).
@@ -2110,10 +2132,11 @@ All frames are JSON text messages.
 | `counts` | Staff | Sidebar counts, at most once per second |
 | `me` | Anyone | Personal notices, e.g. assignment, mention, session revoked, branding changed; `notification.created` and `notification.read` for the notification centre ([guide](features/notifications.md#for-integrators)) |
 | `queue:<team_id>` | Team members; supervisors and admins for any team | New and escalated tickets entering that team's queue |
+| `project:<project_id>` | Project members; supervisors and admins for any project | Every event of the project's tickets you can see |
 | `kb` | Staff | Knowledge-base editor updates |
 | `admin:system` | Admins (tokens need `admin`) | `queue.changed` when the queue counters moved, for the admin queue page |
 
-**Customer connections never receive:** internal notes, assignments, escalation reasons, tier or team data, other customers' tickets, counts, or queue topics. A customer connection that subscribes to a staff-only topic (`counts`, `kb`, `queue:*`, `admin:*`) breaks the protocol and is closed with `4403`; other topics it may not see are listed in `denied`.
+**Customer connections never receive:** internal notes, assignments, escalation reasons, tier or team data, other customers' tickets, counts, or queue topics. A customer connection that subscribes to a staff-only topic (`counts`, `kb`, `queue:*`, `project:*`, `admin:*`) breaks the protocol and is closed with `4403`; other topics it may not see are listed in `denied`.
 
 If a ticket leaves your visibility while you are subscribed, for example because it was escalated past your tier, you get a final `ticket.access_lost` event and the subscription is dropped.
 
@@ -2690,6 +2713,7 @@ These are the rules SimpleTickets enforces. Most of them have dedicated tests na
 22. **Automation can't loop or escalate privileges.** Rule-made changes never trigger rules, at most 10 actions run per event, and a named assignee must be allowed to own the ticket. Macros run with the permissions of the agent who applies them.
 23. **Self-service data exports contain only what the person may see.** They never include internal notes, staff-only fields, other customers' messages or the identities of the staff who acted on the account.
 24. **SSO accounts can't fall back to a password.** An account with an SSO identity, or managed by the identity provider, signs in only through the provider, so the provider's second factor, group mapping and blocking always apply. Its password sign-in fails like a wrong password (same answer, timing and lockout count). Sign-in, invitation and reset links and password changes are refused for it. Linking an account removes its local password and signs out its password sessions. Break-glass admins are the only exception, and their password sign-ins go through two-step verification. Every local way in (password, sign-in link, email verification, invitation) passes the same two-step check, password reset never signs in, and the setup wizard only creates a new account.
+25. **Agents only see their projects (I-11).** An agent sees no ticket outside the projects they are a member of, whatever the team, tier, assignee or watcher rules say, in lists, counts, search, reports, WebSocket frames, notifications and MCP. Owners must work in the ticket's project, and leaving a project unassigns its tickets at once. Project admins configure only their projects.
 
 To report a vulnerability, follow [SECURITY.md](../SECURITY.md).
 
@@ -2772,7 +2796,7 @@ make image      # container image simpletickets:local (multi-stage Dockerfile, d
 The `Dockerfile` pins its base images by digest and cross-compiles, so `make image-multiarch` builds amd64 and arm64 without emulating Go.
 
 <a id="demo-data"></a>
-**Demo data.** `simpletickets seed --demo` fills a fresh installation so that every feature shows real content: 3 organizations, 12 staff accounts (admin, supervisor, an L1/L2/L3 agent for each of the 3 teams and one IdP-managed agent), 12 customers (requesters and an org manager per organization, one pending and one disabled), teams with business calendars (24×7 and business hours with holidays), categories, custom fields of every type, SLA policies, about 60 tickets spread over the last two months (every status, priority, channel and tier, escalations, SLA warnings and breaches, CSAT, merge, split, links, follow-up, attachments, @mentions), canned responses, saved views, a multilingual knowledge base (EN, IT, DE, FR, ES) and the settings: branding ("SimpleTickets Demo"), senders and triage mailbox, a disabled webhook (`http://localhost:9/demo`, so nothing is ever sent), an inactive inbound mailbox with a few log entries, and an admin API token (printed once).
+**Demo data.** `simpletickets seed --demo` fills a fresh installation so that every feature shows real content: 3 organizations, 12 staff accounts (admin, supervisor, an L1/L2/L3 agent for each of the 3 teams and one IdP-managed agent), 12 customers (requesters and an org manager per organization, one pending and one disabled), teams with business calendars (24×7 and business hours with holidays), categories, custom fields of every type, SLA policies, about 60 tickets spread over the last two months (every status, priority, channel and tier, escalations, SLA warnings and breaches, CSAT, merge, split, links, follow-up, attachments, @mentions), canned responses, saved views, a multilingual knowledge base (EN, IT, DE, FR, ES) and the settings: branding ("SimpleTickets Demo"), senders and triage mailbox, a disabled webhook (`http://localhost:9/demo`, so nothing is ever sent), an inactive inbound mailbox with a few log entries, and an admin API token (printed once). It also creates three **projects**: *Web App* `WEB` (the renamed Default project, portal-visible with its own title and introduction), *Mobile* `MOB` (portal-visible, with an SLA override, a project rule, macro, canned response, KB category and custom field; `freya.fields@demo.test` is its project admin and `mona.mobile@demo.test` works in it only) and the staff-only *Internal IT* `IT`, with tickets in all three. Globex can open tickets in `WEB` only. The printout lists each project with sample references.
 
 It also seeds the D-19 features: 8 [automation rules](#716-automation-and-assignment-support-setup-supervisor) (5 on, 3 off, every trigger) with a few rule runs, 8 macros (4 shared, 4 personal) and an assignment strategy per team (round robin, least busy, manual) with one agent marked away; one agent enrolled in [two-step verification](#717-two-step-verification-system--support-settings-admin) (`tomas.tran@demo.test`; the summary prints his TOTP secret, `otpauth://` URI and recovery codes once, and `security.mfa_required` stays `none`); 5 [privacy requests](#718-privacy-and-gdpr-people--privacy-admin) (3 ready exports, a pending and a rejected erasure), consent records and non-destructive retention settings; and several hundred [notifications](#719-notification-centre) for staff and customers, part of them unread.
 
@@ -2785,7 +2809,7 @@ simpletickets seed --demo --password 'my-demo-pass-42' --tickets 120 # one passw
 
 - **Every account has the same password** (`demo-password-123` unless `--password`), printed in a summary table with the entity counts, the portal and agent URLs and the API token. Local staff sign-in needs `ST_AUTH_STAFF_LOCAL=true` (the admin, a break-glass account, always works). The IdP-managed agent has no password.
 - **Real service layer.** The seeder builds the app like `serve` does and drives it in-process, signed in as the demo users, with a simulated clock. Events, timelines, SLA due dates, snapshots, the search index and the audit log are therefore the production ones. It never starts the queue and opens no network connection; the dispatcher cursor is moved past the seeded events, so a server started later sends no mail and no webhooks for them. Only data without an API (webhook delivery rows, inbound log rows, KB counters, customer passwords, the IdP flag, consent records) is written directly. In-app notifications, which only the queue consumer writes, are produced by replaying each seeded event through the notify module's in-app path (no email).
-- **Safe to repeat.** The seed is deterministic (fixed random seed; timestamps are relative to "now"). A database that already holds users is refused unless it was filled by `seed --demo` itself *and* `--force` is given; `--force` then wipes all data and seeds again. At least the 31 scripted tickets are always created; `--tickets` adds generated ones.
+- **Safe to repeat.** The seed is deterministic (fixed random seed; timestamps are relative to "now"). A database that already holds users is refused unless it was filled by `seed --demo` itself *and* `--force` is given; `--force` then wipes all data and seeds again. At least the 32 scripted tickets are always created; `--tickets` adds generated ones.
 - **Restart the server afterwards.** A running server caches settings, teams and categories in memory and does not see rows written by another process.
 
 ### 15.3 Tests

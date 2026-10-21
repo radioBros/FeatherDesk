@@ -22,6 +22,7 @@ const mk = (id: string, position: number, extra: Partial<S['AutomationRule']> = 
   actions: [{ type: 'add_tag', value: 'x' }],
   enabled: true,
   stop_processing: false,
+  project_id: null,
   position,
   created_at: fx.iso,
   updated_at: fx.iso,

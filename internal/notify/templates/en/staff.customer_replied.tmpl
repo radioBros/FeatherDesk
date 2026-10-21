@@ -2,7 +2,7 @@
 {{define "subject"}}Customer replied: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hello {{.RecipientName}},
 
-the customer replied on ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}**:{{range .Messages}}
+the customer replied on ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}**:{{range .Messages}}
 
 **{{.AuthorName}}:**
 

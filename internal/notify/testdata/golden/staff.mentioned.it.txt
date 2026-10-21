@@ -1,10 +1,10 @@
-Subject: [#1042] Sei stato menzionato: Printer on floor 3 is offline
+Subject: [HD-1042] Sei stato menzionato: Printer on floor 3 is offline
 
 ##- Rispondi sopra questa riga -##
 
 Ciao Grace Hopper,
 
-Alan Turing ti ha menzionato in una nota interna sul ticket **#1042 Printer on floor 3 is offline**:
+Alan Turing ti ha menzionato in una nota interna sul ticket **HD-1042 Printer on floor 3 is offline**:
 
 **Ada Lovelace:**
 

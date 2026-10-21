@@ -3,7 +3,7 @@
 {{define "subject"}}Eskaliert: {{.Ticket.Subject}}{{end}}
 {{define "body"}}Hallo {{.RecipientName}},
 
-{{.ActorName}} hat das Ticket **#{{.Ticket.Number}} {{.Ticket.Subject}}** von {{.FromTier}} nach {{.ToTier}} eskaliert.{{with .Reason}}
+{{.ActorName}} hat das Ticket **{{.Ticket.Ref}} {{.Ticket.Subject}}** von {{.FromTier}} nach {{.ToTier}} eskaliert.{{with .Reason}}
 
 **Grund:** {{.}}{{end}}
 

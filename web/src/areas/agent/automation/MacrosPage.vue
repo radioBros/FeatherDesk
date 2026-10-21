@@ -11,11 +11,15 @@ import { useI18n } from 'vue-i18n'
 import { mdiDelete, mdiPencil, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import ColumnsMenu from '@/components/ColumnsMenu.vue'
+import { useTableColumns } from '@/composables/useTableColumns'
 import RelativeTime from '@/components/RelativeTime.vue'
 import MacroForm from './MacroForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { useLookupsStore } from '../shared/lookups'
+import ProjectCell from '../shared/ProjectCell.vue'
+import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 
@@ -24,6 +28,9 @@ const props = defineProps<{ shared?: boolean }>()
 const { t } = useI18n()
 const { confirm } = useConfirm()
 const lookups = useLookupsStore()
+const cp = useConfigProjects()
+/** Shared macros: the projects the user administers; personal ones: any project they work in. */
+const projectChoices = computed(() => (props.shared ? cp.options.value : cp.all.value))
 const { run } = useAction()
 const items = ref<S['Macro'][]>([])
 const loading = ref(true)
@@ -82,6 +89,13 @@ function effects(m: S['Macro']): string {
   else if (m.assignee) out.push(`${t('automation.macros.assignee')}: ${lookups.staff.find((s) => s.id === m.assignee)?.name ?? '—'}`)
   return out.join(' · ')
 }
+const cols = useTableColumns('automation-macros', () => [
+  { key: 'name', label: t('automation.macros.name'), locked: true },
+  { key: 'does', label: t('automation.macros.does') },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true },
+  { key: 'scope', label: t('automation.macros.scope'), lowPriority: true },
+  { key: 'updatedAt', label: t('agent.common.updatedAt'), lowPriority: true },
+])
 </script>
 
 <template>
@@ -98,24 +112,28 @@ function effects(m: S['Macro']): string {
     <v-card border flat>
       <v-progress-linear v-if="loading" indeterminate />
       <EmptyState v-if="!loading && !sorted.length" :title="$t('automation.macros.empty')" body="" />
-      <v-table v-else density="comfortable" data-testid="macros-table">
+      <template v-else>
+      <ColumnsMenu :cols="cols" />
+      <v-table density="comfortable" data-testid="macros-table">
         <thead>
           <tr>
-            <th>{{ $t('automation.macros.name') }}</th>
-            <th>{{ $t('automation.macros.does') }}</th>
-            <th>{{ $t('automation.macros.scope') }}</th>
-            <th>{{ $t('agent.common.updatedAt') }}</th>
+            <th v-if="cols.show('name')">{{ $t('automation.macros.name') }}</th>
+            <th v-if="cols.show('does')">{{ $t('automation.macros.does') }}</th>
+            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+            <th v-if="cols.show('scope')">{{ $t('automation.macros.scope') }}</th>
+            <th v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
             <th class="text-right">{{ $t('agent.common.actions') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="m in sorted" :key="m.id" data-testid="macro-row">
-            <td>{{ m.name }}</td>
-            <td class="text-medium-emphasis">{{ effects(m) }}</td>
-            <td>
+            <td v-if="cols.show('name')">{{ m.name }}</td>
+            <td v-if="cols.show('does')" class="text-medium-emphasis">{{ effects(m) }}</td>
+            <td v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
+            <td v-if="cols.show('scope')">
               <v-chip size="small" label>{{ m.shared ? $t('automation.macros.shared') : $t('automation.macros.personal') }}</v-chip>
             </td>
-            <td><RelativeTime :value="m.updated_at" /></td>
+            <td v-if="cols.show('updatedAt')"><RelativeTime :value="m.updated_at" /></td>
             <td class="text-right text-no-wrap">
               <template v-if="editable(m)">
                 <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="macro-edit" @click="openForm(m)" />
@@ -125,12 +143,13 @@ function effects(m: S['Macro']): string {
           </tr>
         </tbody>
       </v-table>
+      </template>
     </v-card>
 
     <v-dialog v-model="dialog" max-width="760" scrollable>
       <v-card :title="editing ? $t('automation.macros.edit') : $t('automation.macros.new')">
         <v-card-text>
-          <MacroForm v-if="dialog" :macro="editing" :shared="shared" :staff="lookups.staff" :tags="tagNames" @saved="onSaved" @cancel="dialog = false" />
+          <MacroForm v-if="dialog" :macro="editing" :shared="shared" :staff="lookups.staff" :tags="tagNames" :projects="projectChoices" :can-global="!shared || cp.canGlobal.value" @saved="onSaved" @cancel="dialog = false" />
         </v-card-text>
       </v-card>
     </v-dialog>

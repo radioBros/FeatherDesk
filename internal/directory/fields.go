@@ -35,6 +35,7 @@ type FieldDef struct {
 	CustomerVisible  bool              `json:"customer_visible"`
 	CustomerEditable bool              `json:"customer_editable"`
 	CategoryIDs      []string          `json:"category_ids"` // nil = all categories
+	ProjectIDs       []string          `json:"project_ids"`  // D-20: nil = all projects
 	Sort             int               `json:"sort"`
 	Active           bool              `json:"active"`
 	CreatedAt        time.Time         `json:"created_at"`
@@ -46,8 +47,12 @@ func (f FieldDef) Access() authz.FieldAccess {
 	return authz.FieldAccess{CustomerVisible: f.CustomerVisible, CustomerEditable: f.CustomerEditable}
 }
 
-// AppliesTo reports whether the field applies to a ticket of categoryID.
-func (f FieldDef) AppliesTo(categoryID string) bool {
+// AppliesTo reports whether the field applies to a ticket of categoryID in
+// projectID ("" = any project, for lookups without a project).
+func (f FieldDef) AppliesTo(categoryID, projectID string) bool {
+	if f.ProjectIDs != nil && projectID != "" && !slices.Contains(f.ProjectIDs, projectID) {
+		return false
+	}
 	if f.CategoryIDs == nil {
 		return true
 	}
@@ -55,7 +60,7 @@ func (f FieldDef) AppliesTo(categoryID string) bool {
 }
 
 func loadFieldDefs(ctx context.Context, q store.Querier) ([]FieldDef, error) {
-	rows, err := q.QueryContext(ctx, `SELECT id, key, label, type, options, required, customer_visible, customer_editable, category_ids, sort, active, created_at, updated_at
+	rows, err := q.QueryContext(ctx, `SELECT id, key, label, type, options, required, customer_visible, customer_editable, category_ids, sort, active, created_at, updated_at, project_ids
 		FROM custom_field_defs ORDER BY sort, key`)
 	if err != nil {
 		return nil, err
@@ -66,9 +71,12 @@ func loadFieldDefs(ctx context.Context, q store.Querier) ([]FieldDef, error) {
 		var f FieldDef
 		var label store.JSON[map[string]string]
 		var opts store.JSON[[]FieldOption]
-		var cats store.JSON[[]string]
-		if err := rows.Scan(&f.ID, &f.Key, &label, &f.Type, &opts, &f.Required, &f.CustomerVisible, &f.CustomerEditable, &cats, &f.Sort, &f.Active, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		var cats, projects store.JSON[[]string]
+		if err := rows.Scan(&f.ID, &f.Key, &label, &f.Type, &opts, &f.Required, &f.CustomerVisible, &f.CustomerEditable, &cats, &f.Sort, &f.Active, &f.CreatedAt, &f.UpdatedAt, &projects); err != nil {
 			return nil, err
+		}
+		if projects.Valid && projects.V != nil {
+			f.ProjectIDs = projects.V
 		}
 		f.Label, f.Options = label.V, opts.V
 		if f.Label == nil {

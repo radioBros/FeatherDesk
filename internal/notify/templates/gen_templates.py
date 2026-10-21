@@ -17,15 +17,15 @@ OPEN_S = '[{}]({{{{.Ticket.URL}}}})'
 
 add('customer.ticket_received',
  en=('We received your request: {{.Ticket.Subject}}',
- 'Hello {{.RecipientName}},\n\nthank you for contacting us. We have received your request **{{.Ticket.Subject}}** and will get back to you as soon as possible.\n\nYour reference number is **#{{.Ticket.Number}}**.\n\n[View your request]({{.Ticket.URL}})'),
+ 'Hello {{.RecipientName}},\n\nthank you for contacting us. We have received your request **{{.Ticket.Subject}}** and will get back to you as soon as possible.\n\nYour reference number is **{{.Ticket.Ref}}**.\n\n[View your request]({{.Ticket.URL}})'),
  it=('Abbiamo ricevuto la tua richiesta: {{.Ticket.Subject}}',
- 'Ciao {{.RecipientName}},\n\ngrazie per averci contattato. Abbiamo ricevuto la tua richiesta **{{.Ticket.Subject}}** e ti risponderemo il prima possibile.\n\nIl tuo numero di riferimento è **#{{.Ticket.Number}}**.\n\n[Visualizza la richiesta]({{.Ticket.URL}})'),
+ 'Ciao {{.RecipientName}},\n\ngrazie per averci contattato. Abbiamo ricevuto la tua richiesta **{{.Ticket.Subject}}** e ti risponderemo il prima possibile.\n\nIl tuo numero di riferimento è **{{.Ticket.Ref}}**.\n\n[Visualizza la richiesta]({{.Ticket.URL}})'),
  de=('Wir haben Ihre Anfrage erhalten: {{.Ticket.Subject}}',
- 'Hallo {{.RecipientName}},\n\nvielen Dank für Ihre Nachricht. Wir haben Ihre Anfrage **{{.Ticket.Subject}}** erhalten und melden uns so schnell wie möglich.\n\nIhre Referenznummer lautet **#{{.Ticket.Number}}**.\n\n[Anfrage ansehen]({{.Ticket.URL}})'),
+ 'Hallo {{.RecipientName}},\n\nvielen Dank für Ihre Nachricht. Wir haben Ihre Anfrage **{{.Ticket.Subject}}** erhalten und melden uns so schnell wie möglich.\n\nIhre Referenznummer lautet **{{.Ticket.Ref}}**.\n\n[Anfrage ansehen]({{.Ticket.URL}})'),
  fr=('Nous avons bien reçu votre demande : {{.Ticket.Subject}}',
- 'Bonjour {{.RecipientName}},\n\nmerci de nous avoir contactés. Nous avons bien reçu votre demande **{{.Ticket.Subject}}** et nous vous répondrons dans les meilleurs délais.\n\nVotre numéro de référence est **#{{.Ticket.Number}}**.\n\n[Voir votre demande]({{.Ticket.URL}})'),
+ 'Bonjour {{.RecipientName}},\n\nmerci de nous avoir contactés. Nous avons bien reçu votre demande **{{.Ticket.Subject}}** et nous vous répondrons dans les meilleurs délais.\n\nVotre numéro de référence est **{{.Ticket.Ref}}**.\n\n[Voir votre demande]({{.Ticket.URL}})'),
  es=('Hemos recibido su solicitud: {{.Ticket.Subject}}',
- 'Hola {{.RecipientName}},\n\ngracias por contactarnos. Hemos recibido su solicitud **{{.Ticket.Subject}}** y le responderemos lo antes posible.\n\nSu número de referencia es **#{{.Ticket.Number}}**.\n\n[Ver su solicitud]({{.Ticket.URL}})'),
+ 'Hola {{.RecipientName}},\n\ngracias por contactarnos. Hemos recibido su solicitud **{{.Ticket.Subject}}** y le responderemos lo antes posible.\n\nSu número de referencia es **{{.Ticket.Ref}}**.\n\n[Ver su solicitud]({{.Ticket.URL}})'),
 )
 
 SIG = '{{with .Signature}}\n\n{{.}}{{end}}'
@@ -71,7 +71,7 @@ OPEN = {'en': 'Open the ticket', 'it': 'Apri il ticket', 'de': 'Ticket öffnen',
 def op(l): return f'\n\n[{OPEN[l]}]({{{{.Ticket.URL}}}})'
 HELLO = {'en': 'Hello', 'it': 'Ciao', 'de': 'Hallo', 'fr': 'Bonjour', 'es': 'Hola'}
 def hi(l): return HELLO[l] + ' {{.RecipientName}},\n\n'
-REF = '**#{{.Ticket.Number}} {{.Ticket.Subject}}**'
+REF = '**{{.Ticket.Ref}} {{.Ticket.Subject}}**'
 
 add('staff.ticket_new',
  en=('New ticket: {{.Ticket.Subject}}', hi('en') + 'a new ticket was opened by {{.Ticket.RequesterName}}.' + fields('en') + MSGS + op('en')),

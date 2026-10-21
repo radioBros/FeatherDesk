@@ -51,6 +51,7 @@ export const agentRoutes: RouteRecordRaw[] = [
       // Tickets (FE-021…FE-025, FE-038/039, FE-045/046, FE-054/055)
       page('agent-tickets', 'tickets', () => import('@/areas/agent/tickets/TicketListPage.vue'), { title: 'nav.tickets' }),
       page('agent-ticket-new', 'tickets/new', () => import('@/areas/agent/tickets/TicketNewPage.vue'), { title: 'nav.newTicket' }),
+      page('agent-ticket-ref', 'tickets/:ref([A-Za-z][A-Za-z0-9]*-\\d+)', () => import('@/areas/agent/tickets/TicketDetailPage.vue'), { title: 'nav.tickets' }),
       page('agent-ticket', 'tickets/:number(\\d+)', () => import('@/areas/agent/tickets/TicketDetailPage.vue'), { title: 'nav.tickets' }),
       // Directory (FE-026, FE-030, FE-059 signature)
       page('agent-customers', 'customers', () => import('@/areas/agent/directory/CustomersPage.vue'), { title: 'nav.customers' }),
@@ -71,8 +72,9 @@ export const agentRoutes: RouteRecordRaw[] = [
       page('agent-macros', 'macros', () => import('@/areas/agent/automation/MacrosPage.vue'), { title: 'automation.nav.myMacros' }),
       // Administration (role meta is UX only; the API enforces, permissions §6)
       page('admin-staff', 'admin/staff', () => import('@/areas/agent/directory/admin/StaffPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.staff' }),
+      page('admin-projects', 'admin/projects', () => import('@/areas/agent/projects/ProjectsPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'projects.nav.title' }),
       page('admin-teams', 'admin/teams', () => import('@/areas/agent/directory/admin/TeamsPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.teams' }),
-      page('admin-categories', 'admin/categories', () => import('@/areas/agent/directory/admin/CategoriesPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.categories' }),
+      page('admin-categories', 'admin/categories', () => import('@/areas/agent/directory/admin/CategoriesPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'agent.admin.nav.categories' }),
       page('admin-tokens', 'admin/tokens', () => import('@/areas/agent/directory/admin/AllTokensPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.tokens' }),
       page('admin-settings', 'admin/settings', () => import('@/areas/agent/settings/SupportSettingsPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.settings' }),
       page('admin-system', 'admin/system', () => import('@/areas/agent/settings/SystemPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.system' }),
@@ -84,17 +86,17 @@ export const agentRoutes: RouteRecordRaw[] = [
       page('admin-jobs', 'admin/jobs', () => import('@/areas/agent/settings/JobsPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.jobs' }),
       page('admin-webhooks', 'admin/webhooks', () => import('@/areas/agent/config/WebhooksPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.webhooks' }),
       page('admin-sla', 'admin/sla', () => import('@/areas/agent/config/SlaPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.sla' }),
-      page('admin-canned', 'admin/canned', () => import('@/areas/agent/config/CannedPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.canned' }),
+      page('admin-canned', 'admin/canned', () => import('@/areas/agent/config/CannedPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'agent.admin.nav.canned' }),
       page('admin-tags', 'admin/tags', () => import('@/areas/agent/config/TagsPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.tags' }),
       page('admin-custom-fields', 'admin/custom-fields', () => import('@/areas/agent/config/CustomFieldsPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.customFields' }),
       page('admin-calendars', 'admin/calendars', () => import('@/areas/agent/config/CalendarsPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.calendars' }),
-      page('admin-kb-categories', 'admin/kb-categories', () => import('@/areas/agent/content/KbCategoriesPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.kbCategories' }),
+      page('admin-kb-categories', 'admin/kb-categories', () => import('@/areas/agent/content/KbCategoriesPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'agent.admin.nav.kbCategories' }),
       page('admin-inbound', 'admin/inbound', () => import('@/areas/agent/content/InboundPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.inbound' }),
       page('admin-inbound-log', 'admin/inbound/log', () => import('@/areas/agent/content/InboundLogPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.inboundLog' }),
       // Privacy / GDPR (FE-080…FE-089, D-19 §C)
       page('admin-privacy', 'admin/privacy', () => import('@/areas/agent/privacy/PrivacyPage.vue'), { roles: [...ADMIN], title: 'privacy.nav.admin' }),
-      page('admin-automation', 'admin/automation', () => import('@/areas/agent/automation/RulesPage.vue'), { roles: [...SUPPORT], title: 'automation.nav.rules' }),
-      { ...page('admin-macros', 'admin/macros', () => import('@/areas/agent/automation/MacrosPage.vue'), { roles: [...SUPPORT], title: 'automation.nav.sharedMacros' }), props: { shared: true } } as RouteRecordRaw,
+      page('admin-automation', 'admin/automation', () => import('@/areas/agent/automation/RulesPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'automation.nav.rules' }),
+      { ...page('admin-macros', 'admin/macros', () => import('@/areas/agent/automation/MacrosPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'automation.nav.sharedMacros' }), props: { shared: true } } as RouteRecordRaw,
       { path: ':pathMatch(.*)*', name: 'agent-not-found', component: NotFound, meta: { area: 'agent' } },
     ],
   },
@@ -102,6 +104,7 @@ export const agentRoutes: RouteRecordRaw[] = [
 
 /** Admin navigation, in drawer order. Visibility comes from the route guard (`decide`). */
 export const adminNav: { to: string; title: string; group: 'support' | 'people' | 'channels' | 'system' }[] = [
+  { to: '/agent/admin/projects', title: 'projects.nav.title', group: 'people' },
   { to: '/agent/admin/teams', title: 'agent.admin.nav.teams', group: 'people' },
   { to: '/agent/admin/staff', title: 'agent.admin.nav.staff', group: 'people' },
   { to: '/agent/admin/privacy', title: 'privacy.nav.admin', group: 'people' },

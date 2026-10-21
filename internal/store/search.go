@@ -6,6 +6,8 @@ import (
 	"context"
 	"strings"
 	"unicode"
+
+	"github.com/radioBros/SimpleTickets/internal/domain"
 )
 
 // Search indexes are engine-specific (FTS5 on SQLite, tsvector on Postgres) and
@@ -56,6 +58,45 @@ func UnindexTicket(ctx context.Context, q Querier, ticketID string) error {
 // query, for use as `t.id IN (<sub>)`. With staff=false only public text is
 // searched. ok is false when the query has no searchable terms.
 func TicketMatch(d Dialect, query string, staff bool) (sub string, args []any, ok bool) {
+	// D-20: ticket references (KEY-123) in the query match their ticket. A
+	// query made only of references matches nothing else; otherwise the
+	// reference matches are a UNION inside the subquery, so the text match
+	// keeps its plan (DB-023).
+	refSub, refArgs, onlyRefs := ticketRefMatch(query)
+	if onlyRefs {
+		return refSub, refArgs, true
+	}
+	sub, args, ok = ticketTextMatch(d, query, staff)
+	if refSub != "" {
+		if !ok {
+			return refSub, refArgs, true
+		}
+		return sub + ` UNION ` + refSub, append(args, refArgs...), true
+	}
+	return sub, args, ok
+}
+
+// ticketRefMatch builds the subquery of the KEY-123 tokens of query (""
+// when there are none); onlyRefs reports that every token is a reference.
+func ticketRefMatch(query string) (sub string, args []any, onlyRefs bool) {
+	fields := strings.Fields(query)
+	var parts []string
+	for _, f := range fields {
+		f = strings.Trim(f, "[]()#,;.")
+		key, seq, ok := domain.ParseTicketRef(f)
+		if !ok {
+			continue
+		}
+		parts = append(parts, `SELECT r.id FROM tickets r WHERE r.project_id = (SELECT p.id FROM projects p WHERE p.key = ?) AND r.project_seq = ?`)
+		args = append(args, key, seq)
+	}
+	if len(parts) == 0 {
+		return "", nil, false
+	}
+	return strings.Join(parts, ` UNION `), args, len(parts) == len(fields)
+}
+
+func ticketTextMatch(d Dialect, query string, staff bool) (sub string, args []any, ok bool) {
 	terms := SearchTerms(query)
 	if len(terms) == 0 {
 		return "", nil, false

@@ -27,6 +27,20 @@ func seedForCopy(t *testing.T, db *store.DB) {
 	mustExec(t, db, `INSERT INTO custom_field_defs (id, key, type, required) VALUES ('f1', 'contract', 'number', TRUE)`)
 	mustExec(t, db, `INSERT INTO ticket_field_values (ticket_id, field_id, value_num, value_date) VALUES (?, 'f1', 42.5, ?)`, a, time.Date(2026, 10, 20, 0, 0, 0, 0, time.UTC))
 	mustExec(t, db, `UPDATE settings SET value = '{"product_name":"Migrated"}' WHERE key = 'branding'`)
+	// D-20 project data: a second project with a logo, members, team mapping,
+	// an organization limit, an SLA override, scoped config, a ticket, and
+	// the deferred users.current_project_id reference.
+	mob := storetest.CreateProject(t, db, "MOB")
+	storetest.MapProjectTeam(t, db, mob, team)
+	storetest.AddProjectMember(t, db, mob, agent, domain.ProjectAdmin)
+	mustExec(t, db, `INSERT INTO branding_assets (id, slot, variant, blob_key, content_type, sha256) VALUES ('logo1', 'logo_light', ?, 'branding/x.png', 'image/png', 'x')`, "project:"+mob)
+	mustExec(t, db, `UPDATE projects SET logo_asset_id = 'logo1', default_team_id = ?, portal_title = 'Mobile' WHERE id = ?`, team, mob)
+	mustExec(t, db, `INSERT INTO organization_projects (organization_id, project_id) VALUES (?, ?)`, org, mob)
+	mustExec(t, db, `INSERT INTO sla_policies (id, project_id, priority, first_response_minutes, resolution_minutes) VALUES ('sla-mob', ?, 'urgent', 5, 50)`, mob)
+	mustExec(t, db, `INSERT INTO categories (id, name, project_id) VALUES ('cat-mob', 'App', ?)`, mob)
+	mustExec(t, db, `INSERT INTO automation_rules (id, name, event, project_id) VALUES ('rule-mob', 'r', 'ticket.created', ?)`, mob)
+	mustExec(t, db, `UPDATE users SET current_project_id = ? WHERE id = ?`, mob, agent)
+	storetest.CreateTicket(t, db, storetest.Ticket{Requester: cust, OrgID: org, TeamID: team, ProjectID: mob, Subject: "Mobile"})
 }
 
 func TestMigrateEngineBothDirections(t *testing.T) {
@@ -58,8 +72,16 @@ func TestMigrateEngineBothDirections(t *testing.T) {
 	if err := pg.Read().QueryRowContext(ctx, `SELECT int_value FROM counters WHERE name = 'ticket_number'`).Scan(&n); err != nil {
 		t.Fatalf("pg.Read: %v", err)
 	}
-	if n != 1002 {
+	if n != 1003 {
 		t.Fatalf("counter %d", n)
+	}
+	var cur, logo, ref string
+	if err := pg.Read().QueryRowContext(ctx, `SELECT u.current_project_id, p.logo_asset_id, p.key || '-' || t.project_seq FROM users u
+		JOIN projects p ON p.id = u.current_project_id JOIN tickets t ON t.project_id = p.id WHERE u.current_project_id IS NOT NULL`).Scan(&cur, &logo, &ref); err != nil {
+		t.Fatalf("project data not carried: %v", err)
+	}
+	if logo != "logo1" || ref != "MOB-1" {
+		t.Fatalf("project data %s %s %s", cur, logo, ref)
 	}
 	// And back again into a fresh SQLite.
 	lite2 := storetest.Open(t, store.SQLite)

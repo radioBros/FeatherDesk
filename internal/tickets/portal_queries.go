@@ -42,15 +42,25 @@ func (s *Service) CustomerTicketByNumber(ctx context.Context, p *domain.Principa
 	return s.customerDetail(ctx, p, "t.number = ?", n)
 }
 
+// CustomerTicketByRef is CustomerTicket by KEY-123 reference (D-20).
+func (s *Service) CustomerTicketByRef(ctx context.Context, p *domain.Principal, ref string) (*customerTicketDTO, error) {
+	id, err := s.TicketIDByRef(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.customerDetail(ctx, p, "t.id = ?", id)
+}
+
 func (s *Service) customerDetail(ctx context.Context, p *domain.Principal, where string, arg any) (*customerTicketDTO, error) {
 	q := s.db.Read()
 	t, err := s.loadVisible(ctx, q, p, where, arg)
 	if err != nil {
 		return nil, err
 	}
+	s.fillKey(ctx, t)
 	sum := t.customerSummary()
 	d := &customerTicketDTO{
-		ID: sum.ID, Number: sum.Number, Subject: sum.Subject, Status: sum.Status, Priority: sum.Priority, CategoryID: sum.CategoryID,
+		ID: sum.ID, Number: sum.Number, Ref: sum.Ref, ProjectID: sum.ProjectID, Project: s.dir.ProjectRefOf(ctx, t.ProjectID), Subject: sum.Subject, Status: sum.Status, Priority: sum.Priority, CategoryID: sum.CategoryID,
 		OrganizationID: sum.OrganizationID, Channel: sum.Channel, CreatedAt: sum.CreatedAt, UpdatedAt: sum.UpdatedAt,
 		ResolvedAt: sum.ResolvedAt, ClosedAt: sum.ClosedAt, FollowupOfID: strOrNil(t.FollowupOfID), CSATScore: intPtrOrNil(t.CSATScore),
 	}

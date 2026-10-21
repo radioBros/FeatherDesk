@@ -80,6 +80,10 @@ func ticketsModule(d *Deps) (Module, error) {
 			authn.InvalidateTeams(id)
 		}
 	})
+	// D-20: GET /auth/config?project=KEY carries the project's portal branding.
+	authn.SetPublicProject(func(ctx context.Context, key string) (any, error) {
+		return dir.PublicProject(ctx, key)
+	})
 	return ticketsWithEmail{m}, nil
 }
 
@@ -100,7 +104,7 @@ func emailAttachments(in []mailin.EmailAttachment) []tickets.EmailAttachment {
 
 func (k ticketsEmailSink) CreateFromEmail(ctx context.Context, in mailin.EmailTicket) (mailin.EmailResult, error) {
 	tid, mid, err := k.s.CreateFromEmailMessage(ctx, tickets.EmailTicket{InboundMessageID: in.InboundMessageID, MailboxID: in.MailboxID,
-		TeamID: in.TeamID, RequesterID: in.RequesterID, CCUserIDs: in.CCUserIDs, Subject: in.Subject, BodyMD: in.BodyMD,
+		TeamID: in.TeamID, ProjectID: in.ProjectID, RequesterID: in.RequesterID, CCUserIDs: in.CCUserIDs, Subject: in.Subject, BodyMD: in.BodyMD,
 		Attachments: emailAttachments(in.Attachments)})
 	return mailin.EmailResult{TicketID: tid, MessageID: mid}, err
 }

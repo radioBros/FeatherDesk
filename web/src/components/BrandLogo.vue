@@ -8,12 +8,12 @@ import { logoFor } from '@/plugins/branding'
 withDefaults(defineProps<{ height?: number }>(), { height: 32 })
 const config = useConfigStore()
 const theme = useTheme()
-const src = computed(() => logoFor(config.branding, theme.current.value.dark))
+const src = computed(() => config.project?.logo_url || logoFor(config.branding, theme.current.value.dark))
 </script>
 
 <template>
   <span class="d-inline-flex align-center ga-2" data-testid="brand">
-    <img v-if="src" :src="src" :alt="config.branding.product_name" :style="{ height: height + 'px' }" />
+    <img v-if="src" :src="src" :alt="config.project?.portal_title || config.branding.product_name" :style="{ height: height + 'px' }" />
     <span v-else class="text-h6 font-weight-bold">{{ config.branding.product_name }}</span>
   </span>
 </template>

@@ -14,7 +14,7 @@ import { merge } from './ticketApi'
 import type { components } from '@/api/schema'
 
 type S = components['schemas']
-const props = defineProps<{ ticket: Pick<S['Ticket'], 'id' | 'number'> }>()
+const props = defineProps<{ ticket: Pick<S['Ticket'], 'id' | 'number' | 'ref'> }>()
 const emit = defineEmits<{ merged: [target: S['TicketSummary'], result: S['TicketUpdateResult']]; cancel: [] }>()
 const { t } = useI18n()
 const target = ref<S['TicketSummary'] | null>(null)
@@ -48,7 +48,7 @@ const onSubmit = submit(async () => {
       testid="merge-target"
     />
     <v-alert v-if="target" type="warning" variant="tonal" density="compact" class="my-3" data-testid="merge-summary">
-      {{ $t('agent.ticket.merge.summary', { source: ticket.number, target: target.number }) }}
+      {{ $t('agent.ticket.merge.summary', { source: ticket.ref ?? ticket.number, target: target.ref ?? target.number }) }}
     </v-alert>
     <div class="d-flex justify-end ga-2 mt-2">
       <v-btn variant="text" @click="emit('cancel')">{{ $t('app.cancel') }}</v-btn>

@@ -352,14 +352,45 @@ func (d *Directory) disable(ctx context.Context, tx *store.Tx, userID, actorID, 
 
 // OrganizationDTO is the Organization schema.
 type OrganizationDTO struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	EmailDomains []string  `json:"email_domains"`
-	Status       string    `json:"status"`
-	Notes        string    `json:"notes"`
-	MemberCount  int       `json:"member_count"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           string   `json:"id"`
+	Name         string   `json:"name"`
+	EmailDomains []string `json:"email_domains"`
+	Status       string   `json:"status"`
+	Notes        string   `json:"notes"`
+	MemberCount  int      `json:"member_count"`
+	// ProjectIDs limits the projects the organization may open tickets in
+	// (D-20); empty = every portal-visible project.
+	ProjectIDs []string  `json:"project_ids"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// fillOrgProjects loads organization_projects for the organizations.
+func fillOrgProjects(ctx context.Context, q store.Querier, orgs []OrganizationDTO) error {
+	if len(orgs) == 0 {
+		return nil
+	}
+	idx := map[string]int{}
+	args := make([]any, len(orgs))
+	for i := range orgs {
+		orgs[i].ProjectIDs = []string{}
+		idx[orgs[i].ID] = i
+		args[i] = orgs[i].ID
+	}
+	rows, err := q.QueryContext(ctx, `SELECT organization_id, project_id FROM organization_projects WHERE organization_id IN (`+
+		strings.TrimSuffix(strings.Repeat("?,", len(args)), ",")+`) ORDER BY project_id`, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var o, p string
+		if err := rows.Scan(&o, &p); err != nil {
+			return err
+		}
+		orgs[idx[o]].ProjectIDs = append(orgs[idx[o]].ProjectIDs, p)
+	}
+	return rows.Err()
 }
 
 const orgCols = `o.id, o.name, o.email_domains, o.status, o.notes, (SELECT COUNT(*) FROM users u WHERE u.organization_id = o.id), o.created_at, o.updated_at`
@@ -384,7 +415,12 @@ func (d *Directory) loadOrg(ctx context.Context, q store.Querier, id string) (Or
 	if err != nil && errors.Is(store.NotFound(err), store.ErrNotFound) {
 		return o, problems.NotFound()
 	}
-	return o, err
+	if err != nil {
+		return o, err
+	}
+	one := []OrganizationDTO{o}
+	err = fillOrgProjects(ctx, q, one)
+	return one[0], err
 }
 
 var domainRe = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
@@ -471,6 +507,9 @@ func (d *Directory) listOrgs(w http.ResponseWriter, r *http.Request) error {
 		page.Items = page.Items[:limit]
 		page.NextCursor = dirNextCursor(page.Items[limit-1].ID)
 	}
+	if err := fillOrgProjects(r.Context(), d.db.Read(), page.Items); err != nil {
+		return err
+	}
 	dirJSON(w, http.StatusOK, page)
 	return nil
 }
@@ -492,6 +531,7 @@ type orgIn struct {
 	EmailDomains *[]string `json:"email_domains"`
 	Notes        *string   `json:"notes"`
 	Status       *string   `json:"status"`
+	ProjectIDs   *[]string `json:"project_ids"` // D-20: ids or keys; [] = every portal-visible project
 }
 
 func (d *Directory) createOrg(w http.ResponseWriter, r *http.Request) error {
@@ -565,6 +605,20 @@ func (d *Directory) writeOrg(r *http.Request, id string, in orgIn, create bool) 
 			}
 			cur.Status = *in.Status
 		}
+		var projects []string
+		if in.ProjectIDs != nil {
+			projects = []string{}
+			for i, ref := range *in.ProjectIDs {
+				pr, err := d.ResolveProject(ctx, ref)
+				if err != nil {
+					errs = append(errs, problems.Field("project_ids["+itoa(i)+"]", "not_found", "unknown project"))
+					continue
+				}
+				if !slices.Contains(projects, pr.ID) {
+					projects = append(projects, pr.ID)
+				}
+			}
+		}
 		if len(errs) > 0 {
 			return problems.Validation(errs...)
 		}
@@ -595,6 +649,17 @@ func (d *Directory) writeOrg(r *http.Request, id string, in orgIn, create bool) 
 			}
 			return problems.Validation(problems.Field("name", "unique", "an organization with this name exists"))
 		}
-		return err
+		if err != nil || projects == nil {
+			return err
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM organization_projects WHERE organization_id = ?`, id); err != nil {
+			return err
+		}
+		for _, p := range projects {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO organization_projects (organization_id, project_id, created_at) VALUES (?, ?, ?)`, id, p, now); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }

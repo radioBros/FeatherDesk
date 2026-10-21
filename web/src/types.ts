@@ -85,6 +85,19 @@ export interface Me {
   idp_managed?: boolean
   has_password?: boolean
   teams?: string[]
+  /** Staff: the projects the user belongs to (D-20). */
+  projects?: { project_id: string; role?: 'member' | 'project_admin' }[]
+  /** Staff: the switcher's saved choice, null = all projects. */
+  current_project_id?: string | null
+  allowed_areas?: string[]
+}
+
+/** The project chip next to a ticket (API `ProjectRef`). */
+export interface ProjectRef {
+  id: string
+  key: string
+  name: string
+  color: string
 }
 
 export interface Attachment {

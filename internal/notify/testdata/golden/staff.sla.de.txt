@@ -1,10 +1,10 @@
-Subject: [#1042] SLA verletzt: Printer on floor 3 is offline
+Subject: [HD-1042] SLA verletzt: Printer on floor 3 is offline
 
 ##- Bitte oberhalb dieser Zeile antworten -##
 
 Hallo Grace Hopper,
 
-Das Ziel für Erstreaktion des Tickets **#1042 Printer on floor 3 is offline** wurde verfehlt um 2026-10-20 10:00 (UTC).
+Das Ziel für Erstreaktion des Tickets **HD-1042 Printer on floor 3 is offline** wurde verfehlt um 2026-10-20 10:00 (UTC).
 
 - **Betreff:** Printer on floor 3 is offline
 - **Priorität:** high
