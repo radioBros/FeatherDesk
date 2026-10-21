@@ -10,6 +10,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	_ "github.com/radioBros/SimpleTickets/internal/proofdeps"
 	"os"
 	"os/signal"
 	"syscall"
