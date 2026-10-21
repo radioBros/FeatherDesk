@@ -27,6 +27,11 @@ interface MailpitSummary {
 
 /** Polls Mailpit (≥ 1 s apart) for the newest message to `to` and returns the first link matching `pattern`. */
 export async function linkFromMail(request: APIRequestContext, to: string, pattern: RegExp, timeoutMs = 20_000): Promise<string> {
+  return findInMail(request, to, pattern, timeoutMs)
+}
+
+/** Polls Mailpit (≥ 1 s apart) for a message to `to` whose text or HTML body matches `pattern`; returns the match. */
+export async function findInMail(request: APIRequestContext, to: string, pattern: RegExp, timeoutMs = 20_000): Promise<string> {
   expect(MAILPIT, 'E2E_MAILPIT_URL is required').not.toBe('')
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {

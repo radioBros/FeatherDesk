@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# CI (DEP-008 … DEP-012, DEP-016/017/019/020/023/024/026…028/030…032, AUTH-029…031,
+# CI (DEP-008 … DEP-012, DEP-016/017/019/020/022…024/026…028/030…032, AUTH-029…031,
 # NOT-023/026). Every gate here
 # enforces a CONVENTIONS §10 budget or a contract; relax one only in a reviewed
 # PR that records the reason in development/deployment/deployment_log.md.
@@ -428,6 +428,79 @@ jobs:
           cache: true
       - run: docker build --build-arg VERSION=nightly --build-arg COMMIT=${{ github.sha }} -t "$IMAGE" .
       - run: scripts/loadtest.sh --image "$IMAGE" --duration 10m | tee -a "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    # DEP-022: the shipped stack end to end on an EMPTY database, every run. Prod compose +
+    # dev overlay (app image built from source, Authentik + blueprints, Mailpit) with no
+    # break-glass admin, so web/e2e/smoke-stack.spec.ts starts at the first-run wizard, then
+    # staff SSO, customer register → ticket → agent reply live over the WebSocket → escalate
+    # → resolve, reply mail in Mailpit. Authentik migrates while the app image builds and
+    # Playwright installs; the whole job must stay within 10 minutes.
+    name: smoke (prod compose + dev overlay + SSO)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Both empty: no ST_BOOTSTRAP_ADMIN_*, the app prints a setup token instead.
+      ST_DEV_BOOTSTRAP_ADMIN_EMAIL: ""
+      ST_DEV_BOOTSTRAP_ADMIN_PASSWORD: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: Stack in the background (Authentik first, then the app image build)
+        run: |
+          echo "127.0.0.1 authentik.localhost" | sudo tee -a /etc/hosts
+          # Keeps running into the next steps (the runner reaps it at job end); its exit code lands in stack-up.rc.
+          {
+            # Set-but-empty is the switch (unset falls back to the .env.dev admin): be explicit here too.
+            export ST_DEV_BOOTSTRAP_ADMIN_EMAIL="" ST_DEV_BOOTSTRAP_ADMIN_PASSWORD=""
+            dc() { docker compose -f deploy/compose.yml -f deploy/compose.dev.yml "$@"; }
+            rc=0
+            dc up -d --wait mailpit authentik-postgresql && dc up -d authentik-server authentik-worker && dc up -d --build app || rc=$?
+            echo "$rc" > "$RUNNER_TEMP/stack-up.rc"
+          } > "$RUNNER_TEMP/stack-up.log" 2>&1 &
+      - name: Playwright (chromium) while the stack starts
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Wait for the stack (blueprints applied, app ready, setup token)
+        run: |
+          for _ in $(seq 1 300); do [ -f "$RUNNER_TEMP/stack-up.rc" ] && break; sleep 1; done
+          cat "$RUNNER_TEMP/stack-up.log"
+          [ "$(cat "$RUNNER_TEMP/stack-up.rc" 2>/dev/null)" = 0 ] || { echo "::error::compose up failed or timed out"; exit 1; }
+          st=""
+          for _ in $(seq 1 100); do
+            st=$(curl -s -H 'Authorization: Bearer dev-akadmin-api-token-0123456789' 'http://localhost:9000/api/v3/managed/blueprints/?search=SimpleTickets' \
+              | python3 -c 'import sys,json; print(",".join(sorted(b["status"] for b in json.load(sys.stdin)["results"])))' 2>/dev/null || true)
+            [ "$st" = "successful,successful" ] && break; sleep 3
+          done
+          echo "blueprints: $st"; [ "$st" = "successful,successful" ]
+          for _ in $(seq 1 60); do curl -fsS http://localhost:8080/readyz && break; sleep 1; done
+          tok=$(docker compose -f deploy/compose.yml -f deploy/compose.dev.yml logs app | grep -oE 'setup token: [A-Za-z0-9_-]+' | tail -1 | cut -d' ' -f3 || true)
+          [ -n "$tok" ] || { echo "::error::no setup token in the app log (database not empty, or a bootstrap admin set?)"; exit 1; }
+          echo "::add-mask::$tok"
+          echo "E2E_SETUP_TOKEN=$tok" >> "$GITHUB_ENV"
+      - name: Playwright smoke-stack.spec.ts (one-shot, chromium)
+        working-directory: web
+        env:
+          E2E_BASE_URL: http://localhost:8080
+          E2E_AUTHENTIK_URL: http://authentik.localhost:9000
+          E2E_MAILPIT_URL: http://localhost:8025
+        run: pnpm exec playwright test e2e/smoke-stack.spec.ts --project=chromium
+      - if: failure()
+        run: docker compose -f deploy/compose.yml -f deploy/compose.dev.yml logs --no-color > "$RUNNER_TEMP/smoke-stack.log" 2>&1 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: smoke
+          path: |
+            web/playwright-report
+            web/test-results
+            ${{ runner.temp }}/stack-up.log
+            ${{ runner.temp }}/smoke-stack.log
 
   e2e-sso:
     # AUTH-023: staff/customer SSO, group → role/tier sync, demotion/disable and

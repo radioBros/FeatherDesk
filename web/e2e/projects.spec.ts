@@ -10,12 +10,14 @@
 import { spawn, execFileSync, type ChildProcess } from 'node:child_process'
 import { mkdtempSync, existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { test, expect, loginAs, watchConsole } from './fixtures'
 
 const PORT = Number(process.env.E2E_PROJECTS_PORT ?? 18091)
 const BASE = `http://127.0.0.1:${PORT}`
-const BIN = process.env.E2E_SERVER_BIN || resolve(__dirname, '../../bin/simpletickets')
+// The package is an ES module: no __dirname, resolve against this file's URL.
+const BIN = process.env.E2E_SERVER_BIN || fileURLToPath(new URL('../../bin/simpletickets', import.meta.url))
 const PASSWORD = 'demo-password-123'
 const ADMIN = { email: 'admin@demo.test', password: PASSWORD }
 const MOBILE_AGENT = { email: 'mona.mobile@demo.test', password: PASSWORD }

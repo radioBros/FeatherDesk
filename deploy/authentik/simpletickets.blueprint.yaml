@@ -16,6 +16,10 @@
 # Everything environment-specific comes from the Authentik server/worker env
 # (!Env), so the same file works for dev and production:
 #   ST_PUBLIC_URL                          e.g. https://help.example.com
+#   ST_BACKCHANNEL_BASE_URL                optional: base URL the Authentik WORKER POSTs
+#                                          back-channel logout tokens to, when it cannot
+#                                          reach ST_PUBLIC_URL (e.g. http://app:8080 inside
+#                                          a compose network). Empty/unset = ST_PUBLIC_URL.
 #   ST_OIDC_STAFF_CLIENT_ID / _SECRET      choose random values, set the same in SimpleTickets
 #   ST_OIDC_CUSTOMER_CLIENT_ID / _SECRET
 #
@@ -96,7 +100,9 @@ entries:
           redirect_uri_type: logout
           url: !Format ["^%s/.*$", !Env [ST_PUBLIC_URL, "http://localhost:8080"]]
       logout_method: backchannel
-      logout_uri: !Format ["%s/api/v1/auth/oidc/staff/backchannel-logout", !Env [ST_PUBLIC_URL, "http://localhost:8080"]]
+      # Called server-to-server by the Authentik worker: ST_BACKCHANNEL_BASE_URL when set,
+      # else ST_PUBLIC_URL. (!Env does not resolve a tag given as its default; !If does.)
+      logout_uri: !Format ["%s/api/v1/auth/oidc/staff/backchannel-logout", !If [!Env ST_BACKCHANNEL_BASE_URL, !Env ST_BACKCHANNEL_BASE_URL, !Env [ST_PUBLIC_URL, "http://localhost:8080"]]]
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
@@ -159,7 +165,9 @@ entries:
           redirect_uri_type: logout
           url: !Format ["^%s/.*$", !Env [ST_PUBLIC_URL, "http://localhost:8080"]]
       logout_method: backchannel
-      logout_uri: !Format ["%s/api/v1/auth/oidc/customer/backchannel-logout", !Env [ST_PUBLIC_URL, "http://localhost:8080"]]
+      # Called server-to-server by the Authentik worker: ST_BACKCHANNEL_BASE_URL when set,
+      # else ST_PUBLIC_URL. (!Env does not resolve a tag given as its default; !If does.)
+      logout_uri: !Format ["%s/api/v1/auth/oidc/customer/backchannel-logout", !If [!Env ST_BACKCHANNEL_BASE_URL, !Env ST_BACKCHANNEL_BASE_URL, !Env [ST_PUBLIC_URL, "http://localhost:8080"]]]
       property_mappings:
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
         - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
