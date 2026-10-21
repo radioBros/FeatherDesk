@@ -17,6 +17,8 @@
 #
 # Options:
 #   ST_DEV_SMTP_HOST= (empty) …up        leave SMTP unset: configure it in Admin → Email
+#   ST_DEV_BOOTSTRAP_ADMIN_EMAIL= ST_DEV_BOOTSTRAP_ADMIN_PASSWORD= …up
+#                                        no break-glass admin: first-run wizard on a fresh DB
 #   --profile smtp-auth                  extra Mailpit that requires SMTP AUTH (NOT-019), localhost:1026/8026
 #
 # To run the app natively instead (make dev), start only the dependencies:
@@ -42,6 +44,12 @@ services:
       # An unknown team is a boot error, so create the team first, then e.g.
       #   ST_DEV_TEAM_MAP=st-tech=technical docker compose … up -d app
       ST_OIDC_STAFF_TEAM_MAP: ${ST_DEV_TEAM_MAP-}
+      # Break-glass admin (same defaults as .env.dev). Both empty = a fresh DB boots with no
+      # admin, so the first-run wizard /setup opens and the log prints its setup token
+      # (the CI smoke, DEP-022):
+      #   ST_DEV_BOOTSTRAP_ADMIN_EMAIL= ST_DEV_BOOTSTRAP_ADMIN_PASSWORD= docker compose … up -d
+      ST_BOOTSTRAP_ADMIN_EMAIL: ${ST_DEV_BOOTSTRAP_ADMIN_EMAIL-admin@dev.test}
+      ST_BOOTSTRAP_ADMIN_PASSWORD: ${ST_DEV_BOOTSTRAP_ADMIN_PASSWORD-dev-admin-password-123}
     depends_on:
       mailpit:
         condition: service_healthy
