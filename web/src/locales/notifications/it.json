@@ -31,16 +31,16 @@
     "someone": "Qualcuno",
     "noTicket": "un ticket",
     "types": {
-      "staff_ticket_new": { "label": "Nuovo ticket nella mia coda", "title": "Nuovo ticket #{number}" },
-      "staff_customer_replied": { "label": "Risposta del cliente", "title": "{actor} ha risposto su #{number}" },
-      "staff_assigned": { "label": "Ticket assegnato a me", "title": "{actor} ti ha assegnato #{number}" },
-      "staff_escalated": { "label": "Ticket inoltrato al mio team", "title": "#{number} è stato inoltrato a {tier}" },
-      "staff_mentioned": { "label": "Menzione in una nota", "title": "{actor} ti ha menzionato su #{number}" },
-      "staff_sla": { "label": "Avvisi e violazioni SLA", "title": "Avviso SLA su #{number}", "breached": "SLA violato su #{number}" },
-      "staff_children_resolved": { "label": "Ticket collegati risolti", "title": "Tutti i ticket collegati a #{number} sono risolti" },
-      "customer_ticket_received": { "label": "Richiesta ricevuta", "title": "Abbiamo ricevuto la tua richiesta #{number}" },
-      "customer_reply": { "label": "Risposta alla mia richiesta", "title": "{actor} ha risposto alla tua richiesta #{number}" },
-      "customer_resolved": { "label": "Richiesta risolta", "title": "La tua richiesta #{number} è stata risolta" }
+      "staff_ticket_new": { "label": "Nuovo ticket nella mia coda", "title": "Nuovo ticket {ref}" },
+      "staff_customer_replied": { "label": "Risposta del cliente", "title": "{actor} ha risposto su {ref}" },
+      "staff_assigned": { "label": "Ticket assegnato a me", "title": "{actor} ti ha assegnato {ref}" },
+      "staff_escalated": { "label": "Ticket inoltrato al mio team", "title": "{ref} è stato inoltrato a {tier}" },
+      "staff_mentioned": { "label": "Menzione in una nota", "title": "{actor} ti ha menzionato su {ref}" },
+      "staff_sla": { "label": "Avvisi e violazioni SLA", "title": "Avviso SLA su {ref}", "breached": "SLA violato su {ref}" },
+      "staff_children_resolved": { "label": "Ticket collegati risolti", "title": "Tutti i ticket collegati a {ref} sono risolti" },
+      "customer_ticket_received": { "label": "Richiesta ricevuta", "title": "Abbiamo ricevuto la tua richiesta {ref}" },
+      "customer_reply": { "label": "Risposta alla mia richiesta", "title": "{actor} ha risposto alla tua richiesta {ref}" },
+      "customer_resolved": { "label": "Richiesta risolta", "title": "La tua richiesta {ref} è stata risolta" }
     },
     "sla": {
       "first_response": "Scadenza prima risposta",

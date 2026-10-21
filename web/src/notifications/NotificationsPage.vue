@@ -17,6 +17,7 @@ import { useUiStore } from '@/stores/ui'
 import { useNotificationsStore } from './store'
 import NotificationItem from './NotificationItem.vue'
 import { settingsFor, typeKey, typesFor, type Area, type Notification, type NotificationType } from './types'
+import { useShowProjectChip } from './projects'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -30,6 +31,7 @@ const items = ref<Notification[]>([])
 const cursor = ref<string | null>(null)
 const loading = ref(false)
 const failed = ref(false)
+const showProject = useShowProjectChip(area.value, () => items.value)
 const typeItems = computed(() => typesFor(area.value).map((k) => ({ value: k, title: t(`notifications.types.${typeKey(k)}.label`) })))
 
 async function load(more = false) {
@@ -128,7 +130,7 @@ async function remove(n: Notification) {
     <v-card border flat>
       <v-progress-linear v-if="loading && !items.length" indeterminate />
       <v-list v-if="items.length" class="py-0" data-testid="notifications-list">
-        <NotificationItem v-for="n in items" :key="n.id" :n="n" @open="store.open(n)">
+        <NotificationItem v-for="n in items" :key="n.id" :n="n" :show-project="showProject" @open="store.open(n)">
           <template #actions>
             <v-btn
               v-if="!n.read_at"

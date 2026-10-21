@@ -31,16 +31,16 @@
     "someone": "Alguien",
     "noTicket": "un ticket",
     "types": {
-      "staff_ticket_new": { "label": "Ticket nuevo en mi cola", "title": "Ticket nuevo #{number}" },
-      "staff_customer_replied": { "label": "Respuesta del cliente", "title": "{actor} respondió en #{number}" },
-      "staff_assigned": { "label": "Ticket asignado a mí", "title": "{actor} te asignó #{number}" },
-      "staff_escalated": { "label": "Ticket escalado a mi equipo", "title": "#{number} se escaló a {tier}" },
-      "staff_mentioned": { "label": "Mención en una nota", "title": "{actor} te mencionó en #{number}" },
-      "staff_sla": { "label": "Avisos e incumplimientos de SLA", "title": "Aviso de SLA en #{number}", "breached": "SLA incumplido en #{number}" },
-      "staff_children_resolved": { "label": "Tickets vinculados resueltos", "title": "Todos los tickets vinculados a #{number} están resueltos" },
-      "customer_ticket_received": { "label": "Solicitud recibida", "title": "Hemos recibido tu solicitud #{number}" },
-      "customer_reply": { "label": "Respuesta a mi solicitud", "title": "{actor} respondió a tu solicitud #{number}" },
-      "customer_resolved": { "label": "Solicitud resuelta", "title": "Tu solicitud #{number} se ha resuelto" }
+      "staff_ticket_new": { "label": "Ticket nuevo en mi cola", "title": "Ticket nuevo {ref}" },
+      "staff_customer_replied": { "label": "Respuesta del cliente", "title": "{actor} respondió en {ref}" },
+      "staff_assigned": { "label": "Ticket asignado a mí", "title": "{actor} te asignó {ref}" },
+      "staff_escalated": { "label": "Ticket escalado a mi equipo", "title": "{ref} se escaló a {tier}" },
+      "staff_mentioned": { "label": "Mención en una nota", "title": "{actor} te mencionó en {ref}" },
+      "staff_sla": { "label": "Avisos e incumplimientos de SLA", "title": "Aviso de SLA en {ref}", "breached": "SLA incumplido en {ref}" },
+      "staff_children_resolved": { "label": "Tickets vinculados resueltos", "title": "Todos los tickets vinculados a {ref} están resueltos" },
+      "customer_ticket_received": { "label": "Solicitud recibida", "title": "Hemos recibido tu solicitud {ref}" },
+      "customer_reply": { "label": "Respuesta a mi solicitud", "title": "{actor} respondió a tu solicitud {ref}" },
+      "customer_resolved": { "label": "Solicitud resuelta", "title": "Tu solicitud {ref} se ha resuelto" }
     },
     "sla": {
       "first_response": "Primera respuesta pendiente",

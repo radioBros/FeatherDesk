@@ -31,16 +31,16 @@
     "someone": "Someone",
     "noTicket": "a ticket",
     "types": {
-      "staff_ticket_new": { "label": "New ticket in my queue", "title": "New ticket #{number}" },
-      "staff_customer_replied": { "label": "Customer replied", "title": "{actor} replied on #{number}" },
-      "staff_assigned": { "label": "Ticket assigned to me", "title": "{actor} assigned #{number} to you" },
-      "staff_escalated": { "label": "Ticket escalated to my team", "title": "#{number} was escalated to {tier}" },
-      "staff_mentioned": { "label": "Mentioned in a note", "title": "{actor} mentioned you on #{number}" },
-      "staff_sla": { "label": "SLA warnings and breaches", "title": "SLA warning on #{number}", "breached": "SLA breached on #{number}" },
-      "staff_children_resolved": { "label": "Linked tickets resolved", "title": "Every linked ticket of #{number} is resolved" },
-      "customer_ticket_received": { "label": "Request received", "title": "We received your request #{number}" },
-      "customer_reply": { "label": "Reply to my request", "title": "{actor} replied to your request #{number}" },
-      "customer_resolved": { "label": "Request resolved", "title": "Your request #{number} was resolved" }
+      "staff_ticket_new": { "label": "New ticket in my queue", "title": "New ticket {ref}" },
+      "staff_customer_replied": { "label": "Customer replied", "title": "{actor} replied on {ref}" },
+      "staff_assigned": { "label": "Ticket assigned to me", "title": "{actor} assigned {ref} to you" },
+      "staff_escalated": { "label": "Ticket escalated to my team", "title": "{ref} was escalated to {tier}" },
+      "staff_mentioned": { "label": "Mentioned in a note", "title": "{actor} mentioned you on {ref}" },
+      "staff_sla": { "label": "SLA warnings and breaches", "title": "SLA warning on {ref}", "breached": "SLA breached on {ref}" },
+      "staff_children_resolved": { "label": "Linked tickets resolved", "title": "Every linked ticket of {ref} is resolved" },
+      "customer_ticket_received": { "label": "Request received", "title": "We received your request {ref}" },
+      "customer_reply": { "label": "Reply to my request", "title": "{actor} replied to your request {ref}" },
+      "customer_resolved": { "label": "Request resolved", "title": "Your request {ref} was resolved" }
     },
     "sla": {
       "first_response": "First response due",

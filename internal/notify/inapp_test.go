@@ -415,8 +415,11 @@ func TestNotificationDTOAllowList(t *testing.T) {
 		}
 		return out
 	}
-	if got, want := fields(NotificationDTO{}), []string{"id", "type", "ticket_id", "ticket_number", "ticket_subject", "actor_name", "params", "read_at", "created_at"}; !slices.Equal(got, want) {
+	if got, want := fields(NotificationDTO{}), []string{"id", "type", "ticket_id", "ticket_number", "ticket_subject", "ticket_ref", "project", "actor_name", "params", "read_at", "created_at"}; !slices.Equal(got, want) {
 		t.Errorf("NotificationDTO fields %v, want %v", got, want)
+	}
+	if got, want := fields(ProjectRefDTO{}), []string{"id", "key", "name", "color"}; !slices.Equal(got, want) {
+		t.Errorf("ProjectRefDTO fields %v, want %v (the ProjectRef chip customers already see on their tickets)", got, want)
 	}
 	if got, want := fields(NotificationParams{}), []string{"from_tier", "to_tier", "sla", "breached"}; !slices.Equal(got, want) {
 		t.Errorf("NotificationParams fields %v, want %v (customer rows must keep them empty)", got, want)
@@ -640,6 +643,128 @@ func TestNotificationsAPI(t *testing.T) {
 		if resp, body := e.do("GET", "/api/v1/me/notifications", e.customer2, nil); resp.StatusCode != 200 || !strings.Contains(string(body), `"items":[]`) {
 			t.Errorf("customer list %d %s", resp.StatusCode, body)
 		}
+	})
+}
+
+// TestInApp_RefAndProject (D-20): ticket notifications carry the ticket ref
+// (KEY-123) and the project chip, in the notification.created frame (from
+// the event snapshot) and in the list (joined at read time, so a moved ticket
+// shows its current ref). An event written before projects maps to the
+// Default project with no ref in the frame; a row without a ticket has both
+// null. Every frame and response validates against the OpenAPI document.
+func TestInApp_RefAndProject(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		e := newEnv(t, db, nil)
+		ctx := context.Background()
+		dial := e.withHub()
+		web := storetest.CreateProject(t, db, "WEB")
+		e.exec(`UPDATE projects SET name = 'Web App', color = '#1E88E5' WHERE id = ?`, web)
+		storetest.MapProjectTeam(t, db, web, e.team)
+		storetest.AddProjectMember(t, db, web, e.agent1, domain.ProjectMember)
+		agent, cust := dial(e.agent1), dial(e.customer)
+
+		// A D-20 event: the snapshot carries project_id and ref.
+		tid, snap := e.ticket(storetest.Ticket{TeamID: e.team, Tier: 1, ProjectID: web, Subject: "Login broken"})
+		var seq int64
+		if err := db.Read().QueryRowContext(ctx, `SELECT project_seq FROM tickets WHERE id = ?`, tid).Scan(&seq); err != nil {
+			t.Fatal(err)
+		}
+		snap.ProjectID, snap.Ref = web, domain.TicketRef("WEB", seq)
+		snap.AssigneeID = e.agent1
+		e.handle(e.event(tid, e.supervisor, events.TicketAssigned, snap, events.Assignment{To: e.agent1}))
+		e.handle(e.event(tid, e.supervisor, events.TicketStatusChanged, snap, events.StatusChange{To: "resolved"}))
+
+		wantProject := map[string]any{"id": web, "key": "WEB", "name": "Web App", "color": "#1E88E5"}
+		frameOf := func(s *meSocket, ticketID string) map[string]any {
+			t.Helper()
+			f := s.wait(func(f map[string]any) bool {
+				if !isCreated(f) {
+					return false
+				}
+				n, _ := f["data"].(map[string]any)["notification"].(map[string]any)
+				return n["ticket_id"] == ticketID
+			})
+			if f == nil {
+				t.Fatalf("no notification.created for %s: %v", ticketID, s.all())
+			}
+			return f["data"].(map[string]any)["notification"].(map[string]any)
+		}
+		for who, s := range map[string]*meSocket{"agent": agent, "customer": cust} {
+			n := frameOf(s, tid)
+			if n["ticket_ref"] != snap.Ref || !reflect.DeepEqual(n["project"], wantProject) {
+				t.Errorf("%s frame: ref %v project %v, want %s %v", who, n["ticket_ref"], n["project"], snap.Ref, wantProject)
+			}
+		}
+
+		// An event written before projects: no project or ref in the snapshot.
+		tid2, old := e.ticket(storetest.Ticket{TeamID: e.team, Tier: 1, Subject: "Old one"})
+		old.AssigneeID = e.agent1
+		e.handle(e.event(tid2, e.supervisor, events.TicketAssigned, old, events.Assignment{To: e.agent1}))
+		n := frameOf(agent, tid2)
+		if n["ticket_ref"] != nil {
+			t.Errorf("pre-projects frame ref %v, want null", n["ticket_ref"])
+		}
+		if p, _ := n["project"].(map[string]any); p["id"] != domain.DefaultProjectID || p["key"] != "HD" {
+			t.Errorf("pre-projects frame project %v, want the Default project", n["project"])
+		}
+
+		type item struct {
+			TicketID  *string        `json:"ticket_id"`
+			TicketRef *string        `json:"ticket_ref"`
+			Project   map[string]any `json:"project"`
+		}
+		list := func(userID string) []item {
+			t.Helper()
+			resp, body := e.do("GET", "/api/v1/me/notifications", userID, nil)
+			if resp.StatusCode != 200 {
+				t.Fatalf("list: %d %s", resp.StatusCode, body)
+			}
+			var p struct{ Items []item }
+			if err := json.Unmarshal(body, &p); err != nil {
+				t.Fatal(err)
+			}
+			return p.Items
+		}
+		byTicket := func(items []item, id string) item {
+			t.Helper()
+			for _, it := range items {
+				if it.TicketID != nil && *it.TicketID == id {
+					return it
+				}
+			}
+			t.Fatalf("no notification of ticket %s in %+v", id, items)
+			return item{}
+		}
+		if it := byTicket(list(e.customer), tid); it.TicketRef == nil || *it.TicketRef != snap.Ref || !reflect.DeepEqual(it.Project, wantProject) {
+			t.Errorf("customer list item %+v", it)
+		}
+		items := list(e.agent1)
+		if it := byTicket(items, tid); it.TicketRef == nil || *it.TicketRef != snap.Ref || !reflect.DeepEqual(it.Project, wantProject) {
+			t.Errorf("agent list item %+v", it)
+		}
+		var seq2 int64
+		if err := db.Read().QueryRowContext(ctx, `SELECT project_seq FROM tickets WHERE id = ?`, tid2).Scan(&seq2); err != nil {
+			t.Fatal(err)
+		}
+		if it := byTicket(items, tid2); it.TicketRef == nil || *it.TicketRef != domain.TicketRef("HD", seq2) || it.Project["id"] != domain.DefaultProjectID {
+			t.Errorf("Default project list item %+v", it)
+		}
+
+		// The list follows a move: the ticket's current ref and project.
+		e.exec(`UPDATE tickets SET project_id = ?, project_seq = ? WHERE id = ?`, web, seq+1, tid2)
+		if it := byTicket(list(e.agent1), tid2); it.TicketRef == nil || *it.TicketRef != domain.TicketRef("WEB", seq+1) || it.Project["key"] != "WEB" {
+			t.Errorf("moved ticket list item %+v", it)
+		}
+
+		// A row without a ticket: both null (and still valid against the spec).
+		e.exec(`INSERT INTO notifications (id, user_id, type, ticket_id, actor_id, event_id, params, read_at, created_at) VALUES (?, ?, ?, NULL, NULL, ?, '{}', NULL, ?)`,
+			store.NewID(), e.agent2, TplStaffSLA, store.NewID(), store.Now())
+		resp, body := e.do("GET", "/api/v1/me/notifications", e.agent2, nil)
+		if resp.StatusCode != 200 || !strings.Contains(string(body), `"ticket_ref":null,"project":null`) {
+			t.Errorf("ticketless row: %d %s", resp.StatusCode, body)
+		}
+		agent.validate()
+		cust.validate()
 	})
 }
 

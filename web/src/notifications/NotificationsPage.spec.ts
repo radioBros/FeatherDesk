@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { mountAgent, json, byTestId, allByTestId, click } from '@/areas/agent/testing'
+import { mountAgent, json, byTestId, allByTestId, click, fx } from '@/areas/agent/testing'
 import NotificationsPage from './NotificationsPage.vue'
 import NotificationBell from './NotificationBell.vue'
 import { defineComponent, h as hFn } from 'vue'
-import { loadNotificationMessagesForTests, notification } from './testing'
+import { HD, WEB, loadNotificationMessagesForTests, notification } from './testing'
 
 beforeAll(loadNotificationMessagesForTests)
 afterEach(() => {
@@ -29,11 +29,11 @@ describe('NotificationsPage (FE-092)', () => {
       api: { 'GET /me/notifications': (url) => json(url.searchParams.get('cursor') === 'n-2' ? page2 : page1) },
     })
     await vi.waitFor(() => expect(allByTestId('notification-item')).toHaveLength(2))
-    expect(allByTestId('notification-item')[1]!.textContent).toContain('SLA breached on #1042')
+    expect(allByTestId('notification-item')[1]!.textContent).toContain('SLA breached on HD-1042')
     expect(allByTestId('notification-item')[1]!.textContent).toContain('Resolution due')
     await click(byTestId('notifications-more'))
     await vi.waitFor(() => expect(allByTestId('notification-item')).toHaveLength(3))
-    expect(allByTestId('notification-item')[2]!.textContent).toContain('#1042 was escalated to L2')
+    expect(allByTestId('notification-item')[2]!.textContent).toContain('HD-1042 was escalated to L2')
     expect(allByTestId('notification-item')[2]!.getAttribute('data-unread')).toBe('false')
     expect(byTestId('notifications-more')).toBeNull()
     await click(byTestId('notifications-filter-unread'))
@@ -79,8 +79,71 @@ describe('NotificationsPage (FE-092)', () => {
       data: { notification: notification({ id: 'n-4', type: 'staff.mentioned' }), unread_count: 3, browser: false },
     })
     await vi.waitFor(() => expect(allByTestId('notification-item')).toHaveLength(3))
-    expect(allByTestId('notification-item')[0]!.textContent).toContain('Sam Supervisor mentioned you on #1042')
+    expect(allByTestId('notification-item')[0]!.textContent).toContain('Sam Supervisor mentioned you on HD-1042')
     h.socket().push({ type: 'event', topic: 'me', event: 'notification.read', at: '2026-10-21T10:01:00Z', data: { ids: ['n-4', 'n-3'], unread_count: 1 } })
     await vi.waitFor(() => expect(allByTestId('notification-item').filter((e) => e.getAttribute('data-unread') === 'true')).toHaveLength(1))
+  })
+})
+
+describe('NotificationsPage refs and project chips (D-20)', () => {
+  const mixed = {
+    items: [notification({ id: 'n-2', ticket_ref: 'WEB-7', project: WEB }), notification({ id: 'n-1' })],
+    next_cursor: null,
+    unread_count: 2,
+  }
+  const single = { items: [notification({ id: 'n-2', ticket_ref: 'HD-1043' }), notification({ id: 'n-1' })], next_cursor: null, unread_count: 2 }
+  const agentPage = { route: '/agent/notifications', routes: [{ path: '/agent/notifications', meta: { area: 'agent' } }] }
+  const chips = () => allByTestId('project-chip').map((c) => c.textContent?.trim())
+  const customer = fx.me('agent', 1, { kind: 'customer', role: 'requester' })
+  const portalProject = (p: typeof HD) => ({ ...p, description: '', icon: '', logo_url: null, portal_intro_md: null, portal_title: null, primary_color: null })
+
+  it('agent with several active projects: every row shows its ref and project chip', async () => {
+    const h = await mountAgent(NotificationsPage, {
+      ...agentPage,
+      api: { 'GET /me/notifications': mixed, 'GET /agent/projects': [fx.project({ id: HD.id, key: 'HD' }), fx.project()] },
+    })
+    await vi.waitFor(() => expect(chips()).toEqual(['WEB', 'HD']))
+    const rows = allByTestId('notification-item')
+    expect(rows[0]!.textContent).toContain('assigned WEB-7 to you')
+    expect(rows[1]!.textContent).toContain('assigned HD-1042 to you')
+    expect(allByTestId('project-chip')[0]!.getAttribute('title')).toBe('Web App')
+    expect(h.calls('GET /agent/projects')).toHaveLength(1)
+    expect(h.calls('GET /portal/projects')).toHaveLength(0)
+  })
+
+  it('agent with a single active project: refs but no chip (like the hidden project switcher)', async () => {
+    const h = await mountAgent(NotificationsPage, {
+      ...agentPage,
+      api: { 'GET /me/notifications': single, 'GET /agent/projects': [fx.project({ id: HD.id, key: 'HD' }), fx.project({ active: false })] },
+    })
+    await vi.waitFor(() => expect(allByTestId('notification-item')).toHaveLength(2))
+    expect(allByTestId('notification-item')[0]!.textContent).toContain('HD-1043')
+    expect(h.calls('GET /agent/projects')).toHaveLength(1)
+    await h.flush()
+    expect(chips()).toEqual([])
+  })
+
+  it('agent with a single active project still sees chips when the rows span several projects', async () => {
+    await mountAgent(NotificationsPage, { ...agentPage, api: { 'GET /me/notifications': mixed, 'GET /agent/projects': [fx.project({ id: HD.id, key: 'HD' })] } })
+    await vi.waitFor(() => expect(chips()).toEqual(['WEB', 'HD']))
+  })
+
+  it('customer: chips only when more than one project is open to them (GET /portal/projects)', async () => {
+    const h = await mountAgent(NotificationsPage, {
+      path: '/notifications',
+      me: customer,
+      api: { 'GET /me/notifications': single, 'GET /portal/projects': [portalProject(HD), portalProject(WEB)] },
+    })
+    await vi.waitFor(() => expect(chips()).toEqual(['HD', 'HD']))
+    expect(h.calls('GET /agent/projects')).toHaveLength(0)
+  })
+
+  it('customer with a single project: no chip', async () => {
+    const h = await mountAgent(NotificationsPage, { path: '/notifications', me: customer, api: { 'GET /me/notifications': single, 'GET /portal/projects': [portalProject(HD)] } })
+    await vi.waitFor(() => expect(allByTestId('notification-item')).toHaveLength(2))
+    expect(h.calls('GET /portal/projects')).toHaveLength(1)
+    await h.flush()
+    expect(chips()).toEqual([])
+    expect(allByTestId('notification-item')[1]!.textContent).toContain('HD-1042')
   })
 })

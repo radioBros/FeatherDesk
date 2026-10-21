@@ -4,12 +4,14 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import RelativeTime from '@/components/RelativeTime.vue'
+import ProjectChip from '@/components/ProjectChip.vue'
 import { useConfigStore } from '@/stores/config'
 import { detailOf, titleOf, type Notification } from './types'
 import { iconFor, sectionFor } from './icons'
 import SectionIcon from '@/components/SectionIcon.vue'
 
-const props = defineProps<{ n: Notification }>()
+/** `showProject`: the project chip (D-20), hidden while the user works with a single project (`useShowProjectChip`). */
+const props = defineProps<{ n: Notification; showProject?: boolean }>()
 defineEmits<{ open: [n: Notification] }>()
 const { t } = useI18n()
 const config = useConfigStore()
@@ -29,6 +31,7 @@ const unread = computed(() => !props.n.read_at)
     <template #prepend><SectionIcon :section="sectionFor(n.type)" :icon="iconFor(n.type)" :size="34" :active="false" circle /></template>
     <v-list-item-title class="text-wrap" :class="{ 'font-weight-bold': unread }">{{ title }}</v-list-item-title>
     <v-list-item-subtitle class="st-sub">
+      <ProjectChip v-if="showProject" :project="n.project" class="mr-1" />
       <span v-if="detail">{{ detail }} · </span><RelativeTime :value="n.created_at" />
     </v-list-item-subtitle>
     <template #append>

@@ -84,8 +84,8 @@ export interface MountAgentOptions<T extends Component> {
    */
   api?: Record<string, Handler | object | Response>
   props?: ComponentMountingOptions<T>['props']
-  /** Extra routes (e.g. navigation targets) */
-  routes?: { path: string; name?: string }[]
+  /** Extra routes (e.g. navigation targets; `meta.area` for components that read it) */
+  routes?: { path: string; name?: string; meta?: Record<string, unknown> }[]
   /** Open the realtime socket immediately (default true). */
   connect?: boolean
 }

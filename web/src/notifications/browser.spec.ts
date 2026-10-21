@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import * as browser from './browser'
-import { detailOf, linkFor, titleOf } from './types'
+import { detailOf, linkFor, refOf, titleOf } from './types'
 import { installNotification, loadNotificationMessagesForTests, notification } from './testing'
 import { t } from '@/i18n'
 
@@ -67,12 +67,18 @@ describe('browser notifications (FE-094)', () => {
 describe('notification texts and links (FE-091)', () => {
   const tier = (n: number) => `L${n}`
   it('builds titles per type, with fallbacks', () => {
-    expect(titleOf(notification({ type: 'staff.ticket_new' }), t, tier)).toBe('New ticket #1042')
-    expect(titleOf(notification({ type: 'staff.customer_replied', actor_name: null }), t, tier)).toBe('Someone replied on #1042')
-    expect(titleOf(notification({ type: 'staff.escalated', params: { from_tier: 1, to_tier: 3 } }), t, tier)).toBe('#1042 was escalated to L3')
-    expect(titleOf(notification({ type: 'staff.sla', params: { sla: 'first_response' } }), t, tier)).toBe('SLA warning on #1042')
-    expect(titleOf(notification({ type: 'customer.resolved' }), t, tier)).toBe('Your request #1042 was resolved')
+    expect(titleOf(notification({ type: 'staff.ticket_new' }), t, tier)).toBe('New ticket HD-1042')
+    expect(titleOf(notification({ type: 'staff.customer_replied', actor_name: null }), t, tier)).toBe('Someone replied on HD-1042')
+    expect(titleOf(notification({ type: 'staff.escalated', params: { from_tier: 1, to_tier: 3 } }), t, tier)).toBe('HD-1042 was escalated to L3')
+    expect(titleOf(notification({ type: 'staff.sla', params: { sla: 'first_response' } }), t, tier)).toBe('SLA warning on HD-1042')
+    expect(titleOf(notification({ type: 'customer.resolved', ticket_ref: 'WEB-7' }), t, tier)).toBe('Your request WEB-7 was resolved')
     expect(detailOf(notification({ type: 'staff.sla', params: { sla: 'first_response' } }), t)).toBe('Printer on fire · First response due')
+  })
+  it('shows the ref, else #number (a live frame of an event written before projects)', () => {
+    expect(refOf(notification())).toBe('HD-1042')
+    expect(refOf(notification({ ticket_ref: null }))).toBe('#1042')
+    expect(refOf(notification({ ticket_ref: null, ticket_number: null }))).toBe('')
+    expect(titleOf(notification({ type: 'staff.ticket_new', ticket_ref: null }), t, tier)).toBe('New ticket #1042')
   })
   it('links to the ticket in the right area', () => {
     expect(linkFor(notification(), 'agent')).toBe('/agent/tickets/1042')

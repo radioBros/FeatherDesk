@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { mountAgent, json, byTestId, click, fx } from '@/areas/agent/testing'
+import { mountAgent, json, byTestId, allByTestId, click, fx } from '@/areas/agent/testing'
 import { useNotificationsStore } from './store'
 import NotificationBell from './NotificationBell.vue'
-import { installNotification, loadNotificationMessagesForTests, notification, setVisibility } from './testing'
+import { HD, WEB, installNotification, loadNotificationMessagesForTests, notification, setVisibility } from './testing'
 
 beforeAll(loadNotificationMessagesForTests)
 afterEach(() => {
@@ -77,7 +77,7 @@ describe('NotificationBell (FE-090, FE-093, FE-094)', () => {
     await h.flush()
     await vi.waitFor(() => expect(N.instances).toHaveLength(1)) // the pop-up module is imported lazily (slow on a cold CI runner)
     const pop = N.instances[0]!
-    expect(pop.title).toBe('Sam Supervisor assigned #1042 to you')
+    expect(pop.title).toBe('Sam Supervisor assigned HD-1042 to you')
     expect(pop.options).toMatchObject({ body: 'Printer on fire', tag: 'n-1' })
     const focus = vi.spyOn(window, 'focus').mockImplementation(() => {})
     pop.onclick!(new Event('click'))
@@ -109,11 +109,45 @@ describe('NotificationBell (FE-090, FE-093, FE-094)', () => {
       },
     })
     await click(byTestId('notification-bell'))
-    await vi.waitFor(() => expect(byTestId('notification-menu')?.textContent).toContain('Bob replied to your request #1042'))
+    await vi.waitFor(() => expect(byTestId('notification-menu')?.textContent).toContain('Bob replied to your request HD-1042'))
     await click(document.body.querySelector('[data-testid="notification-item"]'))
     await h.flush()
     expect(h.router.currentRoute.value.fullPath).toBe('/tickets/t-1')
     expect(h.calls('POST /me/notifications/n-1/read')).toHaveLength(1)
     expect(count()).toBe('0')
+  })
+
+  it('dropdown (agent, several projects): refs and project chips, also on an entry that arrives live', async () => {
+    const h = await mountAgent(NotificationBell, {
+      props: { area: 'agent' },
+      api: {
+        'GET /me/notifications/unread-count': { unread_count: 1 },
+        'GET /me/notifications': { items: [notification()], next_cursor: null, unread_count: 1 },
+        'GET /agent/projects': [fx.project({ id: HD.id, key: 'HD' }), fx.project()],
+      },
+    })
+    await click(byTestId('notification-bell'))
+    await vi.waitFor(() => expect(allByTestId('project-chip').map((c) => c.textContent?.trim())).toEqual(['HD']))
+    expect(byTestId('notification-menu')?.textContent).toContain('assigned HD-1042 to you')
+    h.socket().push(created(notification({ id: 'n-2', ticket_ref: 'WEB-7', project: WEB }), 2))
+    await vi.waitFor(() => expect(allByTestId('project-chip').map((c) => c.textContent?.trim())).toEqual(['WEB', 'HD']))
+    expect(allByTestId('notification-item')[0]!.textContent).toContain('assigned WEB-7 to you')
+  })
+
+  it('dropdown (portal, one project): the ref without a chip', async () => {
+    const h = await mountAgent(NotificationBell, {
+      props: { area: 'portal' },
+      me: fx.me('agent', 1, { kind: 'customer', role: 'requester' }),
+      api: {
+        'GET /me/notifications/unread-count': { unread_count: 1 },
+        'GET /me/notifications': { items: [notification({ type: 'customer.resolved' })], next_cursor: null, unread_count: 1 },
+        'GET /portal/projects': [{ ...HD, description: '', icon: '', logo_url: null, portal_intro_md: null, portal_title: null, primary_color: null }],
+      },
+    })
+    await click(byTestId('notification-bell'))
+    await vi.waitFor(() => expect(byTestId('notification-menu')?.textContent).toContain('Your request HD-1042 was resolved'))
+    await h.flush()
+    expect(h.calls('GET /portal/projects')).toHaveLength(1)
+    expect(allByTestId('project-chip')).toHaveLength(0)
   })
 })

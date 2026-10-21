@@ -5,6 +5,7 @@ import { onMounted, ref } from 'vue'
 import { mdiBellOutline, mdiCheckAll } from '@mdi/js'
 import { useNotificationsStore } from './store'
 import { centreFor, type Area, type Notification } from './types'
+import { useShowProjectChip } from './projects'
 import NotificationItem from './NotificationItem.vue'
 import SectionIcon from '@/components/SectionIcon.vue'
 
@@ -13,6 +14,7 @@ const emit = defineEmits<{ close: [] }>()
 const store = useNotificationsStore()
 const loading = ref(!store.latestLoaded)
 const failed = ref(false)
+const showProject = useShowProjectChip(props.area, () => store.latest)
 
 onMounted(async () => {
   try {
@@ -50,7 +52,7 @@ function open(n: Notification) {
     <v-progress-linear v-if="loading" indeterminate />
     <v-alert v-if="failed" type="warning" variant="tonal" density="compact" class="ma-3">{{ $t('notifications.menu.loadFailed') }}</v-alert>
     <v-list v-if="store.latest.length" density="compact" max-height="420" class="py-0" data-testid="notification-list">
-      <NotificationItem v-for="n in store.latest" :key="n.id" :n="n" @open="open" />
+      <NotificationItem v-for="n in store.latest" :key="n.id" :n="n" :show-project="showProject" @open="open" />
     </v-list>
     <div v-else-if="!loading && !failed" class="pa-6 text-center" data-testid="notification-empty">
       {{ $t('notifications.menu.empty') }}
