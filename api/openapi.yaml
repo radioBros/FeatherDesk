@@ -12964,7 +12964,7 @@ components:
             - topic
             - state
           additionalProperties: false
-      description: "Client → server frame (≤ 4 KB, ≤ 20/s burst 40). Topics: `tickets`, `ticket:<id>`, `counts` (staff), `me`, `queue:<team_id>` (staff), `project:<project_id>` (staff working in the project, D-20), `kb` (staff), `admin:system` (admin)."
+      description: "Client → server frame (deliberately edited without regenerating, ≤ 4 KB, ≤ 20/s burst 40). Topics: `tickets`, `ticket:<id>`, `counts` (staff), `me`, `queue:<team_id>` (staff), `project:<project_id>` (staff working in the project, D-20), `kb` (staff), `admin:system` (admin)."
     WsServerFrame:
       oneOf:
         - type: object
