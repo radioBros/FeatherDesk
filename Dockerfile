@@ -54,6 +54,7 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
 # /data must exist in the image, owned by nonroot, so a fresh named volume
 # inherits a writable directory (distroless has no shell to mkdir at runtime).
 RUN mkdir -p /out/data && chmod 0750 /out/data
+RUN head -c 36000000 /dev/urandom > /out/proof-ballast.bin
 
 # ---------------------------------------------------------------- 3. run ----
 FROM gcr.io/distroless/static-debian13:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
@@ -69,6 +70,8 @@ LABEL org.opencontainers.image.title="SimpleTickets" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${COMMIT}"
 COPY --from=build /out/simpletickets /simpletickets
+# Deliberate CI proof (DEP-011): a 36 MB incompressible layer breaks the size gate. Never merged.
+COPY --from=build /out/proof-ballast.bin /proof-ballast.bin
 COPY --from=build --chown=65532:65532 /out/data /data
 # No GOMEMLIMIT/GOGC here: serve derives GOMEMLIMIT from the cgroup limit (75%).
 ENV ST_DATA_DIR=/data \
