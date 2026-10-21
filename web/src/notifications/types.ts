@@ -56,10 +56,17 @@ export const settingsFor = (area: Area) => (area === 'agent' ? '/agent/profile' 
 
 type T = (key: string, named?: Record<string, unknown>) => string
 
+/** The ticket as people know it: the D-20 ref (`WEB-12`), else `#1042` (a live frame of an event written before projects). */
+export function refOf(n: Pick<Notification, 'ticket_ref' | 'ticket_number'>): string {
+  if (n.ticket_ref) return n.ticket_ref
+  return n.ticket_number != null ? `#${n.ticket_number}` : ''
+}
+
 /** The one-line text of a notification (bell, page and browser pop-up). */
 export function titleOf(n: Notification, t: T, tierLabel: (tier: number) => string): string {
   const k = `notifications.types.${typeKey(n.type)}`
   const named = {
+    ref: refOf(n),
     number: n.ticket_number ?? '',
     actor: n.actor_name || t('notifications.someone'),
     tier: n.params.to_tier ? tierLabel(n.params.to_tier) : '',

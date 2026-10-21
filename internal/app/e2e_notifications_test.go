@@ -4,6 +4,7 @@ package app_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -82,6 +83,10 @@ func TestE2E_NotificationCentre(t *testing.T) {
 			if n["type"] != "staff.assigned" || d["unread_count"] != float64(1) || d["browser"] != true || n["ticket_subject"] != "Bell check" || f["topic"] != "me" {
 				t.Errorf("frame %v", f)
 			}
+			// D-20: the ref and the project chip ride along (Default project here).
+			if p, _ := n["project"].(map[string]any); n["ticket_ref"] != tk["ref"] || p["id"] != domain.DefaultProjectID || p["key"] != "HD" {
+				t.Errorf("frame ref %v project %v, want %v and the Default project", n["ticket_ref"], n["project"], tk["ref"])
+			}
 			nid = n["id"].(string)
 		}
 		// staff.ticket_new is in_app off: the creation wrote no row for the agent.
@@ -93,8 +98,12 @@ func TestE2E_NotificationCentre(t *testing.T) {
 			t.Errorf("unread-count %v", c)
 		}
 		list := agent.must(200, "GET", "/api/v1/me/notifications?unread=true", nil)
-		if items, _ := list["items"].([]any); len(items) != 1 {
+		items, _ := list["items"].([]any)
+		if len(items) != 1 {
 			t.Fatalf("list %v", list)
+		}
+		if it := items[0].(map[string]any); it["ticket_ref"] != tk["ref"] || !reflect.DeepEqual(it["project"], tk["project"]) {
+			t.Errorf("list ref %v project %v, want the ticket's %v %v", it["ticket_ref"], it["project"], tk["ref"], tk["project"])
 		}
 		agent.must(200, "POST", "/api/v1/me/notifications/"+nid+"/read", nil)
 		for _, tab := range []*wsClient{tabA, tabB} {

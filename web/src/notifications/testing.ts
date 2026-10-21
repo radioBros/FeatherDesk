@@ -47,6 +47,10 @@ export function setVisibility(state: 'visible' | 'hidden') {
 
 const ISO = '2026-10-21T09:00:00Z'
 
+/** Project chips (D-20) for fixtures: the Default project and a second one. */
+export const HD = { id: 'p-hd', key: 'HD', name: 'Help desk', color: '' }
+export const WEB = { id: 'p-web', key: 'WEB', name: 'Web App', color: '#1E88E5' }
+
 export function notification(extra: Partial<Notification> = {}): Notification {
   return {
     id: 'n-1',
@@ -54,6 +58,8 @@ export function notification(extra: Partial<Notification> = {}): Notification {
     ticket_id: 't-1',
     ticket_number: 1042,
     ticket_subject: 'Printer on fire',
+    ticket_ref: 'HD-1042',
+    project: HD,
     actor_name: 'Sam Supervisor',
     params: {},
     read_at: null,

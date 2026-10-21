@@ -88,13 +88,13 @@ test.describe('notification centre', () => {
     await expect(badge(tabB)).toHaveText(String(before + 1))
     // The page in tab B shows the new entry on top, unread.
     const first = tabB.getByTestId('notification-item').first()
-    await expect(first).toContainText(`assigned #${ticket.number} to you`)
+    await expect(first).toContainText(`assigned ${ticket.ref} to you`)
     await expect(first).toHaveAttribute('data-unread', 'true')
     expect(reloaded).toBe(false)
 
     // Tab A: open the dropdown and mark everything read → tab B follows.
     await tabA.getByTestId('notification-bell').click()
-    await expect(tabA.getByTestId('notification-menu')).toContainText(`#${ticket.number}`)
+    await expect(tabA.getByTestId('notification-menu')).toContainText(ticket.ref)
     await tabA.getByTestId('notification-read-all').click()
     await expect(badge(tabA)).toBeHidden()
     await expect(badge(tabB)).toBeHidden()
@@ -141,7 +141,7 @@ test.describe('notification centre', () => {
     await seed.api.patch(`/agent/tickets/${ticket.id}`, { assignee_id: me.id })
     await expect
       .poll(() => page.evaluate(() => (window as unknown as { __notifs: { title: string }[] }).__notifs.map((n) => n.title)))
-      .toEqual([expect.stringContaining(`assigned #${ticket.number} to you`)])
+      .toEqual([expect.stringContaining(`assigned ${ticket.ref} to you`)])
     const tag = await page.evaluate(() => (window as unknown as { __notifs: { options?: NotificationOptions }[] }).__notifs[0]!.options?.tag)
     expect(tag).toBeTruthy()
 

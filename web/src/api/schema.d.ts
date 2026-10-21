@@ -3338,7 +3338,8 @@ export interface paths {
          * My in-app notifications
          * @description Notification centre (D-19 §D, NOT-036). Newest first, keyset-paginated. Rows are written by the notify consumer with the same
          *     recipients as email; the actor is never notified and customer rows carry only public data (I-7). Kept for 90 days, at most
-         *     500 per user.
+         *     500 per user. Ticket notifications carry the ticket's current `ticket_ref` (`KEY-123`) and its `project` chip
+         *     (`ProjectRef`), joined at read time like the number and subject.
          *
          *     Phase: V1.
          */
@@ -5597,9 +5598,13 @@ export interface components {
             created_at: components["schemas"]["Timestamp"];
             id: components["schemas"]["Id"];
             params: components["schemas"]["NotificationParams"];
+            /** @description The ticket's project (D-20 chip); null without a ticket. Events written before projects count as the Default project. */
+            project: components["schemas"]["ProjectRef"] | null;
             read_at: components["schemas"]["Timestamp"] | null;
             ticket_id: components["schemas"]["Id"] | null;
             ticket_number: number | null;
+            /** @description The ticket reference `KEY-123` (D-20); null without a ticket, and in a `notification.created` frame of an event written before projects (the UI then shows `#ticket_number`). The list shows the ticket's current ref. */
+            ticket_ref: components["schemas"]["TicketRefCode"] | null;
             ticket_subject: string | null;
             type: components["schemas"]["NotificationType"];
         };
@@ -6595,7 +6600,7 @@ export interface components {
                 /** @description `notification.read`: notifications marked read or deleted */
                 ids?: components["schemas"]["Id"][];
                 message?: components["schemas"]["Message"] | components["schemas"]["CustomerMessage"];
-                /** @description `notification.created` on `me` */
+                /** @description `notification.created` on `me` (with `ticket_ref` and `project` of ticket notifications) */
                 notification?: components["schemas"]["Notification"];
                 ticket?: components["schemas"]["TicketSummary"] | components["schemas"]["CustomerTicketSummary"];
                 /** @description `notification.created` / `notification.read` on `me`: the recipient's unread count after the change */

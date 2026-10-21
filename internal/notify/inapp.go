@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/radioBros/SimpleTickets/internal/domain"
 	"github.com/radioBros/SimpleTickets/internal/events"
 	"github.com/radioBros/SimpleTickets/internal/problems"
 	"github.com/radioBros/SimpleTickets/internal/realtime"
@@ -192,6 +193,15 @@ type NotificationParams struct {
 	Breached bool   `json:"breached,omitempty"`
 }
 
+// ProjectRefDTO is the project chip of a ticket notification (the ProjectRef
+// schema; notify cannot import directory, which imports notify).
+type ProjectRefDTO struct {
+	ID    string `json:"id"`
+	Key   string `json:"key"`
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
 // NotificationDTO is the wire shape of one notification.
 type NotificationDTO struct {
 	ID            string             `json:"id"`
@@ -199,6 +209,8 @@ type NotificationDTO struct {
 	TicketID      *string            `json:"ticket_id"`
 	TicketNumber  *int64             `json:"ticket_number"`
 	TicketSubject *string            `json:"ticket_subject"`
+	TicketRef     *string            `json:"ticket_ref"`
+	Project       *ProjectRefDTO     `json:"project"`
 	ActorName     *string            `json:"actor_name"`
 	Params        NotificationParams `json:"params"`
 	ReadAt        *time.Time         `json:"read_at"`
@@ -329,6 +341,13 @@ func (m *Module) writeInApp(ctx context.Context, e events.Event, all []Target, u
 		return nil
 	}
 	s := e.Snapshot
+	// The frame's project chip: one primary-key read per event (never per
+	// recipient), after the write transaction. Events written before
+	// projects have no project in their snapshot: the Default project.
+	var project *ProjectRefDTO
+	if e.TicketID != "" {
+		project = m.projectRef(ctx, s.Project())
+	}
 	for _, r := range rows {
 		if !inserted[r.id] {
 			continue
@@ -337,6 +356,11 @@ func (m *Module) writeInApp(ctx context.Context, e events.Event, all []Target, u
 		if e.TicketID != "" {
 			tid, num, subj := e.TicketID, s.Number, s.Subject
 			d.TicketID, d.TicketNumber, d.TicketSubject = &tid, &num, &subj
+			if s.Ref != "" { // empty on events written before projects (the UI shows #number)
+				ref := s.Ref
+				d.TicketRef = &ref
+			}
+			d.Project = project
 		}
 		if r.actorID != "" && actorName != "" {
 			n := actorName
@@ -346,6 +370,15 @@ func (m *Module) writeInApp(ctx context.Context, e events.Event, all []Target, u
 			Data: map[string]any{"notification": d, "unread_count": counts[r.userID], "browser": r.browser}})
 	}
 	return nil
+}
+
+// projectRef reads the chip of one project; nil when it no longer exists.
+func (m *Module) projectRef(ctx context.Context, id string) *ProjectRefDTO {
+	p := ProjectRefDTO{ID: id}
+	if err := m.db.Read().QueryRowContext(ctx, `SELECT key, name, color FROM projects WHERE id = ?`, id).Scan(&p.Key, &p.Name, &p.Color); err != nil {
+		return nil
+	}
+	return &p
 }
 
 // DeliverInApp writes the in-app notifications of one stored event, exactly
@@ -394,8 +427,9 @@ type listQuery struct {
 }
 
 // listNotifications reads one page newest first in a single query: ticket
-// number/subject and the actor name are joined at read time (never copied
-// into params), so an erased user or deleted ticket never lingers in a row.
+// number/subject/ref, its project chip and the actor name are joined at read
+// time (never copied into params), so an erased user or deleted ticket never
+// lingers in a row, and a moved ticket shows its current ref and project.
 func (m *Module) listNotifications(ctx context.Context, lq listQuery) ([]NotificationDTO, string, error) {
 	where := []string{"n.user_id = ?"}
 	args := []any{lq.userID}
@@ -411,8 +445,9 @@ func (m *Module) listNotifications(ctx context.Context, lq listQuery) ([]Notific
 		args = append(args, lq.cursor)
 	}
 	args = append(args, lq.limit+1)
-	rows, err := m.db.Read().QueryContext(ctx, `SELECT n.id, n.type, n.ticket_id, t.number, t.subject, n.actor_id, u.name, u.email, n.params, n.read_at, n.created_at
-		FROM notifications n LEFT JOIN tickets t ON t.id = n.ticket_id LEFT JOIN users u ON u.id = n.actor_id
+	rows, err := m.db.Read().QueryContext(ctx, `SELECT n.id, n.type, n.ticket_id, t.number, t.subject, t.project_seq, p.id, p.key, p.name, p.color,
+		n.actor_id, u.name, u.email, n.params, n.read_at, n.created_at
+		FROM notifications n LEFT JOIN tickets t ON t.id = n.ticket_id LEFT JOIN projects p ON p.id = t.project_id LEFT JOIN users u ON u.id = n.actor_id
 		WHERE `+strings.Join(where, " AND ")+` ORDER BY n.id DESC LIMIT ?`, args...)
 	if err != nil {
 		return nil, "", err
@@ -424,17 +459,27 @@ func (m *Module) listNotifications(ctx context.Context, lq listQuery) ([]Notific
 			d                          NotificationDTO
 			ticketID, subject, actorID sql.NullString
 			actorName, actorEmail      sql.NullString
-			number                     sql.NullInt64
+			projID, projKey            sql.NullString
+			projName, projColor        sql.NullString
+			number, seq                sql.NullInt64
 			params                     store.RawJSON
 			readAt                     store.NullTime
 		)
-		if err := rows.Scan(&d.ID, &d.Type, &ticketID, &number, &subject, &actorID, &actorName, &actorEmail, &params, &readAt, &d.CreatedAt); err != nil {
+		if err := rows.Scan(&d.ID, &d.Type, &ticketID, &number, &subject, &seq, &projID, &projKey, &projName, &projColor,
+			&actorID, &actorName, &actorEmail, &params, &readAt, &d.CreatedAt); err != nil {
 			return nil, "", err
 		}
 		d.CreatedAt = d.CreatedAt.UTC()
 		if ticketID.Valid && number.Valid {
 			tid, num, subj := ticketID.String, number.Int64, subject.String
 			d.TicketID, d.TicketNumber, d.TicketSubject = &tid, &num, &subj
+			if projID.Valid {
+				d.Project = &ProjectRefDTO{ID: projID.String, Key: projKey.String, Name: projName.String, Color: projColor.String}
+				if seq.Int64 > 0 {
+					ref := domain.TicketRef(projKey.String, seq.Int64)
+					d.TicketRef = &ref
+				}
+			}
 		}
 		if actorID.Valid && showsActor(d.Type) {
 			if n := displayName(&userRow{Name: actorName.String, Email: actorEmail.String}); n != "" {

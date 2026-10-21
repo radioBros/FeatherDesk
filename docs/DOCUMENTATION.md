@@ -1484,7 +1484,8 @@ The bell in the top bar of the agent panel and the customer portal lists ticket 
 - It uses the same rules as the ticket emails ([§6.3](#63-notifications-templates-and-languages)), so a notification and its email go to the same people. Team and triage **mailboxes** get email only.
 - **Admin → Email → Notifications** switches templates off for **email only**; the bell and browser pop-ups are not affected.
 - Each user picks the channels per type in their profile; see [Notification centre](#810-notification-centre) for agents and the [Customer portal guide](#9-customer-portal-guide).
-- **Retention:** notifications are kept for 90 days, and at most the 500 newest per user. They store no message text; names and subjects are looked up when the list is shown, so an erasure or a deleted ticket is reflected at once.
+- Each notification names the ticket by its reference (`WEB-123`) and, when the user works with more than one project, shows the [project chip](#721-projects-administration--projects-supervisor) (colour dot and key).
+- **Retention:** notifications are kept for 90 days, and at most the 500 newest per user. They store no message text; names, subjects, refs and projects are looked up when the list is shown, so an erasure, a deleted ticket or a ticket moved to another project is reflected at once.
 
 ### 7.20 AI assistants (MCP) (System → Support settings, admin)
 
@@ -1682,6 +1683,7 @@ Automation rules and team assignment strategies are described in [Automation and
 
 The **bell** in the top bar shows how many notifications are unread. It updates live, and reading a notification in one tab updates every other tab.
 - **The dropdown** shows the 10 newest. Click one to mark it read and open its ticket. **Mark all as read** clears the badge; **See all notifications** opens `/agent/notifications`, with *All* / *Unread*, a filter by kind, delete and **Load more**.
+- Each entry names the ticket by its ref (`WEB-123`, "Mia assigned WEB-123 to you") and shows the project chip in front of the subject. Like the project switcher, the chip is hidden while you work in a single active project.
 - **What you get:** new tickets in your queue, customer replies on your tickets (or unassigned ones in your team), tickets assigned to you by someone else, escalations to your team, @mentions in notes, SLA warnings and breaches, and resolved linked tickets. Never about your own actions, and only for tickets you can see. When a team's notifications go to the *Team mailbox* only, its new-ticket and escalation notices go to that mailbox and not to the bell.
 - **Preferences:** the **Notifications** card in your profile has one row per type and a checkbox for *In the app*, *Email* and *Browser pop-up*. Browser pop-ups are off by default.
 - **Browser pop-ups** need **Allow browser notifications** in that card, and appear only while a SimpleTickets tab is open in the background. Nothing arrives when every tab is closed, so use email for anything you must not miss.
@@ -1738,7 +1740,7 @@ If you turned on **two-step verification**, or the help desk requires it, you ar
 <a id="portal-notifications"></a>
 **Notifications**
 - The **bell** in the top bar shows unread notifications about your requests: a request the support team opened for you, a new reply, a resolved request. It updates live; **See all notifications** opens `/notifications`.
-- A notification shows only the ticket number and subject. You are never notified about internal notes, assignments or escalations.
+- A notification shows only the ticket reference (`WEB-123`), its project and its subject. The project chip appears only when more than one project is open to you, as in your request list. You are never notified about internal notes, assignments or escalations.
 - **Browser pop-ups** are off by default. Turn them on in the profile's **Notifications** card with **Allow browser notifications**. They only appear while a tab of the help desk is open in the background. Details: [features/notifications.md](features/notifications.md#browser-notifications).
 
 <a id="portal-my-data"></a>

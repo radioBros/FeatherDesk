@@ -31,16 +31,16 @@
     "someone": "Jemand",
     "noTicket": "ein Ticket",
     "types": {
-      "staff_ticket_new": { "label": "Neues Ticket in meiner Warteschlange", "title": "Neues Ticket #{number}" },
-      "staff_customer_replied": { "label": "Antwort des Kunden", "title": "{actor} hat auf #{number} geantwortet" },
-      "staff_assigned": { "label": "Mir zugewiesenes Ticket", "title": "{actor} hat Ihnen #{number} zugewiesen" },
-      "staff_escalated": { "label": "An mein Team eskaliertes Ticket", "title": "#{number} wurde an {tier} eskaliert" },
-      "staff_mentioned": { "label": "Erwähnung in einer Notiz", "title": "{actor} hat Sie in #{number} erwähnt" },
-      "staff_sla": { "label": "SLA-Warnungen und -Verletzungen", "title": "SLA-Warnung für #{number}", "breached": "SLA verletzt für #{number}" },
-      "staff_children_resolved": { "label": "Verknüpfte Tickets gelöst", "title": "Alle verknüpften Tickets von #{number} sind gelöst" },
-      "customer_ticket_received": { "label": "Anfrage eingegangen", "title": "Wir haben Ihre Anfrage #{number} erhalten" },
-      "customer_reply": { "label": "Antwort auf meine Anfrage", "title": "{actor} hat auf Ihre Anfrage #{number} geantwortet" },
-      "customer_resolved": { "label": "Anfrage gelöst", "title": "Ihre Anfrage #{number} wurde gelöst" }
+      "staff_ticket_new": { "label": "Neues Ticket in meiner Warteschlange", "title": "Neues Ticket {ref}" },
+      "staff_customer_replied": { "label": "Antwort des Kunden", "title": "{actor} hat auf {ref} geantwortet" },
+      "staff_assigned": { "label": "Mir zugewiesenes Ticket", "title": "{actor} hat Ihnen {ref} zugewiesen" },
+      "staff_escalated": { "label": "An mein Team eskaliertes Ticket", "title": "{ref} wurde an {tier} eskaliert" },
+      "staff_mentioned": { "label": "Erwähnung in einer Notiz", "title": "{actor} hat Sie in {ref} erwähnt" },
+      "staff_sla": { "label": "SLA-Warnungen und -Verletzungen", "title": "SLA-Warnung für {ref}", "breached": "SLA verletzt für {ref}" },
+      "staff_children_resolved": { "label": "Verknüpfte Tickets gelöst", "title": "Alle verknüpften Tickets von {ref} sind gelöst" },
+      "customer_ticket_received": { "label": "Anfrage eingegangen", "title": "Wir haben Ihre Anfrage {ref} erhalten" },
+      "customer_reply": { "label": "Antwort auf meine Anfrage", "title": "{actor} hat auf Ihre Anfrage {ref} geantwortet" },
+      "customer_resolved": { "label": "Anfrage gelöst", "title": "Ihre Anfrage {ref} wurde gelöst" }
     },
     "sla": {
       "first_response": "Erste Antwort fällig",

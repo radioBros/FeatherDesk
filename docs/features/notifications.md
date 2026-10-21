@@ -39,7 +39,7 @@ The notification centre uses the same rules as the ticket emails, so a notificat
 | Reply to my request | The support team replied on your ticket (or on one you watch) |
 | Request resolved | Your ticket was resolved |
 
-Customers are never notified about internal notes, assignments, escalations, tiers, teams or SLAs. A customer notification shows only the ticket number and subject. It names the person only on a new reply, as the ticket thread already does.
+Customers are never notified about internal notes, assignments, escalations, tiers, teams or SLAs. A customer notification shows only the ticket reference, its project and its subject, as the customer's request list does. It names the person only on a new reply, as the ticket thread already does.
 
 Team and triage **mailboxes** get email only. They have no notification centre.
 
@@ -52,6 +52,12 @@ Its badge shows how many notifications are unread, up to "99+".
 - A new notification raises the badge at once, without a reload, through the realtime connection.
 - Reading a notification in one tab updates every other open tab.
 - After a lost connection, or when you come back to a tab, the badge is refreshed.
+
+**Every entry** names the ticket by its [reference](projects.md#2-ticket-references) (`WEB-123`), for example "Mia assigned WEB-123 to
+you", and shows the subject, the time and the **project chip** (colour dot and key; the project name is its tooltip). The chip follows
+the rule of the ticket lists: it is hidden while you work with a single project (staff: one active project, as for the project
+switcher; customers: one project open to them), unless the listed notifications come from several projects. A notification about a
+ticket that was moved to another project shows the new ref and project.
 
 **The dropdown** shows the 10 newest notifications.
 - Click one to mark it read and open its ticket.
@@ -115,7 +121,7 @@ Notifications are kept for **90 days**, and at most the **500 newest per user**.
   - who it is for, its type, ticket, actor and time;
   - a few staff-only details: the tiers of an escalation, which SLA was hit.
 
-  It stores no message text. The ticket number, subject and person's name are looked up when the list is shown, so renaming, anonymising or deleting a user or ticket is reflected at once. Notifications are deleted together with the user or ticket.
+  It stores no message text. The ticket number, reference, project, subject and person's name are looked up when the list is shown, so renaming, anonymising or deleting a user or ticket, or moving a ticket to another project, is reflected at once. Notifications are deleted together with the user or ticket.
 - **Load.** Each ticket event writes all of its notifications in one database transaction. Read and delete actions are one short transaction each (the change plus the new unread count).
 
 ## For integrators
@@ -138,7 +144,9 @@ On the WebSocket ([DOCUMENTATION.md §11](../DOCUMENTATION.md#11-websocket-proto
 ```json
 { "type": "event", "topic": "me", "event": "notification.created", "at": "…",
   "data": { "notification": { "id": "…", "type": "staff.assigned", "ticket_id": "…", "ticket_number": 1042,
-            "ticket_subject": "VPN down", "actor_name": "Mia", "params": {}, "read_at": null, "created_at": "…" },
+            "ticket_subject": "VPN down", "ticket_ref": "WEB-12",
+            "project": { "id": "…", "key": "WEB", "name": "Web App", "color": "#1E88E5" },
+            "actor_name": "Mia", "params": {}, "read_at": null, "created_at": "…" },
             "unread_count": 3, "browser": true } }
 { "type": "event", "topic": "me", "event": "notification.read", "at": "…",
   "data": { "ids": ["…"], "unread_count": 2 } }
@@ -146,4 +154,7 @@ On the WebSocket ([DOCUMENTATION.md §11](../DOCUMENTATION.md#11-websocket-proto
 
 - `notification.read` is also sent after a delete. After a mark-all-read it carries `"all": true` instead of `ids`. Marking read sends it only when something changed.
 - `browser` says whether the recipient enabled the browser channel for that type.
+- `ticket_ref` and `project` (the `ProjectRef` chip `{id, key, name, color}` that tickets carry) describe the ticket's project (D-20).
+  Both are `null` on a notification without a ticket. The list returns the ticket's **current** ref and project; the frame takes them
+  from the event, and an event written before projects existed has `ticket_ref: null` (show `#ticket_number`) and the Default project.
 - These frames carry no `event_id` and are **not replayed** by `resume`. After a reconnect, fetch `GET /me/notifications/unread-count`.

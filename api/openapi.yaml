@@ -1526,7 +1526,8 @@ paths:
       description: |-
         Notification centre (D-19 §D, NOT-036). Newest first, keyset-paginated. Rows are written by the notify consumer with the same
         recipients as email; the actor is never notified and customer rows carry only public data (I-7). Kept for 90 days, at most
-        500 per user.
+        500 per user. Ticket notifications carry the ticket's current `ticket_ref` (`KEY-123`) and its `project` chip
+        (`ProjectRef`), joined at read time like the number and subject.
 
         Phase: V1.
       parameters:
@@ -12829,6 +12830,16 @@ components:
           type:
             - string
             - "null"
+        ticket_ref:
+          oneOf:
+            - $ref: "#/components/schemas/TicketRefCode"
+            - type: "null"
+          description: "The ticket reference `KEY-123` (D-20); null without a ticket, and in a `notification.created` frame of an event written before projects (the UI then shows `#ticket_number`). The list shows the ticket's current ref."
+        project:
+          oneOf:
+            - $ref: "#/components/schemas/ProjectRef"
+            - type: "null"
+          description: "The ticket's project (D-20 chip); null without a ticket. Events written before projects count as the Default project."
         actor_name:
           type:
             - string
@@ -12848,6 +12859,8 @@ components:
         - ticket_id
         - ticket_number
         - ticket_subject
+        - ticket_ref
+        - project
         - actor_name
         - params
         - read_at
@@ -12998,7 +13011,7 @@ components:
                   additionalProperties: true
                 notification:
                   $ref: "#/components/schemas/Notification"
-                  description: "`notification.created` on `me`"
+                  description: "`notification.created` on `me` (with `ticket_ref` and `project` of ticket notifications)"
                 unread_count:
                   type: integer
                   minimum: 0
