@@ -55,15 +55,37 @@ export function negotiateLocale(
   return FALLBACK_LOCALE
 }
 
-export async function setLocale(locale: Locale): Promise<void> {
-  const g = i18n.global
-  if (!g.availableLocales.includes(locale)) {
-    const [app, vuetify] = await loaders[locale]()
-    g.setLocaleMessage(locale, { ...app.default, $vuetify: vuetify.default } as MessageSchema)
+// One load per locale, shared by concurrent switches (a failed load is retried on the next switch).
+const mainLoads = new Map<Locale, Promise<void>>([[FALLBACK_LOCALE, Promise.resolve()]])
+
+function loadMainLocale(locale: Locale): Promise<void> {
+  let p = mainLoads.get(locale)
+  if (!p) {
+    p = loaders[locale]().then(([app, vuetify]) => {
+      // Merged, never replaced: an area pack may already be merged into this locale.
+      i18n.global.mergeLocaleMessage(locale, { ...app.default, $vuetify: vuetify.default } as MessageSchema)
+    })
+    p.catch(() => mainLoads.delete(locale))
+    mainLoads.set(locale, p)
   }
+  return p
+}
+
+let switchSeq = 0
+
+/**
+ * Loads `locale` (main strings, Vuetify strings and every registered area pack)
+ * and switches to it. The last call wins: a switch that is still loading when a
+ * later one starts resolves without touching the active locale, so a slow load
+ * can never overwrite a newer choice.
+ */
+export async function setLocale(locale: Locale): Promise<void> {
+  const seq = ++switchSeq
+  await loadMainLocale(locale)
   // Area message packs (e.g. the agent panel) follow the locale switch.
   await Promise.all([...packs.keys()].map((name) => loadPackLocale(name, locale)))
-  g.locale.value = locale
+  if (seq !== switchSeq) return
+  i18n.global.locale.value = locale
   if (typeof document !== 'undefined') document.documentElement.lang = locale
 }
 

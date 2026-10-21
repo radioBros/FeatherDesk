@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { negotiateLocale, setLocale, i18n, SUPPORTED_LOCALES } from './index'
+import { negotiateLocale, setLocale, loadMessagePack, i18n, SUPPORTED_LOCALES } from './index'
 import { defineComponent, h } from 'vue'
 import { VDataTable } from 'vuetify/components'
 import { mountApp, flush } from '@/test/mount'
@@ -34,6 +34,33 @@ describe('i18n (FE-003)', () => {
     expect(document.documentElement.lang).toBe('de')
     await setLocale('en')
     expect(i18n.global.t('app.save')).toBe('Save')
+  })
+  it('the last setLocale call wins, even when an earlier one is still loading its locale', async () => {
+    // `fr` is not loaded yet in this file: its switch waits on real dynamic imports,
+    // while the switch back to the already loaded `en` needs none.
+    expect(i18n.global.availableLocales).not.toContain('fr')
+    const slow = setLocale('fr')
+    const fast = setLocale('en')
+    await Promise.all([slow, fast])
+    expect(i18n.global.locale.value).toBe('en')
+    expect(document.documentElement.lang).toBe('en')
+    await setLocale('fr')
+    expect(i18n.global.t('app.save')).toBe('Enregistrer')
+    await setLocale('en')
+  })
+  it('two switches to the same new locale load it once and keep the area packs merged', async () => {
+    const loads: string[] = []
+    await loadMessagePack('spec-pack', (l) => {
+      loads.push(l)
+      return Promise.resolve({ default: { specPack: { hello: `hello-${l}` } } })
+    })
+    expect(i18n.global.availableLocales).not.toContain('es')
+    await Promise.all([setLocale('es'), setLocale('es')])
+    expect(i18n.global.locale.value).toBe('es')
+    expect(i18n.global.t('app.save')).toBe('Guardar')
+    expect(i18n.global.t('specPack.hello')).toBe('hello-es')
+    expect(loads.filter((l) => l === 'es')).toHaveLength(1)
+    await setLocale('en')
   })
   it('translates Vuetify internal strings through the adapter (it, de)', async () => {
     await setLocale('it')
