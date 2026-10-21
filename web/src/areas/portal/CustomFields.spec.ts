@@ -73,6 +73,61 @@ describe('custom fields in the portal (FE-054)', () => {
     expect(Object.keys((post!.body as { custom_fields: object }).custom_fields)).toEqual(['order_id'])
   })
 
+  describe('a required field scoped to Billing (demo order_number)', () => {
+    const ORDER = [def('order_number', { required: true, category_ids: ['c1'] })]
+    const setCategory = (wrapper: { vm: unknown }, id: string | null) => {
+      ;(wrapper.vm as { $: { setupState: { model: { category_id: string | null } } } }).$.setupState.model.category_id = id
+    }
+    async function mountForm() {
+      const { fn } = mockFetch(() => json({ id: 'n', number: 1 }, 201))
+      const { wrapper } = mountApp(NewTicketForm, { props: { fields: ORDER, categories: CATEGORIES } })
+      await flush()
+      await wrapper.find('[data-testid="nt-subject"] input').setValue('S')
+      await wrapper.find('[data-testid="md-input"] textarea').setValue('B')
+      return { fn, wrapper }
+    }
+
+    it('with no category it is not shown and not sent', async () => {
+      const { fn, wrapper } = await mountForm()
+      expect(wrapper.find('[data-testid="cf-order_number"]').exists()).toBe(false)
+      await wrapper.find('form').trigger('submit')
+      await settle(8)
+      const [post] = await requests(fn)
+      expect(post!.body).toMatchObject({ category_id: null })
+      expect(post!.body).not.toHaveProperty('custom_fields')
+    })
+
+    it('with category Billing it is required', async () => {
+      const { fn, wrapper } = await mountForm()
+      setCategory(wrapper, 'c1')
+      await flush()
+      expect(wrapper.find('[data-testid="cf-order_number"]').exists()).toBe(true)
+      await wrapper.find('form').trigger('submit')
+      await settle()
+      expect(fn).not.toHaveBeenCalled()
+      await wrapper.find('[data-testid="cf-order_number"] input').setValue('INV-7')
+      await wrapper.find('form').trigger('submit')
+      await settle(8)
+      const [post] = await requests(fn)
+      expect(post!.body).toMatchObject({ category_id: 'c1', custom_fields: { order_number: 'INV-7' } })
+    })
+
+    it('leaving Billing drops the typed value', async () => {
+      const { fn, wrapper } = await mountForm()
+      setCategory(wrapper, 'c1')
+      await flush()
+      await wrapper.find('[data-testid="cf-order_number"] input').setValue('INV-7')
+      setCategory(wrapper, 'c2')
+      await flush()
+      expect(wrapper.find('[data-testid="cf-order_number"]').exists()).toBe(false)
+      await wrapper.find('form').trigger('submit')
+      await settle(8)
+      const [post] = await requests(fn)
+      expect(post!.body).toMatchObject({ category_id: 'c2' })
+      expect(post!.body).not.toHaveProperty('custom_fields')
+    })
+  })
+
   it('a number field rejects "abc" through the generated rule', async () => {
     const Host = defineComponent({
       setup() {

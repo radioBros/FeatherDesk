@@ -22,6 +22,19 @@ reversible, slow on large databases, or needs operator action. CI enforces this
   Agents see only the tickets of their projects (invariant I-11). See
   `docs/features/projects.md`.
 
+### Fixed
+- **Category-scoped custom fields no longer block tickets outside their categories.**
+  A required field scoped to a category (the demo's `order_number` for Billing) was
+  shown and required on the portal form whatever the category, and the server then
+  rejected the ticket with 422 `cf.<key>` `not_applicable`. A field that does not apply
+  to the ticket's category or project is now never required, and an empty value for it
+  (or the value it already holds, e.g. after a category change) is ignored; only a real
+  value is still 422 `not_applicable`. The portal custom-field lookup now returns
+  `category_ids`, the portal and agent forms show, require and send a field only
+  while it applies (and drop its value when the category or project changes), and
+  required customer fields no longer block inbound e-mail tickets or follow-ups of
+  closed tickets. An empty `category_ids`/`project_ids` list now means "all", like null.
+
 ### Migrations
 - `0140_projects`: adds `projects`, `project_members`, `project_teams`,
   `organization_projects` and `users.current_project_id`, creates the **Default project**

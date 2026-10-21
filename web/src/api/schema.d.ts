@@ -3744,7 +3744,7 @@ export interface paths {
         };
         /**
          * Customer-visible custom fields
-         * @description Definitions with `customer_visible=true` for rendering the new-ticket form.
+         * @description Definitions with `customer_visible=true` for rendering the new-ticket form. `category_ids` is the field's category scope: the form shows, requires and sends a scoped field only while one of its categories is chosen.
          *
          *     Phase: V1.
          */
@@ -5043,7 +5043,7 @@ export interface components {
         };
         CustomFieldDef: {
             active: boolean;
-            /** @description Null = applies to all categories */
+            /** @description Null or empty = applies to all categories. A scoped field applies only to tickets in one of these categories (not to tickets without a category): elsewhere it is not required, an empty value for it is ignored and any other value is a 422 `not_applicable`. */
             category_ids?: components["schemas"]["Id"][] | null;
             created_at?: components["schemas"]["Timestamp"];
             customer_editable: boolean;
@@ -5053,7 +5053,7 @@ export interface components {
             key: string;
             label: components["schemas"]["LocalizedText"];
             options?: components["schemas"]["CustomFieldOption"][];
-            /** @description D-20: null = applies to every project */
+            /** @description D-20: null or empty = applies to every project. Always null in the portal lookup, which is asked per project. */
             project_ids?: components["schemas"]["Id"][] | null;
             required: boolean;
             sort: number;

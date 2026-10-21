@@ -186,7 +186,7 @@ func (d *Directory) fieldsFor(r *http.Request, customer bool) ([]FieldDef, error
 		if cat != "" && !f.AppliesTo(cat, project) {
 			continue
 		}
-		if project != "" && f.ProjectIDs != nil && !slices.Contains(f.ProjectIDs, project) {
+		if project != "" && len(f.ProjectIDs) > 0 && !slices.Contains(f.ProjectIDs, project) {
 			continue
 		}
 		out = append(out, f)
@@ -206,15 +206,17 @@ func (d *Directory) lookupFieldsAgent(w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
-// lookupFieldsPortal exposes only customer-visible definitions (I-9).
+// lookupFieldsPortal exposes only customer-visible definitions (I-9). The
+// category scope stays: the new-ticket form loads the definitions once per
+// project and shows, requires and sends a field only for the categories it
+// applies to (with no category, only unscoped fields apply).
 func (d *Directory) lookupFieldsPortal(w http.ResponseWriter, r *http.Request) error {
 	out, err := d.fieldsFor(r, true)
 	if err != nil {
 		return err
 	}
 	for i := range out {
-		out[i].CategoryIDs = nil // routing detail; the portal asks per category
-		out[i].ProjectIDs = nil  // and per project
+		out[i].ProjectIDs = nil // the portal asks per project
 	}
 	dirJSON(w, http.StatusOK, out)
 	return nil

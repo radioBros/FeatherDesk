@@ -197,7 +197,11 @@ func (s *Service) createTx(ctx context.Context, tx *store.Tx, p *domain.Principa
 	if err := attachDrafts(ctx, tx, p.UserID, t.ID, msg.ID, in.AttachmentIDs); err != nil {
 		return nil, err
 	}
-	if _, err := s.applyFieldValues(ctx, tx, t, p, in.CustomFields, true); err != nil {
+	// Required customer fields (M-9) only bind a customer filling in a form:
+	// an inbound e-mail or a follow-up (reply to a closed ticket) cannot
+	// carry custom field values.
+	formCreate := in.followupOf == nil && in.channel != domain.ChannelEmail
+	if _, err := s.applyFieldValues(ctx, tx, t, p, in.CustomFields, formCreate); err != nil {
 		return nil, err
 	}
 	if p.IsStaff() && len(in.Tags) > 0 {

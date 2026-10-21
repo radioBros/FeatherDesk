@@ -2224,7 +2224,7 @@ paths:
       tags:
         - Portal
       description: |-
-        Definitions with `customer_visible=true` for rendering the new-ticket form.
+        Definitions with `customer_visible=true` for rendering the new-ticket form. `category_ids` is the field's category scope: the form shows, requires and sends a scoped field only while one of its categories is chosen.
 
         Phase: V1.
       parameters:
@@ -10749,7 +10749,7 @@ components:
             - "null"
           items:
             $ref: "#/components/schemas/Id"
-          description: "Null = applies to all categories"
+          description: "Null or empty = applies to all categories. A scoped field applies only to tickets in one of these categories (not to tickets without a category): elsewhere it is not required, an empty value for it is ignored and any other value is a 422 `not_applicable`."
         sort:
           type: integer
         active:
@@ -10764,7 +10764,7 @@ components:
             - "null"
           items:
             $ref: "#/components/schemas/Id"
-          description: "D-20: null = applies to every project"
+          description: "D-20: null or empty = applies to every project. Always null in the portal lookup, which is asked per project."
       required:
         - id
         - key

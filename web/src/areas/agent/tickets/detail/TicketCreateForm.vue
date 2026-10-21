@@ -15,6 +15,7 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import AttachmentUploader from '@/components/AttachmentUploader.vue'
 import CustomFieldInput from '@/components/CustomFieldInput.vue'
 import ProjectChip from '@/components/ProjectChip.vue'
+import { dropFieldValues, emptyFieldValue, fieldApplies } from '@/utils/customFields'
 import type { AgentProject } from '@/stores/projects'
 import type { components } from '@/api/schema'
 
@@ -79,12 +80,18 @@ watch(
 )
 const customerItems = computed(() => (model.requester && !found.value.some((f) => f.id === model.requester!.id) ? [model.requester, ...found.value] : found.value))
 
-/** Fields for the chosen category (no scope = every category). */
+/**
+ * Fields that apply to the chosen category and project (no scope = every
+ * one): only these are shown, required and sent. A category-scoped field does
+ * not apply while no category is chosen.
+ */
 const defs = computed(() =>
   props.customFields
-    .filter((d) => d.active && (!d.category_ids?.length || (model.category_id && d.category_ids.includes(model.category_id))))
+    .filter((d) => d.active && fieldApplies(d, model.category_id, model.project_id))
     .sort((a, b) => a.sort - b.sort),
 )
+// Values of fields that stop applying (category or project change) are dropped.
+watch(defs, (list) => dropFieldValues(model.custom, list.map((d) => d.key)))
 watch(
   () => model.category_id,
   (id) => {
@@ -96,7 +103,7 @@ watch(
 
 const onSubmit = submit(async () => {
   const custom: S['CustomFieldValues'] = {}
-  for (const d of defs.value) if (model.custom[d.key] !== undefined && model.custom[d.key] !== null) custom[d.key] = model.custom[d.key]!
+  for (const d of defs.value) if (!emptyFieldValue(model.custom[d.key])) custom[d.key] = model.custom[d.key]!
   const body: S['AgentTicketCreate'] = {
     subject: model.subject.trim(),
     body_md: model.body,
@@ -199,7 +206,7 @@ const onSubmit = submit(async () => {
         <v-select v-model="model.team_id" :items="teamItems" item-title="name" item-value="id" :label="$t('agent.common.team')" clearable :error-messages="fieldErrors.team_id" data-testid="ticket-team" />
       </v-col>
     </v-row>
-    <CustomFieldInput v-for="d in defs" :key="d.id" v-model="model.custom[d.key]" :def="d" :error-messages="fieldErrors[`custom_fields.${d.key}`]" />
+    <CustomFieldInput v-for="d in defs" :key="d.id" v-model="model.custom[d.key]" :def="d" :error-messages="fieldErrors[`cf.${d.key}`]" />
     <MarkdownEditor v-model="model.body" required :label="$t('agent.newTicket.body')" :error-messages="fieldErrors.body_md" testid="ticket-body" />
     <div class="d-flex flex-wrap align-center ga-2">
       <AttachmentUploader v-model="model.attachments" area="agent" />

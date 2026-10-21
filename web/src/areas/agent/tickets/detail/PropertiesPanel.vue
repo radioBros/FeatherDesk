@@ -19,6 +19,7 @@ import SlaBadge from './SlaBadge.vue'
 import CustomFieldsForm from './CustomFieldsForm.vue'
 import { assignable } from './ticketApi'
 import { useLookupsStore } from '../../shared/lookups'
+import { fieldApplies } from '@/utils/customFields'
 import type { components } from '@/api/schema'
 
 type S = components['schemas']
@@ -68,10 +69,14 @@ const categoryItems = computed(() => lookups.categories.filter((c) => c.active |
 const tagItems = computed(() => lookups.tags.map((t) => t.name))
 const watching = computed(() => !!props.ticket.watchers?.some((w) => w.id === session.me?.id))
 
-/** Definitions that apply to the ticket's category (null scope = all), active only. */
+/**
+ * Definitions that apply to the ticket's category and project (no scope =
+ * all), active only: the editor shows and sends only these, so a category
+ * change drops the fields that stopped applying from the next save.
+ */
 const fieldDefs = computed(() =>
   lookups.customFields
-    .filter((d) => d.active && (!d.category_ids?.length || (props.ticket.category_id && d.category_ids.includes(props.ticket.category_id))))
+    .filter((d) => d.active && fieldApplies(d, props.ticket.category_id, props.ticket.project_id))
     .sort((a, b) => a.sort - b.sort),
 )
 </script>

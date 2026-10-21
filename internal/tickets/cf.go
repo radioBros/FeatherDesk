@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/radioBros/SimpleTickets/internal/authz"
@@ -110,12 +111,17 @@ func (s *Service) presentFields(ctx context.Context, p *domain.Principal, vals m
 }
 
 // applyFieldValues validates and writes `in` (key → value) for ticket t in tx.
-// Unknown, archived, non-applicable or (for customers) non-editable keys are
-// 422 errors on `cf.<key>`. When creating as a customer, required
-// customer-editable fields that apply to the category must be present (M-9).
-// It returns the keys whose value changed.
-func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketRow, p *domain.Principal, in map[string]any, creating bool) ([]string, error) {
-	if len(in) == 0 && (!creating || !p.IsCustomer()) {
+// Unknown, archived or (for customers) non-editable keys are 422 errors on
+// `cf.<key>`. A field that does not apply to the ticket's category and project
+// is neither required nor written: an empty value for it (null, "", [],
+// false) or the value it already holds is ignored, any other value is a 422
+// `not_applicable`. With requireCustomer (a customer filing a new ticket
+// through the portal or the API), required customer-editable fields that
+// apply to the category must be present (M-9). It returns the keys whose
+// value changed.
+func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketRow, p *domain.Principal, in map[string]any, requireCustomer bool) ([]string, error) {
+	requireCustomer = requireCustomer && p.IsCustomer()
+	if len(in) == 0 && !requireCustomer {
 		return nil, nil
 	}
 	var errs []problems.FieldError
@@ -148,6 +154,11 @@ func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketR
 			}
 			continue
 		case !def.AppliesTo(t.CategoryID, t.ProjectID):
+			// After the visibility checks: an empty value must not probe
+			// staff-only keys (I-9).
+			if emptyFieldValue(in[key]) || holdsValue(def, cur, in[key]) {
+				continue
+			}
 			errs = append(errs, problems.Field("cf."+key, "not_applicable", "the field does not apply to this category"))
 			continue
 		}
@@ -158,7 +169,7 @@ func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketR
 		}
 		writes = append(writes, write{def, val})
 	}
-	if creating && p.IsCustomer() {
+	if requireCustomer {
 		defs, err := s.dir.FieldDefs(ctx)
 		if err != nil {
 			return nil, err
@@ -168,7 +179,8 @@ func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketR
 				continue
 			}
 			v, given := in[def.Key]
-			if !given || v == nil || v == "" {
+			// An unticked checkbox is an answer; null, "" and [] are not.
+			if !given || (emptyFieldValue(v) && v != false) {
 				errs = append(errs, problems.Field("cf."+def.Key, "required", "this field is required"))
 			}
 		}
@@ -216,6 +228,36 @@ func (s *Service) applyFieldValues(ctx context.Context, tx *store.Tx, t *ticketR
 		changed = append(changed, w.def.Key)
 	}
 	return changed, nil
+}
+
+// emptyFieldValue reports whether v carries no value: null, a blank string,
+// an empty list or false (an unticked checkbox).
+func emptyFieldValue(v any) bool {
+	switch x := v.(type) {
+	case nil:
+		return true
+	case string:
+		return strings.TrimSpace(x) == ""
+	case []any:
+		return len(x) == 0
+	case []string:
+		return len(x) == 0
+	case bool:
+		return !x
+	}
+	return false
+}
+
+// holdsValue reports whether v equals the value def already holds in cur: a
+// client resending a ticket's values after a category change is not rejected
+// for a field that stopped applying.
+func holdsValue(def directory.FieldDef, cur map[string]directory.FieldValue, v any) bool {
+	old, had := cur[def.ID]
+	if !had {
+		return false
+	}
+	val, fe := def.NormalizeValue(v)
+	return fe == nil && val != nil && sameValue(def, old, *val)
 }
 
 func sameValue(def directory.FieldDef, a, b directory.FieldValue) bool {
