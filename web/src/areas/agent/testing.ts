@@ -27,17 +27,19 @@ import type { AuthConfig, Me } from '@/types'
 import type { components } from '@/api/schema'
 import enAgent from '@/locales/agent/en.json'
 import enPrivacy from '@/locales/privacy/en.json'
+import enAccount from '@/locales/account/en.json'
 
 export { json, flush }
 
 type S = components['schemas']
 
 let agentMessagesLoaded = false
-/** Merges the agent pack into `en` synchronously (the app loads it lazily per route). */
+/** Merges the agent pack (with the privacy and account packs) into `en` synchronously (the app loads them lazily per route). */
 export function loadAgentMessagesForTests() {
   if (agentMessagesLoaded) return
   i18n.global.mergeLocaleMessage('en', enAgent as never)
   i18n.global.mergeLocaleMessage('en', enPrivacy as never)
+  i18n.global.mergeLocaleMessage('en', enAccount as never)
   agentMessagesLoaded = true
 }
 

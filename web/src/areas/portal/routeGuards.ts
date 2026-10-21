@@ -10,6 +10,7 @@ import { useConfigStore } from '@/stores/config'
 import { loadMessagePack, type Locale } from '@/i18n'
 import { loadPrivacyMessages } from '@/i18n/privacy'
 import { loadNotificationMessages } from '@/i18n/notifications'
+import { loadAccountMessages } from '@/i18n/account'
 
 /** Email-backed flows (register, forgot password, magic link) exist only when SMTP works. */
 export function requireEmail() {
@@ -22,9 +23,14 @@ export function requireRegistration() {
   return c.email_enabled && c.customer.self_registration !== false ? true : { path: '/login' }
 }
 
-/** The portal pack, plus the `privacy.*` pack (register consent, "My data"; FE-080). */
+/** The portal pack, plus the `privacy.*` (register consent, "My data"; FE-080), `notifications.*` and `account` (`mfa.*`, `mcp.*`) packs. */
 export const loadPortalMessages = () =>
-  Promise.all([loadMessagePack('portal', (l: Locale) => import(`../../locales/portal/${l}.json`)), loadPrivacyMessages(), loadNotificationMessages()]).then(() => undefined)
+  Promise.all([
+    loadMessagePack('portal', (l: Locale) => import(`../../locales/portal/${l}.json`)),
+    loadPrivacyMessages(),
+    loadNotificationMessages(),
+    loadAccountMessages(),
+  ]).then(() => undefined)
 export const loadKbMessages = () => loadMessagePack('kb', (l: Locale) => import(`../../locales/kb/${l}.json`))
 export const loadSetupMessages = () => loadMessagePack('setup', (l: Locale) => import(`../../locales/setup/${l}.json`))
 

@@ -10,13 +10,20 @@ import type { RouteRecordRaw } from 'vue-router'
 import { loadMessagePack, type Locale } from '@/i18n'
 import { loadPrivacyMessages } from '@/i18n/privacy'
 import { loadNotificationMessages } from '@/i18n/notifications'
+import { loadAccountMessages } from '@/i18n/account'
 
 const NotFound = () => import('@/components/NotFoundPage.vue')
 
 /** Merges the agent message pack for the current locale (and `en`). */
 export function loadAgentMessages(): Promise<void> {
-  // The `privacy.*` pack (admin Privacy page, detail actions, "My data"; FE-080) loads with it.
-  return Promise.all([loadMessagePack('agent', (l: Locale) => import(`../locales/agent/${l}.json`)), loadPrivacyMessages(), loadNotificationMessages()]).then(() => undefined)
+  // The `privacy.*` (admin Privacy page, detail actions, "My data"; FE-080), `notifications.*`
+  // and `account` (`mfa.*`, `mcp.*`) packs load with it.
+  return Promise.all([
+    loadMessagePack('agent', (l: Locale) => import(`../locales/agent/${l}.json`)),
+    loadPrivacyMessages(),
+    loadNotificationMessages(),
+    loadAccountMessages(),
+  ]).then(() => undefined)
 }
 
 const ADMIN = ['admin'] as const
