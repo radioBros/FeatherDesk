@@ -24,6 +24,9 @@ const PASSWORD = 'demo-password-123'
 const ADMIN = { email: 'admin@demo.test', password: PASSWORD }
 const MOBILE_AGENT = { email: 'mona.mobile@demo.test', password: PASSWORD }
 const CUSTOMER = { email: 'hank.hill@globex.test', password: PASSWORD }
+const PROJECT_ADMIN = { email: 'freya.fields@demo.test', password: PASSWORD }
+// 1×1 transparent PNG.
+const LOGO = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')
 
 test.use({ baseURL: BASE })
 test.describe.configure({ mode: 'serial' })
@@ -181,4 +184,32 @@ test('an admin creates a project and maps a team to it', async ({ page }) => {
   await page.getByTestId('project-teams-save').click()
   await expect.poll(async () => (await (await page.request.get(`/api/v1/admin/projects/${ops.id}/teams`)).json()).team_ids).toContain(team.id)
   expect(problems).toEqual([])
+})
+
+test('a project logo uploads, and a project admin only manages their own project (PRJ-018, PRJ-019)', async ({ page, browser }) => {
+  const problems = watchConsole(page)
+  await loginAs(page, 'staff', ADMIN)
+  await page.goto('/agent/admin/projects')
+  await page.getByTestId('project-row').filter({ has: page.getByText('MOB', { exact: true }) }).getByTestId('project-edit').click()
+  await page.getByTestId('project-logo-input').locator('input[type=file]').setInputFiles({ name: 'mob-logo.png', mimeType: 'image/png', buffer: LOGO })
+  await expect(page.getByTestId('project-logo-img')).toBeVisible()
+  const list = (await (await page.request.get('/api/v1/admin/projects')).json()) as { id: string; key: string; logo_url?: string | null }[]
+  const byKey = (k: string) => list.find((p) => p.key === k)!
+  expect(byKey('MOB').logo_url).toBeTruthy()
+  expect(problems).toEqual([])
+
+  // Freya administers MOB only: no create button; her project → 200, a foreign one → 404, a global action → 403.
+  const ctx = await browser.newContext({ baseURL: BASE })
+  const pa = await ctx.newPage()
+  await loginAs(pa, 'staff', PROJECT_ADMIN)
+  await pa.goto('/agent/admin/projects')
+  await expect(pa.getByTestId('project-row')).toHaveCount(1)
+  await expect(pa.getByTestId('project-table')).toContainText('MOB')
+  await expect(pa.getByTestId('project-new')).toHaveCount(0)
+  const meRes = await pa.request.get('/api/v1/me')
+  const headers = { 'X-CSRF-Token': (await meRes.json()).csrf_token as string, Origin: BASE }
+  expect((await pa.request.patch(`/api/v1/admin/projects/${byKey('MOB').id}`, { data: { description: 'Mobile apps' }, headers })).status()).toBe(200)
+  expect((await pa.request.patch(`/api/v1/admin/projects/${byKey('WEB').id}`, { data: { description: 'x' }, headers })).status()).toBe(404)
+  expect((await pa.request.post('/api/v1/admin/projects', { data: { key: 'NOPE', name: 'Nope' }, headers })).status()).toBe(403)
+  await ctx.close()
 })

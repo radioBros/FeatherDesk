@@ -242,7 +242,14 @@ function onEvent(ev: ServerEvent) {
   }
   if (tk?.id || ev.event === 'ticket.created') scheduleRefetch()
 }
-useRealtime(['tickets'], { onEvent, onResync: () => void reload() })
+// One project selected (switcher or ?project=<id|key>): the server-filtered `project:<id>` topic
+// (PRJ-023) instead of every ticket event; all projects: `tickets`.
+const liveTopics = computed(() => {
+  const f = apiFilters.value.project
+  const p = f ? projects.projects.find((x) => x.id === f || x.key === f) : undefined
+  return p ? [`project:${p.id}`] : ['tickets']
+})
+useRealtime(liveTopics, { onEvent, onResync: () => void reload() })
 
 // ---- rows, selection, shortcuts ---------------------------------------------
 

@@ -57,6 +57,36 @@ describe('ticket list and projects', () => {
     expect(calls.at(-1)!.url.searchParams.get('project')).toBe('p-web')
   })
 
+  it('subscribes project:<id> while one project is selected, tickets for all projects (PRJ-023)', async () => {
+    const h = await mountAgent(TicketListPage, {
+      path: '/agent/tickets',
+      route: '/agent/tickets',
+      me: fx.me('agent', 2, { current_project_id: 'p-mob' }),
+      api: { ...lookups, 'GET /agent/tickets': () => json(fx.page([mobTicket])) } as never,
+    })
+    await h.flush()
+    // The live set: every subscribe minus the later unsubscribes.
+    const live = (x: AgentHarness) => {
+      const set = new Set<string>()
+      for (const f of x.socket().frames()) {
+        for (const t of (f.topics as string[] | undefined) ?? []) {
+          if (f.op === 'subscribe') set.add(t)
+          if (f.op === 'unsubscribe') set.delete(t)
+        }
+      }
+      return [...set]
+    }
+    expect(live(h)).toContain('project:p-mob')
+    expect(live(h)).not.toContain('tickets')
+    await useProjectsStore().select(null)
+    await h.flush()
+    expect(live(h)).toContain('tickets')
+    expect(live(h)).not.toContain('project:p-mob')
+    const byKey = await mountList('/agent/tickets?project=MOB')
+    await byKey.flush()
+    expect(live(byKey)).toContain('project:p-mob')
+  })
+
   it('an explicit ?project= wins over the switcher and no filter is sent for all projects', async () => {
     const h = await mountList('/agent/tickets?project=MOB')
     expect(ticketCalls(h)[0]!.url.searchParams.get('project')).toBe('MOB')
