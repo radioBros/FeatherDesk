@@ -72,14 +72,16 @@ test.describe('M2 ticket loop', () => {
     await expect(page.getByTestId('upload-item')).toContainText(`photo-${id}.png`)
     await expect(page.getByTestId('upload-error')).toHaveCount(0)
     await page.getByTestId('nt-submit').click()
-    await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]{36}$/)
-    const ticketId = page.url().split('/').pop()!
+    // The portal opens a new ticket by its ref (KEY-123, D-20).
+    await expect(page).toHaveURL(/\/tickets\/[A-Z][A-Z0-9]*-\d+$/)
+    const ticketRef = page.url().split('/').pop()!
     await expect(page.getByTestId('detail-subject')).toContainText(subject)
     await expect(page.getByTestId('attachment-list')).toContainText(`photo-${id}.png`)
     // From here on the customer's page must never reload: a marker on window survives only without one.
     await page.evaluate(() => ((window as unknown as { __m2: string }).__m2 = 'alive'))
 
-    const ticket = await seed.api.get(`/agent/tickets/${ticketId}`)
+    const ticket = await seed.api.get(`/agent/tickets/by-ref/${ticketRef}`)
+    const ticketId: string = ticket.id
     expect(ticket.category_id).toBe(category.id)
     expect(ticket.team_id).toBe(seed.team.id)
 

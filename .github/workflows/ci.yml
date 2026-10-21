@@ -38,9 +38,15 @@ env:
 jobs:
   # ------------------------------------------------------------------ Go --
   go:
-    name: go (vet, gofmt, test -race on SQLite + Postgres 18)
+    name: go (vet, gofmt, test -race on SQLite + Postgres 18, shard ${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # The race suite runs every store test on both engines; two shards keep each
+    # job well under the timeout (one job took ~18 min).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     env:
       CI: "true"
       ST_TEST_POSTGRES_URL: postgres://st:st@127.0.0.1:55432/st_test?sslmode=disable
@@ -74,13 +80,18 @@ jobs:
       - name: go vet
         run: go vet ./...
       - name: go test -race (both engines; CI=true makes a missing Postgres fail)
-        run: go test -race -count=1 -coverprofile=coverage.out ./...
+        run: |
+          heavy='/internal/(authn|demo|kb|mailin|webhooks|privacy)(/|$)'
+          if [ "${{ matrix.shard }}" = 1 ]; then pkgs=$(go list ./... | grep -E "$heavy")
+          else pkgs=$(go list ./... | grep -vE "$heavy"); fi
+          # shellcheck disable=SC2086
+          go test -race -count=1 -coverprofile=coverage.out $pkgs
       - name: Schema parity between migrations/sqlite and migrations/postgres
         run: go test -count=1 -run 'TestSchemaParity' ./internal/store/...
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: coverage
+          name: coverage-${{ matrix.shard }}
           path: coverage.out
           if-no-files-found: ignore
 

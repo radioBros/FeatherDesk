@@ -60,6 +60,16 @@ body {
 .v-textarea.v-input--density-compact textarea {
   line-height: 1.5;
 }
+/* A small chip (26px) inside a compact field made it 42px; 24px keeps it on the 40px row. */
+.v-input--density-compact .v-field__input .v-chip.v-chip--size-small {
+  --v-chip-height: 24px;
+}
+/* Chrome pads the date/time editor by 1px top and bottom, which made date fields 2px taller. */
+.v-field__input::-webkit-datetime-edit,
+.v-field__input::-webkit-datetime-edit-fields-wrapper {
+  padding-top: 0;
+  padding-bottom: 0;
+}
 /*
  * Tonal controls in a brand colour: the label is the brand colour on its own 12 % tint, which falls
  * under 4.5:1 for light brand colours. Mixing 25 % toward the text colour keeps the hue and passes AA

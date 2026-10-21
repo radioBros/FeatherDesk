@@ -538,7 +538,7 @@ const currentFilter = computed(() => {
 
 <style scoped>
 .st-filters > * { flex: 1 1 160px; max-width: 240px; }
-.st-cf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.st-cf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; align-items: start; }
 :deep(.st-row--focused) { outline: 2px solid rgb(var(--v-theme-primary)); outline-offset: -2px; }
 :deep(tbody tr) { cursor: pointer; }
 </style>

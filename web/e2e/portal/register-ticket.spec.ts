@@ -52,7 +52,7 @@ test.describe('customer portal: register to resolve', () => {
     await page.getByTestId('nt-subject').locator('input').fill('E2E: printer offline')
     await page.getByTestId('md-input').locator('textarea').fill('Since this morning nobody can print. Error **E-301**.')
     await page.getByTestId('nt-submit').click()
-    await expect(page).toHaveURL(/\/tickets\/[0-9a-f-]{36}$/)
+    await expect(page).toHaveURL(/\/tickets\/[A-Z][A-Z0-9]*-\d+$/) // opened by ref (D-20)
     await expect(page.getByTestId('detail-subject')).toContainText('E2E: printer offline')
 
     // Reply

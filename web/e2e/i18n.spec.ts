@@ -19,6 +19,8 @@ test('the first view loads no locale chunk; switching to French loads only Frenc
   await page.goto('/login')
   await expect(page.getByTestId('login-form')).toBeVisible()
   expect(scripts.filter((u) => LOCALE_CHUNK.test(u))).toEqual([])
+  // Let the idle-time preloads (confirm dialog, snackbar) finish so only the switch is measured.
+  await page.waitForLoadState('networkidle')
 
   const before = scripts.length
   const bodies: string[] = []

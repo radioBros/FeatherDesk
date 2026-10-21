@@ -87,7 +87,7 @@ export function radiusDefaults(r: Branding['radius'] = 'default') {
     VFileInput: { rounded, variant: 'outlined', density: 'compact' },
     VDateInput: { rounded, variant: 'outlined', density: 'compact' },
     VNumberInput: { rounded, variant: 'outlined', density: 'compact' },
-    VCheckbox: { density: 'compact' },
+    VCheckbox: { density: 'compact', hideDetails: 'auto', color: 'primary' },
     VSwitch: { density: 'compact' },
     VRadioGroup: { density: 'compact' },
   }
