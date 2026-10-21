@@ -318,7 +318,7 @@ func (a *App) Run(ctx context.Context, ln net.Listener) error {
 			case <-t.C:
 				for i := 0; i < 20; i++ {
 					var n int
-					_ = d.DB.Read().QueryRowContext(bg, `SELECT COUNT(*) FROM tickets t JOIN ticket_messages m ON m.ticket_id = t.id WHERE t.status <> 'closed' AND m.body LIKE '%zz%'`).Scan(&n)
+					_ = d.DB.Read().QueryRowContext(bg, `SELECT COUNT(*) FROM tickets t JOIN ticket_messages m ON m.ticket_id = t.id WHERE t.status <> 'closed' AND m.body_md LIKE '%zz%'`).Scan(&n)
 				}
 			}
 		}
