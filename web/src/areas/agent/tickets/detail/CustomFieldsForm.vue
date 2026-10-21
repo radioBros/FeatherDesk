@@ -42,7 +42,7 @@ const onSave = submit(async () => {
       :def="d"
       :disabled="!editable"
       density="compact"
-      :error-messages="fieldErrors[`custom_fields.${d.key}`]"
+      :error-messages="fieldErrors[`cf.${d.key}`]"
     />
     <div v-if="editable" class="d-flex justify-end">
       <v-btn type="submit" size="small" color="primary" variant="tonal" :loading="submitting" data-testid="custom-fields-save">

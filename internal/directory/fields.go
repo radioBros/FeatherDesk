@@ -48,12 +48,14 @@ func (f FieldDef) Access() authz.FieldAccess {
 }
 
 // AppliesTo reports whether the field applies to a ticket of categoryID in
-// projectID ("" = any project, for lookups without a project).
+// projectID ("" = any project, for lookups without a project). An empty scope
+// list means every category (project), like null: that is how the admin UI
+// shows it.
 func (f FieldDef) AppliesTo(categoryID, projectID string) bool {
-	if f.ProjectIDs != nil && projectID != "" && !slices.Contains(f.ProjectIDs, projectID) {
+	if len(f.ProjectIDs) > 0 && projectID != "" && !slices.Contains(f.ProjectIDs, projectID) {
 		return false
 	}
-	if f.CategoryIDs == nil {
+	if len(f.CategoryIDs) == 0 {
 		return true
 	}
 	return categoryID != "" && slices.Contains(f.CategoryIDs, categoryID)

@@ -11,6 +11,7 @@ import AttachmentUploader from '@/components/AttachmentUploader.vue'
 import CustomFieldInput from '@/components/CustomFieldInput.vue'
 import KbSuggestions from '../components/KbSuggestions.vue'
 import ProjectChip from '@/components/ProjectChip.vue'
+import { dropFieldValues, emptyFieldValue, fieldApplies } from '@/utils/customFields'
 import type { Category, PortalProject, CustomFieldDef, CustomFieldValue, CustomerTicket, Priority, UserRef } from '../types'
 
 /**
@@ -68,18 +69,20 @@ const requesterItems = computed(() =>
   (props.members ?? []).filter((m) => m.id !== props.selfId).map((m) => ({ value: m.id, title: m.name })),
 )
 
-/** Definitions shown for the selected category; staff-only fields never reach this list. */
+/**
+ * Definitions that apply to the selected category (and project): only these
+ * are shown, required and sent. A category-scoped field (e.g. an order number
+ * for Billing) does not apply while no category is chosen. Staff-only fields
+ * never reach this list.
+ */
 const visibleFields = computed(() =>
   props.fields
     .filter((d) => d.active !== false && d.customer_visible && d.customer_editable)
-    .filter((d) => !d.category_ids || !d.category_ids.length || (model.category_id !== null && d.category_ids.includes(model.category_id)))
+    .filter((d) => fieldApplies(d, model.category_id, model.project_id))
     .sort((a, b) => a.sort - b.sort),
 )
 // Values of fields that disappear with a category change are dropped, not sent.
-watch(visibleFields, (defs) => {
-  const keep = new Set(defs.map((d) => d.key))
-  for (const k of Object.keys(model.custom)) if (!keep.has(k)) delete model.custom[k]
-})
+watch(visibleFields, (defs) => dropFieldValues(model.custom, defs.map((d) => d.key)))
 // The category's default priority is a suggestion the customer can change.
 watch(
   () => model.category_id,
@@ -93,7 +96,7 @@ function customPayload() {
   const out: Record<string, string | number | boolean | string[] | null> = {}
   for (const d of visibleFields.value) {
     const v = model.custom[d.key]
-    if (v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length)) continue
+    if (emptyFieldValue(v)) continue
     out[d.key] = d.type === 'number' ? Number(v) : (v as string | boolean | string[])
   }
   return out
@@ -190,7 +193,7 @@ const onSubmit = submit(async () => {
       :key="d.key"
       v-model="model.custom[d.key]"
       :def="d"
-      :error-messages="fieldErrors[`custom_fields.${d.key}`]"
+      :error-messages="fieldErrors[`cf.${d.key}`]"
     />
     <MarkdownEditor
       v-model="model.body_md"
