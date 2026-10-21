@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Members of a project with their role (D-20). `PUT` replaces the whole list;
  * staff who leave lose the project's tickets at once. Read-only for project
@@ -54,7 +55,7 @@ async function save() {
 <template>
   <div data-testid="project-members">
     <v-alert v-if="!editable" type="info" variant="tonal" density="compact" class="mb-3">{{ $t('projects.admin.members.readOnly') }}</v-alert>
-    <v-autocomplete
+    <AutocompleteSearch
       v-if="editable"
       :model-value="adding"
       :items="candidates"
@@ -80,7 +81,7 @@ async function save() {
             <div class="text-caption text-medium-emphasis">{{ m.email }}</div>
           </td>
           <td style="min-width: 180px">
-            <v-select
+            <AutocompleteSearch
               v-model="m.role"
               :items="ROLES.map((r) => ({ value: r, title: $t(`projects.admin.members.roles.${r}`) }))"
               :aria-label="$t('projects.admin.members.role')"

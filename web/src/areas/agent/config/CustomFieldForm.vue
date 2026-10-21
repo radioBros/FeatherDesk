@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a custom field definition (FE-053). The key and type are
  * fixed after creation (the PATCH body has neither). Select / multiselect
@@ -91,7 +92,7 @@ const onSave = submit(async () => {
       data-testid="cf-key"
     />
     <LocalizedTextFields v-model="model.label" :label="$t('agent.customFields.label')" testid="cf-label" />
-    <v-select
+    <AutocompleteSearch
       v-model="model.type"
       :items="typeItems"
       :label="$t('agent.customFields.type')"
@@ -133,7 +134,7 @@ const onSave = submit(async () => {
       inset
       data-testid="cf-editable"
     />
-    <v-autocomplete
+    <AutocompleteSearch
       v-model="model.category_ids"
       :items="categories ?? []"
       item-title="name"

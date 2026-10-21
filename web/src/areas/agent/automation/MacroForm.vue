@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a macro (FE-064, D-19 A): a one-click bundle of a reply or
  * note, status, priority, tags and assignee. `shared` saves through
@@ -99,7 +100,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.project_id"
       testid="macro-project"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.reply_kind"
       :items="kindItems"
       :label="$t('automation.macros.replyKind')"
@@ -113,13 +114,13 @@ const onSave = submit(async () => {
     </div>
     <v-row density="compact">
       <v-col cols="12" md="4">
-        <v-select v-model="model.status" :items="statusItems" :label="$t('automation.macros.status')" :error-messages="fieldErrors.status" data-testid="macro-status" />
+        <AutocompleteSearch v-model="model.status" :items="statusItems" :label="$t('automation.macros.status')" :error-messages="fieldErrors.status" data-testid="macro-status" />
       </v-col>
       <v-col cols="12" md="4">
-        <v-select v-model="model.priority" :items="priorityItems" :label="$t('automation.macros.priority')" :error-messages="fieldErrors.priority" data-testid="macro-priority" />
+        <AutocompleteSearch v-model="model.priority" :items="priorityItems" :label="$t('automation.macros.priority')" :error-messages="fieldErrors.priority" data-testid="macro-priority" />
       </v-col>
       <v-col cols="12" md="4">
-        <v-autocomplete v-model="model.assignee" :items="assigneeItems" :label="$t('automation.macros.assignee')" :error-messages="fieldErrors.assignee" data-testid="macro-assignee" />
+        <AutocompleteSearch v-model="model.assignee" :items="assigneeItems" :label="$t('automation.macros.assignee')" :error-messages="fieldErrors.assignee" data-testid="macro-assignee" />
       </v-col>
     </v-row>
     <v-combobox

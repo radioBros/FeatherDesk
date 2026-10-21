@@ -231,6 +231,10 @@
     "unknown": "Unknown user"
   },
   "common": {
+    "search": "Search…",
+    "nSelected": "{n} selected",
+    "noResults": "No results",
+    "searching": "Searching…",
     "showPassword": "Show password",
     "hidePassword": "Hide password"
   }

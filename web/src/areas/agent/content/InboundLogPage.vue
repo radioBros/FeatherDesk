@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * /agent/admin/inbound/log (FE-057, admin): every inbound message with its
  * outcome. Failed and quarantined messages can be retried after a confirm.
@@ -77,8 +78,8 @@ const cols = useTableColumns('inbound-log', () => [
       </template>
     </PageHeader>
     <div class="d-flex flex-wrap ga-3 mb-3">
-      <v-select v-model="status" :items="statusItems" :label="$t('agent.common.status')" density="compact" hide-details clearable style="max-width: 220px" data-testid="inlog-status" />
-      <v-select v-model="mailboxId" :items="mailboxes" item-title="name" item-value="id" :label="$t('agent.inboundLog.mailbox')" density="compact" hide-details clearable style="max-width: 260px" />
+      <AutocompleteSearch v-model="status" :items="statusItems" :label="$t('agent.common.status')" density="compact" hide-details clearable style="max-width: 220px" data-testid="inlog-status" />
+      <AutocompleteSearch v-model="mailboxId" :items="mailboxes" item-title="name" item-value="id" :label="$t('agent.inboundLog.mailbox')" density="compact" hide-details clearable style="max-width: 260px" />
     </div>
     <v-alert v-if="list.error.value" type="error" variant="tonal" class="mb-4">{{ $t('agent.common.loadFailed') }}</v-alert>
     <v-card border flat>

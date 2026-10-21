@@ -231,6 +231,10 @@
     "unknown": "Unbekannter Benutzer"
   },
   "common": {
+    "search": "Suchen…",
+    "nSelected": "{n} ausgewählt",
+    "noResults": "Keine Ergebnisse",
+    "searching": "Suche läuft…",
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen"
   }

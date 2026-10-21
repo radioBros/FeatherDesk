@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from '@/composables/useForm'
@@ -52,7 +53,7 @@ const onSubmit = submit(async () => {
       data-testid="profile-name"
     />
     <v-text-field :model-value="me?.email ?? ''" :label="$t('auth.email')" readonly disabled data-testid="profile-email" />
-    <v-select
+    <AutocompleteSearch
       v-model="model.locale"
       :items="localeItems"
       :label="$t('app.language')"

@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * `/agent/admin/privacy` (FE-084/FE-086, D-19 §C, admin): every export and
  * deletion request with approve / reject / download, and the retention and
@@ -79,7 +80,7 @@ function onSaved(s: S['PrivacySettings']) {
 
     <div v-show="tab === 'requests'">
       <div class="d-flex flex-wrap ga-3 mb-4">
-        <v-select
+        <AutocompleteSearch
           v-model="type"
           :items="TYPES.map((v) => ({ value: v, title: $t(`privacy.type.${v}`) }))"
           :label="$t('privacy.filter.type')"
@@ -90,7 +91,7 @@ function onSaved(s: S['PrivacySettings']) {
           data-testid="privacy-filter-type"
           @update:model-value="list.reload()"
         />
-        <v-select
+        <AutocompleteSearch
           v-model="status"
           :items="STATUSES.map((v) => ({ value: v, title: $t(`privacy.status.${v}`) }))"
           :label="$t('privacy.filter.status')"

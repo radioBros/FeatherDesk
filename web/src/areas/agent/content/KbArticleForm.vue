@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * KB article editor form (FE-052): metadata (category, slug, visibility never
  * wider than the category, M-10) and one tab per available locale with title
@@ -141,7 +142,7 @@ const onSave = submit(async () => {
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3">{{ formError }}</v-alert>
     <v-row density="compact">
       <v-col cols="12" md="5">
-        <v-select
+        <AutocompleteSearch
           v-model="meta.category_id"
           :items="categoryItems"
           :label="$t('agent.common.category')"
@@ -161,7 +162,7 @@ const onSave = submit(async () => {
         />
       </v-col>
       <v-col cols="12" md="3">
-        <v-select
+        <AutocompleteSearch
           v-model="meta.visibility"
           :items="visibilityItems"
           :label="$t('agent.kb.visibility')"

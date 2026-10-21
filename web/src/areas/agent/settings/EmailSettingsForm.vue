@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Email settings form (FE-048): SMTP (write-only password, env-locked fields
  * read-only and left out of the body), sender identities, per-template
@@ -122,7 +123,7 @@ const onTest = submit(() => emit('test', body()))
           </v-text-field>
         </v-col>
         <v-col cols="12" sm="6">
-          <v-select
+          <AutocompleteSearch
             v-model="model.security"
             :items="SECURITY.map((v) => ({ value: v, title: $t(`agent.email.securityOptions.${v}`) }))"
             :label="$t('agent.email.security')"
@@ -132,10 +133,10 @@ const onTest = submit(() => emit('test', body()))
             data-testid="smtp-security"
           >
             <template v-if="isLocked('security')" #append-inner><EnvLockBadge /></template>
-          </v-select>
+          </AutocompleteSearch>
         </v-col>
         <v-col cols="12" sm="6">
-          <v-select
+          <AutocompleteSearch
             v-model="model.auth"
             :items="AUTH.map((v) => ({ value: v, title: $t(`agent.email.authOptions.${v}`) }))"
             :label="$t('agent.email.auth')"
@@ -143,7 +144,7 @@ const onTest = submit(() => emit('test', body()))
             data-testid="smtp-auth"
           >
             <template v-if="isLocked('auth')" #append-inner><EnvLockBadge /></template>
-          </v-select>
+          </AutocompleteSearch>
         </v-col>
         <template v-if="model.auth !== 'none'">
           <v-col cols="12" sm="6">

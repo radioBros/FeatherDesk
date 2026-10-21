@@ -16,7 +16,7 @@ describe('SecurityPolicyCard (FE-074)', () => {
     })
     await h.flush()
     expect(byTestId('security-mfa-required')!.textContent).toContain('Nobody')
-    h.wrapper.findComponent({ name: 'VSelect' }).vm.$emit('update:modelValue', 'staff')
+    h.wrapper.findComponent({ name: 'AutocompleteSearch' }).vm.$emit('update:modelValue', 'staff')
     await h.flush()
     await click(byTestId('security-save'))
     await h.flush()

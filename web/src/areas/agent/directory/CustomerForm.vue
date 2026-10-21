@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** Create / edit a customer (FE-026). Options come in as props; nothing loads on mount. */
 import { computed, reactive } from 'vue'
 import { useForm } from '@/composables/useForm'
@@ -71,7 +72,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.email"
       data-testid="customer-email"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.organization_id"
       :items="organizations ?? []"
       item-title="name"
@@ -81,20 +82,20 @@ const onSave = submit(async () => {
       clearable
       data-testid="customer-org"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.role"
       :items="ROLES.map((r) => ({ value: r, title: $t(`agent.customers.roles.${r}`) }))"
       :label="$t('agent.customers.role')"
       :rules="[validations.required.select]"
       :error-messages="fieldErrors.role"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.locale"
       :items="SUPPORTED_LOCALES.map((l) => ({ value: l, title: l.toUpperCase() }))"
       :label="$t('agent.customers.locale')"
       clearable
     />
-    <v-select
+    <AutocompleteSearch
       v-if="editing"
       v-model="model.status"
       :items="STATUSES.map((s) => ({ value: s, title: $t(`agent.customers.statuses.${s}`) }))"

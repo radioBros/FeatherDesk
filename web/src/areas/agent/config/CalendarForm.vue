@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a business calendar (FE-056): name, IANA time zone (from
  * `Intl`, no network), weekly hours (0..n intervals per day, HH:MM, end after
@@ -88,7 +89,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.name"
       data-testid="calendar-name"
     />
-    <v-autocomplete
+    <AutocompleteSearch
       v-model="model.timezone"
       :items="zones"
       :label="$t('agent.calendars.timezone')"

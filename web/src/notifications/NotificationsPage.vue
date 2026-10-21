@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * `/agent/notifications` and `/notifications` (D-19 §D, FE-092): every
  * notification of the caller, newest first, with All/Unread and type filters,
@@ -114,7 +115,7 @@ async function remove(n: Notification) {
         <v-btn value="all" data-testid="notifications-filter-all">{{ $t('notifications.page.filterAll') }}</v-btn>
         <v-btn value="unread" data-testid="notifications-filter-unread">{{ $t('notifications.page.filterUnread') }}</v-btn>
       </v-btn-toggle>
-      <v-select
+      <AutocompleteSearch
         v-model="type"
         :items="typeItems"
         :label="$t('notifications.page.type')"

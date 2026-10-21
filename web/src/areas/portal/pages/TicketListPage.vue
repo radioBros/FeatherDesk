@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDisplay } from 'vuetify'
@@ -189,7 +190,7 @@ void loadProjects()
         data-testid="ticket-search"
         @click:clear="search = ''"
       />
-      <v-select
+      <AutocompleteSearch
         v-model="status"
         :items="statusItems"
         :label="$t('portal.tickets.status')"
@@ -198,7 +199,7 @@ void loadProjects()
         style="min-width: 200px; max-width: 260px"
         data-testid="status-filter"
       />
-      <v-select
+      <AutocompleteSearch
         v-if="projects.length > 1"
         v-model="project"
         :items="projectItems"

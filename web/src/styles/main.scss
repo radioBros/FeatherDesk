@@ -10,3 +10,12 @@
 // - Target Vuetify components by class (.v-btn, .v-field, .v-data-table, …).
 // - Component-specific styles still belong in that component's <style scoped>.
 
+.v-tabs {
+    & + * {
+        margin-top: 12px;
+    }
+}
+
+.v-window__container {
+    padding-top: 6px;
+}

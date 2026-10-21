@@ -40,6 +40,7 @@ import StaleDialog from './detail/StaleDialog.vue'
 import MacroPicker from '../automation/MacroPicker.vue'
 import { useTicketDetail, type Outcome } from './detail/useTicketDetail'
 import * as ticketApi from './detail/ticketApi'
+import TwoColumnLayout from '@/components/TwoColumnLayout.vue'
 import { useLookupsStore } from '../shared/lookups'
 import { useShortcuts } from '../shared/useShortcuts'
 import type { PresenceUser } from '@/realtime/client'
@@ -320,8 +321,8 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
         </v-menu>
       </div>
 
-      <v-row>
-        <v-col cols="12" md="8">
+      <TwoColumnLayout>
+        <template #main>
           <v-tabs v-model="tab" density="compact" class="mb-3">
             <v-tab value="thread" data-testid="tab-thread">{{ $t('agent.ticket.tabs.thread') }}</v-tab>
             <v-tab value="timeline" data-testid="tab-timeline">{{ $t('agent.ticket.tabs.timeline') }}</v-tab>
@@ -364,12 +365,12 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
             </div>
           </div>
           <TimelineTab v-if="tab === 'timeline'" :ticket-id="ticket.id" :refresh-key="timelineKey" />
-        </v-col>
-        <v-col cols="12" md="4" class="d-flex flex-column ga-3">
+        </template>
+        <template #aside>
           <PropertiesPanel :ticket="ticket" :save-fields="saveFields" @patch="onPatch" @escalate="(d) => (escalateDir = d)" @watch="onWatch" />
           <LinksPanel :ticket="ticket" @added="onLinkAdded" @remove="onLinkRemove" />
-        </v-col>
-      </v-row>
+        </template>
+      </TwoColumnLayout>
 
       <v-dialog :model-value="!!escalateDir" max-width="520" @update:model-value="(v: boolean) => !v && (escalateDir = null)">
         <v-card v-if="escalateDir" :title="escalateDir === 'escalate' ? $t('agent.ticket.escalate.titleUp') : $t('agent.ticket.escalate.titleDown')">

@@ -73,7 +73,7 @@ describe('TicketListPage (FE-021)', () => {
   it('restores filters from the URL (reload) and writes changes back to it', async () => {
     const h = await mountList('/agent/tickets?status=open,pending&sort=-updated_at')
     expect(h.wrapper.find('[data-testid="filter-status"]').text()).toContain('Open')
-    expect(h.wrapper.find('[data-testid="filter-status"]').text()).toContain('+1')
+    expect(h.wrapper.find('[data-testid="filter-status"]').text()).toContain('Pending')
     expect(ticketCalls(h)[0]!.url.searchParams.get('status')).toBe('open,pending')
     const q = h.wrapper.find('[data-testid="filter-q"] input')
     await q.setValue('printer')

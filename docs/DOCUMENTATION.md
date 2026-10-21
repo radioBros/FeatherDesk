@@ -351,6 +351,34 @@ docker compose -f deploy/compose.yml exec app /simpletickets backup             
 
 The image is distroless, so there is no shell inside the container. Every maintenance task is a subcommand of `/simpletickets`; see [CLI reference](#132-cli-reference).
 
+#### Another host port or address
+
+The container always listens on port 8080 (`ST_LISTEN_ADDR`); publish it on any host port you like.
+
+- **Compose:** set `ST_PORT=3200` in `deploy/.env` (and `ST_BIND=0.0.0.0` to reach it from other machines; the default `127.0.0.1` keeps it local). These two variables only change the published port; see [Compose-only variables](#compose-only-variables).
+- **`docker run`:** map the port with `-p`:
+
+```sh
+export ST_SECRET_KEY=$(openssl rand -base64 32)   # once; keep it with your backups
+docker run -d --name simpletickets -p 3200:8080 -v st-data:/data \
+  -e ST_SECRET_KEY \
+  -e ST_PUBLIC_URL=http://192.168.1.50:3200 \
+  -e ST_ALLOWED_ORIGINS=http://localhost:3200,http://127.0.0.1:3200 \
+  ghcr.io/radiobros/simpletickets:latest
+```
+
+Whatever the port, two variables must match the addresses people use:
+
+- **`ST_PUBLIC_URL`** is the one address people type, **including the port** (`http://192.168.1.50:3200`). Links in emails, SSO redirect URIs and the setup link are built from it.
+- **`ST_ALLOWED_ORIGINS`** lists every *other* address of the same instance that a browser may use, as comma-separated origins (`scheme://host[:port]`), e.g. `http://localhost:3200,http://127.0.0.1:3200` when you also open it on the Docker host itself. Without it, sign-in and every save from such an address fail with 403 `csrf`, and the live connection (WebSocket) and `/mcp` refuse it.
+
+Details of `ST_ALLOWED_ORIGINS`:
+- Each item needs an `http` or `https` scheme and a host, with an optional port; a path other than `/` is refused. Spaces and empty items are ignored. An invalid item stops the server at start with `ST_ALLOWED_ORIGINS: "…" is not an origin like https://host[:port]`.
+- Items are reduced to `scheme://host[:port]` and compared with the browser's `Origin` (or `Referer`) header, ignoring case. `ST_PUBLIC_URL`'s origin is always accepted first.
+- It is **not** a CORS allow-list: requests that the browser marks as cross-site are still refused, so a web page on another site cannot use a signed-in session. It only lets the same instance be reached under more than one address.
+- Cookies are marked `Secure` when `ST_PUBLIC_URL` is `https://` (or the request arrives over HTTPS). Browsers keep `Secure` cookies only over HTTPS and on `http://localhost`, so with an `https` public URL an extra plain-`http` origin other than localhost cannot keep a session.
+- Behind a reverse proxy that serves one public name, you don't need it.
+
 ### 2.3 PostgreSQL option
 
 SQLite is the default and the best choice for small and medium installs:
@@ -610,6 +638,7 @@ The core variables are documented, with defaults, in [configuration.md](configur
 | `ST_SECRET_KEY` | — | **Required.** Base64 or raw, at least 32 bytes. In `ST_DEV` mode it is generated into `ST_DATA_DIR/secret.key` |
 | `ST_SECRET_KEY_PREVIOUS` | — | The previous secret, still accepted for decryption during a rotation |
 | `ST_PUBLIC_URL` | `http://localhost:8080` | The public base URL. Links, OIDC redirect URIs and the Origin/WebSocket check depend on it |
+| `ST_ALLOWED_ORIGINS` | — | Extra browser origins (`scheme://host[:port]`, comma-separated) accepted by the Origin checks besides `ST_PUBLIC_URL`, e.g. `http://localhost:3200`. See [Another host port or address](#another-host-port-or-address) |
 | `ST_PORTAL_URL` | `ST_PUBLIC_URL` | Base URL of the customer portal |
 | `ST_AGENT_URL` | `ST_PUBLIC_URL/agent` | Base URL of the agent panel |
 | `ST_LISTEN_ADDR` | `:8080` | HTTP listen address |
@@ -714,6 +743,8 @@ These settings have no environment variable. They are edited in the admin UI or 
 | Automation rules, shared macros | their own tables | **Administration → Support setup → Automation rules** / **Shared macros** (supervisor+) | `/api/v1/admin/automation/rules`, `/api/v1/admin/macros` | [automation.md](features/automation.md#2-automation-rules) |
 | Away | per agent (`users.away_since`) | User menu (top right) → **Away** | `GET`/`PATCH /api/v1/me/availability` | [automation.md](features/automation.md#away) |
 | Notification preferences | per user, `notification_prefs` | **Profile → Notifications** card | `PATCH /api/v1/me` | [notifications.md](features/notifications.md#preferences) |
+| MCP endpoint switch | settings key `integrations`, field `mcp_enabled` (default `false`) | **Administration → System → Support settings**, card **Integrations** (admin) | `GET`/`PATCH /api/v1/admin/integrations` | [mcp.md](features/mcp.md), [§7.20](#720-ai-assistants-mcp-system--support-settings-admin) |
+| Projects, members, team mapping, per-project SLA and portal branding | their own tables (`projects`, `project_members`, `project_teams`, `organization_projects`); each user's switcher choice in `users.current_project_id` | **Administration → Projects** (supervisor+, project admins for their projects); the project menu in the top bar | `/api/v1/admin/projects`, `PATCH /api/v1/me` (`current_project_id`) | [projects.md](features/projects.md), [§7.21](#721-projects-administration--projects-supervisor) |
 
 The [Branding](#78-branding-system--branding-admin) privacy policy URL (`legal.privacy_url`) also switches on the consent checkbox at registration (see [Consent at registration](features/gdpr.md#consent-at-registration)).
 
@@ -724,7 +755,7 @@ The [Branding](#78-branding-system--branding-admin) privacy policy URL (`legal.p
 | Variable | Default | Notes |
 |---|---|---|
 | `ST_IMAGE` | `ghcr.io/radiobros/simpletickets` | Image repository |
-| `ST_VERSION` | `latest` | Image tag; pin a release, e.g. `1.2.3` |
+| `ST_VERSION` | `latest` | Image tag; pin a release, e.g. `1.0.0` |
 | `ST_BIND` / `ST_PORT` | `127.0.0.1` / `8080` | Host address and port to publish |
 | `ST_ENV_FILE` | `.env` | Environment file, relative to `deploy/` |
 | `ST_PG_USER`, `ST_PG_PASSWORD`, `ST_PG_DB` | `simpletickets`, — (required), `simpletickets` | PostgreSQL overlay credentials |
@@ -1344,6 +1375,8 @@ Changes are previewed live for the login page, the portal and the agent panel be
 - Uploaded assets are served from `/branding/<hash>.<ext>` and cached indefinitely. Replacing a logo changes its URL, so browsers pick up the new one at once.
 - An uploaded favicon is also served at `/favicon.ico`.
 
+**Section colours.** Besides the brand colours, the interface uses a fixed, colourful palette (`web/src/theme/palette.ts`): every section has its own hue, used for its navigation icon, page-header badge, chips and avatars. Tickets are blue, knowledge base teal, reports purple, automation amber, customers indigo, notifications orange, privacy green, teams cyan, settings pink, branding deep purple, email light blue, system and queue blue-grey, projects brown, and destructive actions red. Ticket status and priority chips have their own colours too (for example *Open* blue, *Pending* amber, *Resolved* green, *Urgent* red), and each person's avatar gets a stable colour from their name. Each hue has a deep variant for the light theme and a pale one for the dark theme, checked for WCAG AA contrast (4.5:1). The palette is not part of branding: the brand primary colour stays the colour of primary buttons and links.
+
 ### 7.9 Support settings (System → Support settings, admin)
 
 | Setting | Default | Effect |
@@ -1535,6 +1568,8 @@ Sign in at `/agent/login`, usually with **Continue with single sign-on**.
   - Your **Saved views**, plus shared ones.
   - *Customers*, *Organizations*, *Knowledge base*, *Reports* and, if you may open them, the *Administration* pages.
 - **Live updates:** lists, counts and the open ticket update live over WebSocket. If the connection drops, a banner says "Connection lost — reconnecting…". The panel catches up automatically when it reconnects.
+- **Colours:** each section has its own hue (tickets blue, knowledge base teal, reports purple, automation amber, …), on its icons, page headers, chips and avatars; see [Section colours](#78-branding-system--branding-admin).
+- **Password fields:** every password field in the app (sign-in, registration, password change and reset, invitations, setup wizard, SMTP and IMAP passwords, re-authentication for two-step verification) has an **eye button** that shows or hides what you typed (*Show password* / *Hide password*). The password is hidden again as soon as the field loses focus.
 
 ### 8.2 Ticket list
 
@@ -1549,9 +1584,11 @@ Sign in at `/agent/login`, usually with **Continue with single sign-on**.
   - *Highest number first*.
 - Every filter is part of the URL, so you can bookmark or share a view.
 
-**Columns**
-- Columns: number, subject (with tags and parent/child chips), requester, status, priority, tier, team, assignee, updated, and due (with a *Breached* chip).
-- **Columns** adds custom-field columns. Your choice is remembered in the browser.
+**Columns and density**
+- Columns: reference (`WEB-123`), project, subject (with tags and parent/child chips), requester, status, priority, tier, team, assignee, updated, and due (with a *Breached* chip).
+- The **Columns** button above the table switches each column on or off. The reference and the subject are always shown. Custom-field columns are off until you switch them on. On a phone, project, priority, tier, team, assignee, updated and due start hidden. *Reset to default* restores the defaults.
+- The choice is remembered per user and per table in this browser (`localStorage`, key `st.v1.cols.<user>.<table>`); there is no server-side setting. Every other table of the app (customers, organizations, staff, teams, calendars, categories, tags, canned responses, custom fields, rules, macros, KB articles and categories, inbound mailboxes and their log, webhooks and deliveries, tokens, reports, audit log, queue, failed jobs, privacy requests, projects and the portal's ticket list) has the same **Columns** button.
+- **Density** is fixed and the same everywhere: every text field, select, date and number field is the compact 40 px outlined field, and the ticket table uses comfortable rows. There is no density switch.
 
 **Saved views and bulk actions**
 - **Save view** stores the current filters under a name. *Share with all staff* makes the view visible to everyone.
@@ -1813,7 +1850,7 @@ curl -sS "$ST/api/v1/me" -H "Authorization: Bearer $API_TOKEN"
 
 **Session cookie (browsers).** The web app signs in with `POST /api/v1/auth/login` and receives the `st_session` cookie (HttpOnly, SameSite=Lax, and `Secure` on HTTPS). A browser integration on the same origin must follow two rules for every `POST`, `PUT`, `PATCH` and `DELETE`:
 1. Send the header `X-CSRF-Token` with the `csrf_token` value from `GET /api/v1/me`.
-2. Come from the same origin as `ST_PUBLIC_URL`, as shown by the `Origin` (or `Referer`) header.
+2. Come from the same origin as `ST_PUBLIC_URL` (or one listed in `ST_ALLOWED_ORIGINS`), as shown by the `Origin` (or `Referer`) header.
 
 Requests that fail either check get `403` with the problem type `csrf`. Login endpoints are rate-limited per IP to 10 attempts per minute. After 10 failed logins in 15 minutes, an account is locked for 15 minutes for IP addresses that have never signed in to it successfully. Wrong two-step verification codes count as failed logins.
 
@@ -2029,7 +2066,7 @@ If the ticket is closed, the reply opens a follow-up ticket instead. The respons
 - Split: `POST /agent/tickets/{id}/split` with `{"message_ids": […], "subject": …}`.
 - Sidebar counts: `GET /agent/tickets/counts`.
 - Reports: `GET /agent/reports/summary`.
-- Canned responses: `GET /agent/canned-responses` and `GET /agent/canned-responses/{id}`.
+- Canned responses: `GET /agent/canned-responses` and `GET /agent/canned-responses/{id}/preview?ticket_id=…` (placeholders filled for a ticket).
 - Customers editing their customer-editable custom fields on an existing ticket: `PATCH /portal/tickets/{id}/fields` with `{"custom_fields": {…}}`.
 
 ### 10.9 Automation, two-step verification, privacy and notifications
@@ -2654,8 +2691,8 @@ How the app keeps its footprint small:
 | `another simpletickets instance is using /data (lock held)` | A second instance or a stale container uses the same volume. Stop it. Never run two replicas |
 | `database schema version X is newer than this binary` | You started an older image against a newer database. Use the newer image, or restore the pre-upgrade backup |
 | No setup token in the logs | An admin already exists, or `ST_BOOTSTRAP_ADMIN_EMAIL` is set. Use `create-admin` or `reset-password` |
-| Every save fails with 403 `csrf` | `ST_PUBLIC_URL` doesn't match the address in the browser (scheme, host or port), or the proxy rewrites `Origin` |
-| Agent panel keeps showing "Connection lost — reconnecting…" | The proxy doesn't forward WebSocket upgrades, or its timeout is under 60 s. See [Reverse proxies](#26-reverse-proxies-and-tls). Also check `ST_PUBLIC_URL`, because the WebSocket checks `Origin` |
+| Every save fails with 403 `csrf` | `ST_PUBLIC_URL` doesn't match the address in the browser (scheme, host or port), or the proxy rewrites `Origin`. Set `ST_PUBLIC_URL` to the address people type, and list any other address of the same instance (e.g. `http://localhost:3200`) in `ST_ALLOWED_ORIGINS`; see [Another host port or address](#another-host-port-or-address) |
+| Agent panel keeps showing "Connection lost — reconnecting…" | The proxy doesn't forward WebSocket upgrades, or its timeout is under 60 s. See [Reverse proxies](#26-reverse-proxies-and-tls). Also check `ST_PUBLIC_URL` and `ST_ALLOWED_ORIGINS`, because the WebSocket checks `Origin` |
 | Staff can't sign in with a password | `ST_AUTH_STAFF_LOCAL` is `false` (the default). Enable it, use SSO, or sign in as a break-glass admin |
 | SSO login: "Your account has no support role…" | None of the user's groups is in `ST_OIDC_STAFF_ROLE_MAP`, or the group claim is missing. Check the claim name (`ST_OIDC_STAFF_ROLE_CLAIM`) and the provider's scope mapping |
 | SSO login refused for an existing user | An account with the same email exists. Set `ST_OIDC_LINK_BY_EMAIL=true` (the provider must report the email as verified) |
@@ -2799,7 +2836,22 @@ make image      # container image simpletickets:local (multi-stage Dockerfile, d
 The `Dockerfile` pins its base images by digest and cross-compiles, so `make image-multiarch` builds amd64 and arm64 without emulating Go.
 
 <a id="demo-data"></a>
-**Demo data.** `simpletickets seed --demo` fills a fresh installation so that every feature shows real content: 3 organizations, 12 staff accounts (admin, supervisor, an L1/L2/L3 agent for each of the 3 teams and one IdP-managed agent), 12 customers (requesters and an org manager per organization, one pending and one disabled), teams with business calendars (24×7 and business hours with holidays), categories, custom fields of every type, SLA policies, about 60 tickets spread over the last two months (every status, priority, channel and tier, escalations, SLA warnings and breaches, CSAT, merge, split, links, follow-up, attachments, @mentions), canned responses, saved views, a multilingual knowledge base (EN, IT, DE, FR, ES) and the settings: branding ("SimpleTickets Demo"), senders and triage mailbox, a disabled webhook (`http://localhost:9/demo`, so nothing is ever sent), an inactive inbound mailbox with a few log entries, and an admin API token (printed once). It also creates three **projects**: *Web App* `WEB` (the renamed Default project, portal-visible with its own title and introduction), *Mobile* `MOB` (portal-visible, with an SLA override, a project rule, macro, canned response, KB category and custom field; `freya.fields@demo.test` is its project admin and `mona.mobile@demo.test` works in it only) and the staff-only *Internal IT* `IT`, with tickets in all three. Globex can open tickets in `WEB` only. The printout lists each project with sample references.
+**Demo data.** `simpletickets seed --demo` fills a fresh installation so that every feature shows real content: 4 organizations (Acme Corp, Globex, Initech and the internal *Demo HQ*), 13 staff accounts (admin, supervisor, an L1/L2/L3 agent for each of the 3 teams, one IdP-managed agent and one agent who works in `MOB` only), 14 customers (requesters and an org manager per organization, one pending and one disabled), teams with business calendars (24×7 and business hours with holidays), categories, custom fields of every type, SLA policies, about 60 tickets spread over the last two months (every status, priority, channel and tier, escalations, SLA warnings and breaches, CSAT, merge, split, links, follow-up, attachments, @mentions), canned responses, saved views, a multilingual knowledge base (EN, IT, DE, FR, ES) and the settings: branding ("SimpleTickets Demo"), senders and triage mailbox, a disabled webhook (`http://localhost:9/demo`, so nothing is ever sent), an inactive inbound mailbox with a few log entries, and an admin API token (printed once). It also creates three **projects**: *Web App* `WEB` (the renamed Default project, portal-visible with its own title and introduction), *Mobile* `MOB` (portal-visible, with an SLA override, a project rule, macro, canned response, KB category and custom field; `freya.fields@demo.test` is its project admin and `mona.mobile@demo.test` works in it only) and the staff-only *Internal IT* `IT`, with tickets in all three. Globex can open tickets in `WEB` only, and Demo HQ's employees only in `IT`. The printout lists each project with sample references.
+
+**Demo accounts** (all `@demo.test` staff sign in at `/agent/login`, customers at `/login`; every password is `demo-password-123` unless `--password`):
+
+| Account | Who | Shows |
+|---|---|---|
+| `admin@demo.test` | Ada Admin, admin (break-glass) | Every admin page; signs in with a password even without `ST_AUTH_STAFF_LOCAL` |
+| `supervisor@demo.test` | Sam Supervisor, supervisor, all three teams | Support setup, all projects and queues |
+| `fiona.ferris@`, `felix.ford@`, `freya.fields@demo.test` | Front desk agents, tiers 1, 2 and 3 | Tier visibility; Felix is marked **Away**; Freya is **project admin** of `MOB` |
+| `theo.turner@`, `tina.torres@`, `tomas.tran@demo.test` | Technical agents, tiers 1, 2 and 3 | Tomas is enrolled in **two-step verification** (TOTP secret and recovery codes in the printout) |
+| `bella.brooks@`, `ben.blake@`, `bianca.bell@demo.test` | Billing agents, tiers 1, 2 and 3 | |
+| `ivy.identity@demo.test` | IdP-managed agent | No password: an SSO-only account |
+| `mona.mobile@demo.test` | Technical agent, member of `MOB` only | Project scoping: sees no `WEB` or `IT` ticket |
+| `mia.manager@acme.test`, `gus.gallo@globex.test`, `ida.initech@initech.test`, `omar.office@demo-hq.test` | Organization managers | The *Organization* view of the portal; Globex is limited to `WEB` |
+| `uma.user@`, `ben.baker@`, `chloe.chen@acme.test`; `hank.hill@`, `ines.ito@`, `jack.jones@globex.test`; `ivan.ivanov@initech.test`; `eva.employee@demo-hq.test` | Requesters, in several languages (EN, IT, DE, FR, ES) | Their own tickets, notifications and *My data* |
+| `pia.pending@initech.test`, `dan.disabled@initech.test` | A customer who has not verified their email, and a disabled one | Account states in the directory |
 
 It also seeds the D-19 features: 8 [automation rules](#716-automation-and-assignment-support-setup-supervisor) (5 on, 3 off, every trigger) with a few rule runs, 8 macros (4 shared, 4 personal) and an assignment strategy per team (round robin, least busy, manual) with one agent marked away; one agent enrolled in [two-step verification](#717-two-step-verification-system--support-settings-admin) (`tomas.tran@demo.test`; the summary prints his TOTP secret, `otpauth://` URI and recovery codes once, and `security.mfa_required` stays `none`); 5 [privacy requests](#718-privacy-and-gdpr-people--privacy-admin) (3 ready exports, a pending and a rejected erasure), consent records and non-destructive retention settings; and several hundred [notifications](#719-notification-centre) for staff and customers, part of them unread.
 

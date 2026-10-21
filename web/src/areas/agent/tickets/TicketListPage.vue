@@ -1,6 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
-import SelectionChips from '@/components/SelectionChips.vue'
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * /agent/tickets (FE-021, FE-038, FE-054). The URL query is the only filter
  * state: changing a filter replaces the query, the query drives the API call,
@@ -349,39 +349,41 @@ const currentFilter = computed(() => {
           @keydown.enter="setFilters({ q: qInput || undefined })"
           @click:clear="setFilters({ q: undefined })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="filters.status"
           :items="statusItems"
           :label="$t('agent.list.filters.status')"
           multiple
+          compact-multiple
           density="compact"
           hide-details
           data-testid="filter-status"
-          @update:model-value="(v: string[]) => setFilters({ status: v })">
-          <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(filters.status ?? []).length" /></template>
-        </v-select>
-        <v-select
+          @update:model-value="(v: string[]) => setFilters({ status: v })"
+        />
+        <AutocompleteSearch
           :model-value="filters.priority"
           :items="priorityItems"
           :label="$t('agent.list.filters.priority')"
           multiple
+          compact-multiple
+          hide-search
           density="compact"
           hide-details
           data-testid="filter-priority"
-          @update:model-value="(v: string[]) => setFilters({ priority: v })">
-          <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(filters.priority ?? []).length" /></template>
-        </v-select>
-        <v-select
+          @update:model-value="(v: string[]) => setFilters({ priority: v })"
+        />
+        <AutocompleteSearch
           :model-value="filters.tier ?? null"
           :items="tierItems"
           :label="$t('agent.list.filters.tier')"
           clearable
+          hide-search
           density="compact"
           hide-details
           data-testid="filter-tier"
           @update:model-value="(v: string | null) => setFilters({ tier: v ?? undefined })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="filters.team_id ?? null"
           :items="teamItems"
           :label="$t('agent.list.filters.team')"
@@ -391,7 +393,7 @@ const currentFilter = computed(() => {
           data-testid="filter-team"
           @update:model-value="(v: string | null) => setFilters({ team_id: v ?? undefined })"
         />
-        <v-autocomplete
+        <AutocompleteSearch
           :model-value="filters.assignee ?? null"
           :items="assigneeItems"
           :label="$t('agent.list.filters.assignee')"
@@ -401,7 +403,7 @@ const currentFilter = computed(() => {
           data-testid="filter-assignee"
           @update:model-value="(v: string | null) => setFilters({ assignee: v ?? undefined })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="filters.category_id ?? null"
           :items="categoryItems"
           :label="$t('agent.list.filters.category')"
@@ -411,7 +413,7 @@ const currentFilter = computed(() => {
           data-testid="filter-category"
           @update:model-value="(v: string | null) => setFilters({ category_id: v ?? undefined })"
         />
-        <v-autocomplete
+        <AutocompleteSearch
           :model-value="filters.tag ?? null"
           :items="lookups.tags.map((tg) => tg.name)"
           :label="$t('agent.list.filters.tag')"
@@ -430,7 +432,7 @@ const currentFilter = computed(() => {
           data-testid="filter-breached"
           @update:model-value="(v: boolean | null) => setFilters({ breached: v ? true : undefined })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="filters.sort"
           :items="sortItems"
           :label="$t('agent.list.filters.sort')"

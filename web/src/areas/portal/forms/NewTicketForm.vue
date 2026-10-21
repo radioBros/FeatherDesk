@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from '@/composables/useForm'
@@ -136,7 +137,7 @@ const onSubmit = submit(async () => {
       data-testid="nt-subject"
     />
     <KbSuggestions :query="model.subject" />
-    <v-select
+    <AutocompleteSearch
       v-if="showProjects"
       v-model="model.project_id"
       :items="projects"
@@ -153,10 +154,10 @@ const onSubmit = submit(async () => {
         </v-list-item>
       </template>
       <template #selection="{ item }"><ProjectChip :project="projectOf(item)" size="small" class="mr-2" />{{ projectOf(item)?.name }}</template>
-    </v-select>
+    </AutocompleteSearch>
     <v-row density="compact">
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.category_id"
           :items="categoryItems"
           :label="$t('portal.newTicket.category')"
@@ -166,7 +167,7 @@ const onSubmit = submit(async () => {
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.priority"
           :items="priorities"
           :label="$t('portal.tickets.priority')"
@@ -176,7 +177,7 @@ const onSubmit = submit(async () => {
         />
       </v-col>
     </v-row>
-    <v-select
+    <AutocompleteSearch
       v-if="requesterItems.length"
       v-model="model.requester_id"
       :items="requesterItems"

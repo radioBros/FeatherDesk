@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Per-project SLA overrides (D-20): each priority either inherits the global
  * default (shown greyed out) or carries its own targets. Saving sends only the
@@ -105,7 +106,7 @@ const onSave = submit(async () => {
             />
           </td>
           <td class="py-1">
-            <v-select
+            <AutocompleteSearch
               v-model="r.calendar_mode"
               :items="[
                 { value: '24x7', title: $t('agent.sla.mode24x7') },

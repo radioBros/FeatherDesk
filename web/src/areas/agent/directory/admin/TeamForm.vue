@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a team (FE-028, FE-056): notification email + notify mode
  * (`mailbox` / `both` require the email, email config decision) and the
@@ -76,7 +77,7 @@ const onSave = submit(async () => {
       rows="2"
       auto-grow
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.notify_mode"
       :items="MODES.map((m) => ({ value: m, title: $t(`agent.teams.modes.${m}`) }))"
       :label="$t('agent.teams.notifyMode')"
@@ -95,7 +96,7 @@ const onSave = submit(async () => {
       class="mt-2"
       data-testid="team-email"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.calendar_id"
       :items="calendarItems"
       :label="$t('agent.teams.calendar')"
@@ -104,7 +105,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.calendar_id"
       data-testid="team-calendar"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.assignment_strategy"
       :items="STRATEGIES.map((s) => ({ value: s, title: $t(`automation.strategy.${s}`) }))"
       :label="$t('automation.strategy.label')"

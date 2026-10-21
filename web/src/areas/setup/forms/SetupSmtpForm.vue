@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import PasswordField from '@/components/PasswordField.vue'
 import { computed, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -98,7 +99,7 @@ const onSubmit = submit(async () => {
         />
       </v-col>
     </v-row>
-    <v-select
+    <AutocompleteSearch
       v-model="model.security"
       :items="securityItems"
       :label="$t('setup.smtp.security')"

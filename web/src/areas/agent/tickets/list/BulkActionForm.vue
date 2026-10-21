@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Bulk actions on selected tickets (FE-038): assign, status, priority, team.
  * Runs one PATCH per ticket, **sequentially**, and keeps a per-row result so a
@@ -95,7 +96,7 @@ const failed = computed(() => results.value.filter((r) => !r.ok))
 <template>
   <v-form ref="formRef" class="d-flex flex-wrap align-center ga-2" data-testid="bulk-form" @submit.prevent="onApply">
     <span class="text-body-2 font-weight-medium" data-testid="bulk-count">{{ $t('agent.bulk.selected', { n: tickets?.length ?? 0 }) }}</span>
-    <v-select
+    <AutocompleteSearch
       v-model="model.action"
       :items="actions"
       :label="$t('agent.bulk.action')"
@@ -104,7 +105,7 @@ const failed = computed(() => results.value.filter((r) => !r.ok))
       style="max-width: 200px"
       data-testid="bulk-action"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.value"
       :items="values"
       :label="$t('agent.bulk.value')"

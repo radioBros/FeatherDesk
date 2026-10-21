@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a KB category (FE-052): parent (never itself or a
  * descendant), slug, per-locale titles, visibility, sort.
@@ -73,7 +74,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.slug"
       data-testid="kbcat-slug"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.parent_id"
       :items="parentItems"
       :label="$t('agent.kbCategories.parent')"
@@ -96,7 +97,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.project_id"
       testid="kbcat-project"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.visibility"
       :items="visibilityItems"
       :label="$t('agent.kb.visibility')"

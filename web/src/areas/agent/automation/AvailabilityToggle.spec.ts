@@ -72,7 +72,7 @@ describe('TeamForm assignment strategy (FE-061)', () => {
       api: { 'PATCH /admin/teams/team-1': (_u, init) => ((body = init.body), json(fx.team())) },
     })
     expect(h.wrapper.text()).toContain('Takes turns over the eligible members who are not away.')
-    const sel = h.wrapper.findAllComponents({ name: 'VSelect' }).find((c) => c.attributes('data-testid') === 'team-strategy')!
+    const sel = h.wrapper.findAllComponents({ name: 'AutocompleteSearch' }).find((c) => c.attributes('data-testid') === 'team-strategy')!
     sel.vm.$emit('update:modelValue', 'least_busy')
     await h.flush()
     await save(h)

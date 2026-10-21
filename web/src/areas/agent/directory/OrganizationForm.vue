@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** Create / edit an organization (FE-026); each email-domain chip must be a valid domain. */
 import { reactive } from 'vue'
 import { useForm } from '@/composables/useForm'
@@ -82,7 +83,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.project_ids"
       testid="org-projects"
     />
-    <v-select
+    <AutocompleteSearch
       v-if="organization"
       v-model="model.status"
       :items="[

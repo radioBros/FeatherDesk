@@ -6,6 +6,8 @@ SimpleTickets is an open-source help desk with a customer portal, an agent panel
 
 SimpleTickets is developed by [RadioBros](https://radiobros.com/).
 
+**Version 1.0.0** (2026-10-21): see the [changelog](CHANGELOG.md).
+
 SPDX-License-Identifier: AGPL-3.0-only
 
 - **Full manual:** [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md)
@@ -44,7 +46,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 ## Features
 
 **For customers (the portal at `/`)**
-- An admin can switch the portal off (**Administration → System → Support settings → Customer portal enabled**): then only admins and staff sign in. Customers still get emails and can reply by email; the public help center follows its own setting. See the [documentation](docs/DOCUMENTATION.md#switching-the-customer-portal-off).
+- An admin can switch the portal off (**Administration → System → Support settings → Customer portal enabled**, setting `support.portal_enabled`, on by default): then only admins and staff sign in. Customers still get emails and can reply by email; the public help center follows its own setting. See the [documentation](docs/DOCUMENTATION.md#switching-the-customer-portal-off).
 - Customers open tickets, follow the conversation, reply, attach files, mark a ticket solved or reopen it.
 - They can sign in with a password, a magic link sent by email, or single sign-on. Self-registration with email verification can be switched on or off.
 - Organization managers see every ticket of their organization, open tickets for colleagues and invite or disable members.
@@ -89,6 +91,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 - UI and emails in **English, Italian, German, French and Spanish**.
 - Prometheus metrics, health and readiness probes, online backups, and migrations that run automatically.
 - Docker Compose, plain Kubernetes manifests and a Helm chart.
+
+**Interface**
+- **Column toggles:** every table, including the ticket list, has a **Columns** button to show or hide columns, remembered per user and per table in the browser. The reference and subject columns always stay; less important columns start hidden on a phone.
+- **One compact density** for every field (40 px outlined inputs, selects and dates) and comfortable rows in the ticket list. It is fixed, not a setting.
+- **Password eye toggle:** every password field has an eye button to show or hide the password; it hides again when the field loses focus.
+- **A colourful theme:** each section has its own hue (tickets blue, knowledge base teal, reports purple, automation amber, notifications orange, privacy green, projects brown, …) on icons, page headers, chips and avatars, with status and priority chips in distinct colours. Light and dark variants are contrast-checked (WCAG AA); the brand colour stays the colour of primary actions.
+- Light, dark and system themes, keyboard shortcuts, and a layout that works on phones.
 
 ## Screenshots
 
@@ -174,6 +183,16 @@ docker compose -f deploy/compose.yml logs app | grep "setup token"
 - The shipped compose file publishes port 8080 on `127.0.0.1` only. Put a TLS reverse proxy in front of it; there are examples for Caddy, Traefik and nginx in `deploy/examples/`.
 - To try SimpleTickets on your own machine, set `ST_PUBLIC_URL=http://localhost:8080` and open http://localhost:8080/setup.
 - `ST_PUBLIC_URL` must be exactly the address people type into the browser. The API compares the browser's `Origin` with it, and links in emails, SSO redirect URIs and the WebSocket check all depend on it.
+- **Any host port:** the container listens on 8080; publish it wherever you like. With Compose set `ST_PORT=3200` (and `ST_BIND=0.0.0.0`) in `deploy/.env`; with plain Docker:
+
+  ```sh
+  docker run -d -p 3200:8080 -v st-data:/data -e ST_SECRET_KEY="$ST_SECRET_KEY" \
+    -e ST_PUBLIC_URL=http://192.168.1.50:3200 \
+    -e ST_ALLOWED_ORIGINS=http://localhost:3200,http://127.0.0.1:3200 \
+    ghcr.io/radiobros/simpletickets:latest
+  ```
+
+  `ST_PUBLIC_URL` includes the port. `ST_ALLOWED_ORIGINS` lists the other addresses of the same instance that browsers use (comma-separated `scheme://host[:port]`); without it, sign-in and saves from them fail with 403 `csrf`. See [Another host port or address](docs/DOCUMENTATION.md#another-host-port-or-address).
 
 For PostgreSQL, S3, Kubernetes, Helm and reverse proxies, see [Installation](docs/DOCUMENTATION.md#2-installation).
 
@@ -212,12 +231,13 @@ SimpleTickets is configured with `ST_*` environment variables. Branding, SMTP, i
 - If an `ST_SMTP_*` or `ST_IMAP_*` variable is set, it wins over the value stored in the database, and the admin UI shows that field as "Set by environment".
 - All configuration errors are reported together at startup.
 - Run `simpletickets config check` to validate the configuration without starting the server.
-- Automation, two-step verification, privacy and the notification centre need no variables: they are configured in the admin UI ([settings list](docs/DOCUMENTATION.md#settings-stored-in-the-database)).
+- Projects, automation, two-step verification, privacy, the notification centre, the customer portal switch (`support.portal_enabled`) and the MCP switch (`integrations.mcp_enabled`) need no variables: they are configured in the admin UI ([settings list](docs/DOCUMENTATION.md#settings-stored-in-the-database)).
 
 | Variable | Default | What it does |
 |---|---|---|
 | `ST_SECRET_KEY` | — (required) | Root secret, at least 32 bytes. It encrypts SMTP, IMAP and webhook secrets. Keep it safe and back it up |
 | `ST_PUBLIC_URL` | `http://localhost:8080` | Public base URL. Used in links, OIDC redirect URIs and the Origin/WebSocket checks |
+| `ST_ALLOWED_ORIGINS` | — | Other browser origins of the same instance (comma-separated `scheme://host[:port]`, e.g. `http://localhost:3200`), accepted by the Origin and WebSocket checks besides `ST_PUBLIC_URL` |
 | `ST_DATA_DIR` | `/data` | SQLite database, attachments, backups and the instance lock |
 | `ST_DATABASE_URL` | SQLite in `ST_DATA_DIR` | Set `postgres://…` to use PostgreSQL |
 | `ST_BLOB_URL` | local disk | Set `s3://bucket/prefix?endpoint=…&region=…` (plus `ST_S3_ACCESS_KEY` / `ST_S3_SECRET_KEY`) to use S3 |
@@ -325,6 +345,7 @@ Guide: [docs/features/gdpr.md](docs/features/gdpr.md) · manual: [Privacy and GD
 ## Notification centre
 
 - A **bell** with an unread badge in the agent panel and the portal, a dropdown with the newest notifications and a full page with filters. It updates live over the WebSocket and stays in sync across tabs.
+- Each notification names the ticket by its reference (`WEB-123`) and shows its project chip (colour dot and key) when you work in more than one project.
 - **Browser notifications** through the browser's Notification API, while a SimpleTickets tab is open in the background. There is no push service to run.
 - Every user chooses per notification type: in the app, by email, as a browser pop-up.
 - Works without SMTP. Notifications are kept 90 days, at most 500 per user.
@@ -335,7 +356,7 @@ Guide: [docs/features/notifications.md](docs/features/notifications.md) · manua
 
 A built-in [Model Context Protocol](https://modelcontextprotocol.io) server at `POST /mcp` lets AI assistants such as Claude Code, Claude Desktop and Cursor search, read and work tickets and read the knowledge base.
 
-- **Off by default:** an admin turns it on under *System → Support settings → Integrations*.
+- **Off by default:** an admin turns it on under *System → Support settings → Integrations* (setting `integrations.mcp_enabled`, also `PATCH /api/v1/admin/integrations`); while off, `/mcp` answers 404.
 - **The assistant is the user:** it connects with that user's personal access token and can never see or do more than the user could through the REST API with the same token. Customers' assistants get customer tools only and never see internal notes.
 - **Tools:** `search_tickets`, `list_my_tickets`, `get_ticket`, `create_ticket`, `reply_to_ticket`, `update_ticket`, `search_kb`, `get_kb_article`, `list_categories`, and for staff `add_internal_note`, `escalate_ticket`, `deescalate_ticket`, `apply_macro`, `list_teams`. Resources `ticket://{ref}` (e.g. `ticket://WEB-12`) and `kb://{slug}`.
 - **Protocol:** Streamable HTTP, revisions 2026-07-28 (stateless) and 2025-11-25/06-18/03-26 (sessions). No extra dependency or process.
@@ -434,7 +455,8 @@ make demo                                                                   # fr
 
 - It fills every feature, including projects, automation and assignment, two-step verification, privacy and the notification centre.
 - It creates three projects: **Web App** `WEB` and **Mobile** `MOB` (both on the portal, `/p/WEB` and `/p/MOB`) and the staff-only **Internal IT** `IT`, with tickets in all three, a project admin and an agent who works in `MOB` only. The printout lists each project with sample references.
-- It creates 3 organizations, staff of every role and tier, 12 customers, teams with calendars, categories, custom fields, SLA policies, about 60 tickets over the last two months, canned responses, saved views, a knowledge base in five languages, branding, a disabled webhook, an inactive mailbox and an admin API token. Nothing is sent anywhere.
+- It creates 4 organizations (one of them internal, limited to `IT`), 13 staff accounts of every role and tier, 14 customers, teams with calendars, categories, custom fields, SLA policies, about 60 tickets over the last two months, canned responses, saved views, a knowledge base in five languages, branding, a disabled webhook, an inactive mailbox and an admin API token. Nothing is sent anywhere.
+- Logins include `admin@demo.test`, `supervisor@demo.test`, `freya.fields@demo.test` (project admin of `MOB`), `mona.mobile@demo.test` (works in `MOB` only), `tomas.tran@demo.test` (two-step verification on) and customers such as `mia.manager@acme.test`; the full table is in the [manual](docs/DOCUMENTATION.md#demo-data).
 - It prints the entity counts, the portal and agent URLs and a login for every role. All accounts share the password `demo-password-123` (change it with `--password`). Staff other than the admin sign in locally only with `ST_AUTH_STAFF_LOCAL=true`; restart the app afterwards.
 - `--tickets N` (default 60), `--smtp-mailpit` (deliver email to Mailpit on `localhost:1025`; otherwise email stays disabled) and `--force` (wipe and re-seed a database that an earlier `seed --demo` filled; a database with other data is always refused).
 

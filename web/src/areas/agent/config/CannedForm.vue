@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** Create / edit a canned response (FE-041): title, Markdown body, optional team scope (none = global). */
 import { reactive } from 'vue'
 import { useForm } from '@/composables/useForm'
@@ -40,7 +41,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.title"
       data-testid="canned-title"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.team_id"
       :items="teams ?? []"
       item-title="name"

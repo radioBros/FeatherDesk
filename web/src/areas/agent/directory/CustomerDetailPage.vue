@@ -5,6 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { mdiPencil } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
+import TwoColumnLayout from '@/components/TwoColumnLayout.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import CustomerForm from './CustomerForm.vue'
 import TicketMiniList from './TicketMiniList.vue'
@@ -63,8 +64,8 @@ function onSaved(c: S['User']) {
           <v-btn variant="tonal" :prepend-icon="mdiPencil" data-testid="customer-edit" @click="dialog = true">{{ $t('agent.common.edit') }}</v-btn>
         </template>
       </PageHeader>
-      <v-row>
-        <v-col cols="12" md="4">
+      <TwoColumnLayout aside-start>
+        <template #aside>
           <v-card border flat data-testid="customer-card">
             <v-card-item>
               <template #prepend><UserAvatar :name="customer.name" /></template>
@@ -85,13 +86,13 @@ function onSaved(c: S['User']) {
           </v-card>
           <PrivacyActions :user="customer" @erased="load" />
           <UserMfaCard :user-id="customer.id" />
-        </v-col>
-        <v-col cols="12" md="8">
+        </template>
+        <template #main>
           <v-card border flat :title="$t('agent.customers.tickets')">
             <TicketMiniList :requester-id="customer.id" />
           </v-card>
-        </v-col>
-      </v-row>
+        </template>
+      </TwoColumnLayout>
       <v-dialog v-model="dialog" max-width="560">
         <v-card :title="$t('agent.customers.edit')">
           <v-card-text>

@@ -19,6 +19,9 @@ written to the audit log as `integrations.updated`. While it is off, every metho
 sessions that were open before.
 
 The API equivalent is `PATCH /api/v1/admin/integrations` with `{"mcp_enabled": true}` (a token needs the `admin` scope).
+The switch is stored in the database as the settings key `integrations`, field `mcp_enabled` (default `false`); there is no
+environment variable for it. Any signed-in user can read whether it is on, with the endpoint URL and the recommended scopes,
+from `GET /api/v1/integrations/mcp`.
 
 ## 2. Connecting an assistant
 

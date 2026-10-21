@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Properties side panel (FE-023, FE-039, FE-054). Every control is enabled
  * only when its action is in the ticket's `allowed_actions` — the UI never
@@ -85,7 +86,7 @@ const fieldDefs = computed(() =>
   <div class="d-flex flex-column ga-3" data-testid="properties">
     <v-card border flat>
       <v-card-text class="d-flex flex-column ga-1">
-        <v-select
+        <AutocompleteSearch
           :model-value="ticket.status"
           :items="STATUSES.map((s) => ({ value: s, title: $t(`status.${s}`) }))"
           :label="$t('agent.common.status')"
@@ -96,7 +97,7 @@ const fieldDefs = computed(() =>
           data-testid="prop-status"
           @update:model-value="(v: S['TicketStatus']) => v !== ticket.status && emit('patch', { status: v })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="ticket.priority"
           :items="PRIORITIES.map((p) => ({ value: p, title: $t(`priority.${p}`) }))"
           :label="$t('agent.ticket.props.priority')"
@@ -107,7 +108,7 @@ const fieldDefs = computed(() =>
           data-testid="prop-priority"
           @update:model-value="(v: S['Priority']) => v !== ticket.priority && emit('patch', { priority: v })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="ticket.category_id ?? null"
           :items="categoryItems"
           item-title="name"
@@ -121,7 +122,7 @@ const fieldDefs = computed(() =>
           data-testid="prop-category"
           @update:model-value="(v: string | null) => v !== (ticket.category_id ?? null) && emit('patch', { category_id: v })"
         />
-        <v-select
+        <AutocompleteSearch
           :model-value="ticket.team_id ?? null"
           :items="lookups.teams"
           item-title="name"
@@ -135,7 +136,7 @@ const fieldDefs = computed(() =>
           data-testid="prop-team"
           @update:model-value="(v: string | null) => v !== (ticket.team_id ?? null) && emit('patch', { team_id: v })"
         />
-        <v-autocomplete
+        <AutocompleteSearch
           :model-value="ticket.assignee?.id ?? null"
           :items="assigneeItems"
           :label="$t('agent.ticket.props.assignee')"
@@ -232,7 +233,7 @@ const fieldDefs = computed(() =>
           <v-btn size="small" variant="tonal" :prepend-icon="watching ? mdiEyeOffOutline : mdiEyeOutline" data-testid="watch-toggle" @click="emit('watch', session.me!.id, !watching)">
             {{ watching ? $t('agent.ticket.watchers.unwatch') : $t('agent.ticket.watchers.watch') }}
           </v-btn>
-          <v-autocomplete
+          <AutocompleteSearch
             :items="lookups.staff.filter((s) => !ticket.watchers?.some((w) => w.id === s.id))"
             item-title="name"
             item-value="id"

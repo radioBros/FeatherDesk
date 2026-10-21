@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import { optionOf } from '@/components/projectOption'
 import SelectionChips from '@/components/SelectionChips.vue'
 import PasswordField from '@/components/PasswordField.vue'
@@ -120,7 +121,7 @@ const onSave = submit(async () => {
     />
     <v-row density="compact">
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.role"
           :items="roleItems"
           :label="$t('agent.staff.role')"
@@ -133,7 +134,7 @@ const onSave = submit(async () => {
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.tier"
           :items="tierItems"
           :label="$t('tier.label')"
@@ -146,7 +147,7 @@ const onSave = submit(async () => {
         />
       </v-col>
     </v-row>
-    <v-select
+    <AutocompleteSearch
       v-model="model.team_ids"
       :items="teams ?? []"
       item-title="name"
@@ -157,13 +158,13 @@ const onSave = submit(async () => {
       class="mt-2"
       data-testid="staff-teams">
       <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.team_ids ?? []).length" /></template>
-    </v-select>
+    </AutocompleteSearch>
     <fieldset v-if="projects?.length" class="st-memberships mt-2" data-testid="staff-projects">
       <legend class="text-subtitle-2">{{ $t('projects.config.memberships') }}</legend>
       <div class="text-caption text-medium-emphasis mb-2">{{ $t('projects.config.membershipsHint') }}</div>
       <div v-if="!model.memberships.length" class="text-body-2 text-medium-emphasis mb-2">{{ $t('projects.config.noMemberships') }}</div>
       <div v-for="(m, i) in model.memberships" :key="i" class="d-flex align-center ga-2" data-testid="staff-membership">
-        <v-select
+        <AutocompleteSearch
           v-model="m.project_id"
           :items="projectChoices(m.project_id)"
           item-title="name"
@@ -176,8 +177,8 @@ const onSave = submit(async () => {
           <template #item="{ props: ip, item }">
             <v-list-item v-bind="ip" :title="optionOf(item).name"><template #prepend><ProjectChip :project="optionOf(item)" size="small" class="mr-2" /></template></v-list-item>
           </template>
-        </v-select>
-        <v-select
+        </AutocompleteSearch>
+        <AutocompleteSearch
           v-model="m.role"
           :items="roleOptions"
           :label="$t('projects.config.role')"
@@ -194,7 +195,7 @@ const onSave = submit(async () => {
         <div v-if="String(key).startsWith('projects')" class="text-caption text-error">{{ msgs.join(' ') }}</div>
       </div>
     </fieldset>
-    <v-select
+    <AutocompleteSearch
       v-if="editing"
       v-model="model.status"
       :items="[

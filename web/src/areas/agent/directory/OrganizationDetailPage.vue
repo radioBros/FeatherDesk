@@ -5,6 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { mdiAccountPlus, mdiPencil } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
+import TwoColumnLayout from '@/components/TwoColumnLayout.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import OrganizationForm from './OrganizationForm.vue'
 import ProjectCell from '../shared/ProjectCell.vue'
@@ -69,8 +70,8 @@ function onMemberSaved() {
         <ProjectCell :ids="org.project_ids ?? []" />
       </div>
       <v-alert v-if="org.notes" variant="tonal" density="compact" class="mb-4" style="white-space: pre-line">{{ org.notes }}</v-alert>
-      <v-row>
-        <v-col cols="12" md="5">
+      <TwoColumnLayout aside-start :main-fr="7" :aside-fr="5">
+        <template #aside>
           <v-card border flat :title="$t('agent.organizations.members')">
             <template #append>
               <v-btn size="small" variant="text" :prepend-icon="mdiAccountPlus" data-testid="org-add-member" @click="memberDialog = true">
@@ -97,13 +98,13 @@ function onMemberSaved() {
               <v-btn variant="text" @click="members.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
             </div>
           </v-card>
-        </v-col>
-        <v-col cols="12" md="7">
+        </template>
+        <template #main>
           <v-card border flat :title="$t('agent.organizations.tickets')">
             <TicketMiniList :organization-id="org.id" />
           </v-card>
-        </v-col>
-      </v-row>
+        </template>
+      </TwoColumnLayout>
       <v-dialog v-model="editDialog" max-width="560">
         <v-card :title="$t('agent.organizations.edit')">
           <v-card-text>

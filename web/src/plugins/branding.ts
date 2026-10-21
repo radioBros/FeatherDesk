@@ -81,7 +81,7 @@ export function radiusDefaults(r: Branding['radius'] = 'default') {
     // Chips inside a field are small so a multiselect never grows taller than a text field.
     VTextField: { rounded, variant: 'outlined', density: 'compact' },
     VTextarea: { rounded, variant: 'outlined', density: 'compact', rows: 1, autoGrow: true },
-    VSelect: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
+    VSelect: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' }, color: 'primary' },
     VAutocomplete: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
     VCombobox: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
     VFileInput: { rounded, variant: 'outlined', density: 'compact' },
@@ -89,7 +89,7 @@ export function radiusDefaults(r: Branding['radius'] = 'default') {
     VNumberInput: { rounded, variant: 'outlined', density: 'compact' },
     VCheckbox: { density: 'compact', hideDetails: 'auto', color: 'primary' },
     VSwitch: { density: 'compact' },
-    VRadioGroup: { density: 'compact' },
+    VRadioGroup: { density: 'compact', hideDetails: 'auto', color: 'primary' },
   }
 }
 

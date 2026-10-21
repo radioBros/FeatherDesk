@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Support settings form (FE-029): tier labels, auto-close and reopen windows,
  * registration and priority policies. Data in through props; nothing loads on mount.
@@ -134,7 +135,7 @@ const onSave = submit(async () => {
     <v-switch v-model="model.triage_visible_to_agents" :label="$t('agent.settings.triageVisible')" color="primary" inset hide-details />
     <v-switch v-model="model.kb_enabled" :label="$t('agent.settings.kbEnabled')" color="primary" inset hide-details />
     <v-switch v-model="model.kb_sitemap_enabled" :label="$t('agent.settings.kbSitemap')" :disabled="!model.kb_enabled" color="primary" inset hide-details />
-    <v-select v-model="model.default_locale" :items="locales" :label="$t('agent.settings.defaultLocale')" class="mt-4" style="max-width: 320px" />
+    <AutocompleteSearch v-model="model.default_locale" :items="locales" :label="$t('agent.settings.defaultLocale')" class="mt-4" style="max-width: 320px" />
 
     <div class="d-flex justify-end mt-2">
       <v-btn type="submit" color="primary" :loading="submitting" data-testid="settings-save">{{ $t('agent.common.saveChanges') }}</v-btn>

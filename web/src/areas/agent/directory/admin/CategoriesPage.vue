@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * /agent/admin/categories (FE-028, supervisor+): list, create/edit in a
  * dialog, active toggle, drag-to-sort (each move PATCHes the new `sort`).
@@ -106,7 +107,7 @@ const cols = useTableColumns('admin-categories', () => [
       <EmptyState v-if="!loading && !sorted.length" :title="$t('agent.categories.empty')" body="" />
       <template v-else>
       <div class="d-flex align-center justify-space-between px-2 pt-1">
-        <v-select
+        <AutocompleteSearch
           v-if="cp.all.value.length > 1"
           v-model="projectFilter"
           :items="cp.all.value"

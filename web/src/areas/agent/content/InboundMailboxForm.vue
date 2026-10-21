@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import PasswordField from '@/components/PasswordField.vue'
 /**
  * Inbound mailbox form (FE-057, D-16). The IMAP password is write-only (never
@@ -133,7 +134,7 @@ const onTest = submit(async () => {
         <v-text-field v-model="model.name" :label="$t('agent.common.name')" :rules="nameRules" :disabled="locked('name')" :error-messages="fieldErrors.name" data-testid="inbound-name" />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.kind"
           :items="kindItems"
           :label="$t('agent.inbound.kindLabel')"
@@ -149,7 +150,7 @@ const onTest = submit(async () => {
         </v-text-field>
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.team_id"
           :items="teams"
           item-title="name"
@@ -178,10 +179,10 @@ const onTest = submit(async () => {
           </v-text-field>
         </v-col>
         <v-col cols="12" sm="6">
-          <v-select v-model="model.security" :items="securityItems" :label="$t('agent.inbound.securityLabel')" :rules="securityRules" :disabled="locked('imap.security')" :error-messages="fieldErrors['imap.security']" />
+          <AutocompleteSearch v-model="model.security" :items="securityItems" :label="$t('agent.inbound.securityLabel')" :rules="securityRules" :disabled="locked('imap.security')" :error-messages="fieldErrors['imap.security']" />
         </v-col>
         <v-col cols="12" sm="6">
-          <v-select v-model="model.auth" :items="authItems" :label="$t('agent.inbound.authLabel')" :rules="authRules" :disabled="locked('imap.auth')" :error-messages="fieldErrors['imap.auth']" />
+          <AutocompleteSearch v-model="model.auth" :items="authItems" :label="$t('agent.inbound.authLabel')" :rules="authRules" :disabled="locked('imap.auth')" :error-messages="fieldErrors['imap.auth']" />
         </v-col>
         <v-col cols="12" sm="6">
           <v-text-field v-model="model.username" :label="$t('agent.inbound.username')" autocomplete="off" :rules="usernameRules" :disabled="locked('imap.username')" :error-messages="fieldErrors['imap.username']" data-testid="inbound-username">
@@ -201,7 +202,7 @@ const onTest = submit(async () => {
           <v-text-field v-model="model.folder" :label="$t('agent.inbound.folder')" :rules="folderRules" :disabled="locked('imap.folder')" :error-messages="fieldErrors['imap.folder']" />
         </v-col>
         <v-col cols="12" sm="4">
-          <v-select v-model="model.processed_action" :items="actionItems" :label="$t('agent.inbound.processedLabel')" :rules="actionRules" :disabled="locked('imap.processed_action')" />
+          <AutocompleteSearch v-model="model.processed_action" :items="actionItems" :label="$t('agent.inbound.processedLabel')" :rules="actionRules" :disabled="locked('imap.processed_action')" />
         </v-col>
         <v-col v-if="model.processed_action === 'move'" cols="12" sm="4">
           <v-text-field v-model="model.processed_folder" :label="$t('agent.inbound.processedFolder')" :disabled="locked('imap.processed_folder')" :rules="[validations.maxLength(200)]" />

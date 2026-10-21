@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Project picker for configuration forms (D-20). Presentational: the page loads
  * `useProjectsStore` and passes `projects`. With `nullable` the empty choice is
@@ -38,7 +39,7 @@ function onUpdate(v: string | null) {
 </script>
 
 <template>
-  <v-select
+  <AutocompleteSearch
     :model-value="value"
     :items="items"
     item-title="name"
@@ -61,5 +62,5 @@ function onUpdate(v: string | null) {
       <ProjectChip v-if="optionOf(item).id !== NONE" :project="optionOf(item)" size="small" class="mr-2" />
       <span>{{ optionOf(item).name }}</span>
     </template>
-  </v-select>
+  </AutocompleteSearch>
 </template>

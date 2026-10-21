@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** Members of one team (FE-028): add from the staff directory, remove; IdP-synced members are read-only. */
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -67,7 +68,7 @@ async function remove(m: S['TeamMember']) {
 <template>
   <div data-testid="team-members">
     <div class="d-flex ga-2 align-center mb-2">
-      <v-autocomplete
+      <AutocompleteSearch
         v-model="pick"
         :items="candidates"
         :label="$t('agent.teams.addMember')"

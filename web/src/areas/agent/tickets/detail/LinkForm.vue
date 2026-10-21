@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** Add a ticket link (FE-055): target ticket + link type, both required. */
 import { reactive } from 'vue'
 import { useForm } from '@/composables/useForm'
@@ -30,7 +31,7 @@ const onSubmit = submit(async () => {
       :exclude-id="ticketId"
       testid="link-target"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.type"
       :items="TYPES.map((t) => ({ value: t, title: $t(`agent.ticket.links.type.${t}`) }))"
       :label="$t('agent.ticket.links.typeLabel')"

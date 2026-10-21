@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a project (D-20). The key is immutable once tickets exist
  * (`key_locked`); key, active and sort belong to supervisors and admins (a
@@ -128,7 +129,7 @@ const onSave = submit(async () => {
         <ColorField v-model="model.color" :label="$t('projects.admin.color')" testid="project-color" :contrast="false" />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.icon"
           :items="ICONS"
           :label="$t('projects.admin.icon')"
@@ -140,7 +141,7 @@ const onSave = submit(async () => {
         />
       </v-col>
     </v-row>
-    <v-select
+    <AutocompleteSearch
       v-model="model.default_team_id"
       :items="teamItems"
       :label="$t('projects.admin.defaultTeam')"

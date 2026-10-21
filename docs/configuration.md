@@ -40,6 +40,26 @@ These variables are read by the core server (`internal/config`).
 | `ST_WS_MAX_CONNS` | `1000` | Global WebSocket connection cap |
 <!-- END CORE -->
 
+### `ST_ALLOWED_ORIGINS`
+
+Extra browser origins of **the same instance**, accepted besides the origin of `ST_PUBLIC_URL`. Use it when people reach SimpleTickets under more than one address, typically a container published on another host port and opened both by LAN address and on the Docker host:
+
+```sh
+docker run -d -p 3200:8080 -v st-data:/data -e ST_SECRET_KEY="$ST_SECRET_KEY" \
+  -e ST_PUBLIC_URL=http://192.168.1.50:3200 \
+  -e ST_ALLOWED_ORIGINS=http://localhost:3200,http://127.0.0.1:3200 \
+  ghcr.io/radiobros/simpletickets:latest
+```
+
+- **Format:** comma-separated origins `scheme://host[:port]`. Spaces and empty items are ignored. Each item needs an `http` or `https` scheme and a host; a path other than `/` is not allowed.
+- **Default:** empty, so only the origin of `ST_PUBLIC_URL` is accepted.
+- **Validation:** an invalid item stops the server at start (exit code 2), reported with the other configuration errors as `ST_ALLOWED_ORIGINS: "…" is not an origin like https://host[:port]`. `simpletickets config check` reports it too.
+- **Where it applies:** the CSRF `Origin`/`Referer` check of cookie-authenticated writes and of sign-in, the WebSocket `Origin` check (`/api/v1/ws`) and the `Origin` check of the MCP endpoint (`/mcp`). Items are reduced to `scheme://host[:port]` and compared ignoring case.
+- **Not CORS:** requests the browser marks as cross-site are still refused; no other site gets access to a signed-in session.
+- **What it does not change:** links in emails, SSO redirect URIs and the setup link always use `ST_PUBLIC_URL`, which must include the published port. Cookies are `Secure` when `ST_PUBLIC_URL` is `https://`; browsers keep those only over HTTPS and on `http://localhost`.
+
+No image is published on `ghcr.io` yet: the tag above is the one `docker build -t ghcr.io/radiobros/simpletickets:latest .` creates from a checkout. With Compose, the published port and address are set in `deploy/.env` too; see [Another host port or address](DOCUMENTATION.md#another-host-port-or-address).
+
 ## Runtime knobs
 
 | Variable | Default | Description |
@@ -49,12 +69,89 @@ These variables are read by the core server (`internal/config`).
 
 ## Module variables
 
-Each module documents its own variables below: authentication/OIDC, SMTP, inbound IMAP, and so on. These sections are maintained by the module owners.
+These variables are read by the modules through `config.Env` (and, for the SMTP and IMAP fields, `settings.Overlay`). Like the core ones, every problem is reported at startup. A set `ST_SMTP_*` or `ST_IMAP_*` value overrides and locks the matching field in the admin UI. More context for each group is in [DOCUMENTATION.md §3.3](DOCUMENTATION.md#33-variable-reference).
 
-The complete module reference is [DOCUMENTATION.md §3.3](DOCUMENTATION.md#33-variable-reference).
+### Authentication and sessions (`internal/authn`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `ST_AUTH_STAFF_LOCAL` | `false` | Allow staff password login (break-glass admins can always use one) |
+| `ST_BOOTSTRAP_ADMIN_EMAIL` | — | With `ST_BOOTSTRAP_ADMIN_PASSWORD`, creates a break-glass admin on an empty database and skips the setup wizard |
+| `ST_BOOTSTRAP_ADMIN_PASSWORD` | — | Password of that admin; remove it from the environment afterwards |
+| `ST_SELF_REGISTRATION` | (stored setting) | `true`/`false` overrides the customer self-registration support setting |
+| `ST_SESSION_IDLE_STAFF` | `12h` | Staff idle timeout |
+| `ST_SESSION_ABSOLUTE_STAFF` | `168h` | Staff maximum session lifetime |
+| `ST_SESSION_IDLE_CUSTOMER` | `720h` | Customer idle timeout |
+| `ST_SESSION_ABSOLUTE_CUSTOMER` | `2160h` | Customer maximum session lifetime |
+| `ST_INSECURE_COOKIES` | `false` | Do not mark cookies `Secure` (plain-HTTP tests only; refused with an `https` `ST_PUBLIC_URL`) |
+| `ST_OIDC_LINK_BY_EMAIL` | `false` | Link an SSO login to an existing account with the same verified email |
+
+### Single sign-on (`internal/authn`)
+
+An audience is enabled when its issuer is set.
+
+| Variable | Default | Description |
+|---|---|---|
+| `ST_OIDC_STAFF_ISSUER` | — | Staff issuer URL; enables staff SSO |
+| `ST_OIDC_STAFF_CLIENT_ID` | — | Required when the issuer is set |
+| `ST_OIDC_STAFF_CLIENT_SECRET` | — | Client secret |
+| `ST_OIDC_STAFF_LABEL` | `Single sign-on` | Text of the SSO button |
+| `ST_OIDC_STAFF_SCOPES` | `openid,email,profile` | Requested scopes (`openid` is always added) |
+| `ST_OIDC_STAFF_ROLE_CLAIM` | `groups` | Claim that carries the groups |
+| `ST_OIDC_STAFF_ROLE_MAP` | — | `group=role,…` (`admin`, `supervisor`, `agent`); required with staff SSO |
+| `ST_OIDC_STAFF_TIER_MAP` | — | `group=tier,…` (`1`–`3`) |
+| `ST_OIDC_STAFF_TEAM_CLAIM` | the role claim | Claim used for team mapping |
+| `ST_OIDC_STAFF_TEAM_MAP` | — | `group=team,…` (team id or name) |
+| `ST_OIDC_CUSTOMER_ISSUER` | — | Customer issuer URL; enables customer SSO |
+| `ST_OIDC_CUSTOMER_CLIENT_ID` | — | Required when the issuer is set |
+| `ST_OIDC_CUSTOMER_CLIENT_SECRET` | — | Client secret |
+| `ST_OIDC_CUSTOMER_LABEL` | `Single sign-on` | Text of the SSO button on the portal |
+| `ST_OIDC_CUSTOMER_SCOPES` | `openid,email,profile` | Requested scopes |
+
+### Outgoing email (`internal/settings`, `internal/notify`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `ST_SMTP_HOST` | — | SMTP server; setting it locks the field |
+| `ST_SMTP_PORT` | `587` | |
+| `ST_SMTP_SECURITY` | `starttls` | `none`, `starttls` or `tls` |
+| `ST_SMTP_USERNAME` | — | |
+| `ST_SMTP_PASSWORD` | — | |
+| `ST_SMTP_AUTH` | `plain` | `plain`, `login`, `cram-md5` or `none` |
+| `ST_SMTP_HELO` | — | HELO/EHLO name |
+| `ST_SMTP_TIMEOUT_SECONDS` | `10` | |
+| `ST_SMTP_ALLOW_INSECURE_TLS` | `false` | Accept invalid certificates |
+| `ST_SMTP_FROM_CUSTOMER` | — | Sender of customer mail, e.g. `Support <support@example.com>` |
+| `ST_SMTP_FROM_STAFF` | — | Sender of staff mail |
+| `ST_NOTIFY_COALESCE_SECONDS` | `120` | Groups "customer replied" emails to one agent per ticket; `0` turns it off |
+
+### Inbound email (`internal/mailin`)
+
+| Variable | Default | Description |
+|---|---|---|
+| `ST_IMAP_HOST` | — | Creates and locks one environment mailbox |
+| `ST_IMAP_PORT` | `993` | |
+| `ST_IMAP_SECURITY` | `tls` | `none`, `starttls` or `tls` |
+| `ST_IMAP_USERNAME` | — | |
+| `ST_IMAP_PASSWORD` | — | |
+| `ST_IMAP_FOLDER` | `INBOX` | Folder to read |
+| `ST_IMAP_ADDRESS` | the username | Public address of the mailbox |
+| `ST_IMAP_TEAM` | — | Team id or name for new tickets (empty: triage) |
+| `ST_INBOUND_RATE_PER_HOUR` | `20` | Inbound messages per sender per hour before quarantine; `0` or less turns it off |
+| `ST_INBOUND_TRUSTED_AUTHSERV_IDS` | — | Comma-separated `authserv-id`s whose `Authentication-Results` are trusted for staff replies |
+| `ST_MAX_ATTACHMENT_MB` | `ST_MAX_UPLOAD_MB` | Maximum attachment size from email (a whole message may be ten times this) |
+
+### Storage and webhooks
+
+| Variable | Default | Description |
+|---|---|---|
+| `ST_S3_ACCESS_KEY` | — | S3 access key; required when `ST_BLOB_URL` is `s3://` |
+| `ST_S3_SECRET_KEY` | — | S3 secret key; required when `ST_BLOB_URL` is `s3://` |
+| `ST_WEBHOOK_ALLOW_PRIVATE` | `false` | Allow webhook targets on private, loopback and link-local addresses |
+| `ST_WEBHOOK_ALLOW_INSECURE` | `false` | Allow `http://` webhook targets |
 
 ## Settings without environment variables
 
-Projects, automation and assignment, two-step verification, privacy (GDPR) and the notification centre add **no** environment variables. Projects (keys, members, team mapping, per-project SLA overrides, portal branding) are database rows edited under *Administration → Projects* or through `/api/v1/admin/projects` ([features/projects.md](features/projects.md)); the Default project is created by the migration. Their settings live in the database and are edited in the admin UI or by each user: the two-step verification policy (settings key `security`), the retention policy and deletion-request options (`retention`, `privacy`), each team's automatic assignment, automation rules and macros, the agents' *Away* switch and every user's notification preferences.
+Projects, automation and assignment, two-step verification, privacy (GDPR), the notification centre and the MCP endpoint add **no** environment variables. The MCP switch is the settings key `integrations` (`{"mcp_enabled": false}` by default; *Administration → System → Support settings → Integrations*, `PATCH /api/v1/admin/integrations`, see [features/mcp.md](features/mcp.md)). Projects (keys, members, team mapping, per-project SLA overrides, portal branding) are database rows edited under *Administration → Projects* or through `/api/v1/admin/projects` ([features/projects.md](features/projects.md)); the Default project is created by the migration. Their settings live in the database and are edited in the admin UI or by each user: the two-step verification policy (settings key `security`), the retention policy and deletion-request options (`retention`, `privacy`), each team's automatic assignment, automation rules and macros, the agents' *Away* switch and every user's notification preferences.
 
 The canonical list, with the admin UI location and API of each setting, is [Settings stored in the database](DOCUMENTATION.md#settings-stored-in-the-database).

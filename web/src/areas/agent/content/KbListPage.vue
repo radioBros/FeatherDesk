@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * /agent/kb (FE-052): every article the editor can see — drafts included —
  * with status, visibility and locale coverage. Filters go to the API.
@@ -96,9 +97,9 @@ const cols = useTableColumns('kb-articles', () => [
 
     <div class="d-flex flex-wrap ga-3 mb-3" data-testid="kb-filters">
       <v-text-field v-model="filters.q" :label="$t('agent.common.search')" density="compact" hide-details clearable style="min-width: 220px" data-testid="kb-filter-q" @click:clear="filters.q = ''" />
-      <v-select v-model="filters.status" :items="statusItems" :label="$t('agent.common.status')" density="compact" hide-details clearable style="max-width: 180px" data-testid="kb-filter-status" />
-      <v-select v-model="filters.category_id" :items="categoryItems" :label="$t('agent.common.category')" density="compact" hide-details clearable style="max-width: 240px" />
-      <v-select v-model="filters.locale" :items="locales.map((l) => ({ value: l, title: l.toUpperCase() }))" :label="$t('agent.kb.locale')" density="compact" hide-details clearable style="max-width: 140px" />
+      <AutocompleteSearch v-model="filters.status" :items="statusItems" :label="$t('agent.common.status')" density="compact" hide-details clearable style="max-width: 180px" data-testid="kb-filter-status" />
+      <AutocompleteSearch v-model="filters.category_id" :items="categoryItems" :label="$t('agent.common.category')" density="compact" hide-details clearable style="max-width: 240px" />
+      <AutocompleteSearch v-model="filters.locale" :items="locales.map((l) => ({ value: l, title: l.toUpperCase() }))" :label="$t('agent.kb.locale')" density="compact" hide-details clearable style="max-width: 140px" />
     </div>
 
     <v-alert v-if="list.error.value" type="error" variant="tonal" class="mb-4">{{ $t('agent.common.loadFailed') }}</v-alert>

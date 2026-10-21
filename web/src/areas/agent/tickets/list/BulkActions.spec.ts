@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { VSelect } from 'vuetify/components'
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import BulkActionForm from './BulkActionForm.vue'
 import SaveViewForm from './SaveViewForm.vue'
 import { mountAgent, fx, json } from '../../testing'
@@ -29,7 +29,7 @@ describe('BulkActionForm (FE-038)', () => {
         },
       },
     })
-    const selects = h.wrapper.findAllComponents(VSelect)
+    const selects = h.wrapper.findAllComponents(AutocompleteSearch)
     await selects[0]!.setValue('status')
     await h.flush()
     await selects[1]!.setValue('resolved')
@@ -57,7 +57,7 @@ describe('BulkActionForm (FE-038)', () => {
     await h.flush()
     expect(h.calls()).toHaveLength(0)
     expect(h.wrapper.text()).toContain('Choose an option')
-    const selects = h.wrapper.findAllComponents(VSelect)
+    const selects = h.wrapper.findAllComponents(AutocompleteSearch)
     await selects[0]!.setValue('assign')
     await h.flush()
     await selects[1]!.setValue('none')

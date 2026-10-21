@@ -15,7 +15,7 @@ const refs = { teams: [fx.team()], categories: [fx.category()], staff: [fx.staff
 
 /** The Vuetify select/autocomplete component carrying `data-testid` (index for repeated rows). */
 function select(h: AgentHarness, testid: string, index = 0) {
-  const all = [...h.wrapper.findAllComponents({ name: 'VSelect' }), ...h.wrapper.findAllComponents({ name: 'VAutocomplete' })].filter(
+  const all = [...h.wrapper.findAllComponents({ name: 'AutocompleteSearch' }), ...h.wrapper.findAllComponents({ name: 'AutocompleteSearch' })].filter(
     (c) => c.attributes('data-testid') === testid,
   )
   const c = all[index]

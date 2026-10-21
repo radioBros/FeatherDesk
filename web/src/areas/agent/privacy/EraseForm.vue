@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Erase a user's personal data (FE-085, D-19 §C), admin only. With `requestId`
  * it approves that pending deletion request, else it erases `userId` directly.
@@ -40,7 +41,7 @@ const onSubmit = submit(async () => {
   <v-form ref="formRef" data-testid="erase-form" @submit.prevent="onSubmit">
     <v-alert type="warning" variant="tonal" density="compact" class="mb-3">{{ $t('privacy.erase.intro') }}</v-alert>
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3" data-testid="erase-error">{{ formError }}</v-alert>
-    <v-select
+    <AutocompleteSearch
       v-model="model.mode"
       :items="modes"
       :label="$t('privacy.mode.label')"

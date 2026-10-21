@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** /agent/admin/staff (FE-027, admin): staff list, create local staff, edit role/tier/teams/status. */
 import { onMounted, ref } from 'vue'
 import { mdiMagnify, mdiPencil, mdiPlus } from '@mdi/js'
@@ -85,7 +86,7 @@ const cols = useTableColumns('admin-staff', () => [
         style="max-width: 360px"
         @update:model-value="onSearch"
       />
-      <v-select
+      <AutocompleteSearch
         v-model="role"
         :items="ROLES.map((r) => ({ value: r, title: $t(`agent.staff.roles.${r}`) }))"
         :label="$t('agent.staff.role')"

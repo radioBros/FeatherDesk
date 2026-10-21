@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import PasswordField from '@/components/PasswordField.vue'
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -80,7 +81,7 @@ const onSubmit = submit(async () => {
       autocomplete="new-password"
       data-testid="register-confirm"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.locale"
       :items="localeItems"
       :label="$t('app.language')"

@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 /**
  * The top bar of both areas (agent panel and portal). The spacing rules live
  * here only: 8 px between the actions, extra padding at both edges and a
@@ -7,10 +8,33 @@
  * (title, search), `prepend` (menu button) and `append` (the actions).
  */
 defineOptions({ inheritAttrs: false })
+
+// Sticky panels (TwoColumnLayout) sit under the bar: publish its real bottom edge plus a gap as
+// --st-sticky-top on <html>. The bar differs between areas and changes height on mobile.
+const bar = ref<{ $el: HTMLElement } | null>(null)
+let ro: ResizeObserver | undefined
+function publish() {
+  const el = bar.value?.$el
+  if (!el) return
+  const h = Math.round(el.getBoundingClientRect().bottom)
+  document.documentElement.style.setProperty('--st-sticky-top', `${h + 16}px`)
+}
+onMounted(() => {
+  publish()
+  if (typeof ResizeObserver !== 'undefined' && bar.value?.$el) {
+    ro = new ResizeObserver(publish)
+    ro.observe(bar.value.$el)
+  }
+  window.addEventListener('resize', publish)
+})
+onBeforeUnmount(() => {
+  ro?.disconnect()
+  window.removeEventListener('resize', publish)
+})
 </script>
 
 <template>
-  <v-app-bar v-bind="$attrs" flat border density="comfortable" class="st-appbar">
+  <v-app-bar ref="bar" v-bind="$attrs" flat border density="comfortable" class="st-appbar">
     <template v-if="$slots.prepend" #prepend><slot name="prepend" /></template>
     <slot />
     <template #append>

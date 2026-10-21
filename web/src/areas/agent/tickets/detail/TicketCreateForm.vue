@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create a ticket on behalf of a customer (FE-025): pick an existing
  * customer, or "new customer" (name + email → `requester_email` +
@@ -45,24 +46,10 @@ const idempotencyKey = newIdempotencyKey()
 const { formRef, submit, fieldErrors, formError, submitting } = useForm()
 
 // Customer search while typing (never on mount).
-const search = ref('')
-const found = ref<S['User'][]>([])
-const searching = ref(false)
-let timer: ReturnType<typeof setTimeout> | null = null
-watch(search, (q) => {
-  if (timer) clearTimeout(timer)
-  if (!q || q.length < 2 || q === model.requester?.name) return
-  timer = setTimeout(async () => {
-    searching.value = true
-    try {
-      found.value = (await unwrap(api.GET('/agent/customers', { params: { query: { q, limit: 10 } } }))).items ?? []
-    } catch {
-      found.value = []
-    } finally {
-      searching.value = false
-    }
-  }, 300)
-})
+async function searchCustomers(q: string): Promise<S['User'][]> {
+  if (q.length < 2) return []
+  return (await unwrap(api.GET('/agent/customers', { params: { query: { q, limit: 10 } } }))).items ?? []
+}
 /** The picker shows only when there is a choice; with one project the server's default applies. */
 const projectItems = computed(() => props.projects.filter((p) => p.active))
 const showProject = computed(() => projectItems.value.length > 1)
@@ -78,7 +65,6 @@ watch(
     if (model.team_id && !teamItems.value.some((tm) => tm.id === model.team_id)) model.team_id = null
   },
 )
-const customerItems = computed(() => (model.requester && !found.value.some((f) => f.id === model.requester!.id) ? [model.requester, ...found.value] : found.value))
 
 /**
  * Fields that apply to the chosen category and project (no scope = every
@@ -149,16 +135,14 @@ const onSubmit = submit(async () => {
         </v-col>
       </v-row>
     </template>
-    <v-autocomplete
+    <AutocompleteSearch
       v-else
       v-model="model.requester"
-      v-model:search="search"
-      :items="customerItems"
+      :fetch-items="searchCustomers"
+      :initial-items="model.requester ? [model.requester] : []"
       :item-title="(u: S['User']) => `${u.name} <${u.email}>`"
       item-value="id"
       return-object
-      no-filter
-      :loading="searching"
       :label="$t('agent.newTicket.requester')"
       :hint="$t('agent.newTicket.requesterHint')"
       persistent-hint
@@ -167,7 +151,7 @@ const onSubmit = submit(async () => {
       class="mb-2"
       data-testid="requester-search"
     />
-    <v-select
+    <AutocompleteSearch
       v-if="showProject"
       v-model="model.project_id"
       :items="projectItems"
@@ -181,7 +165,7 @@ const onSubmit = submit(async () => {
       <template #item="{ item, props: p }">
         <v-list-item v-bind="p" :title="item.name"><template #prepend><ProjectChip :project="item" size="small" class="mr-2" /></template></v-list-item>
       </template>
-    </v-select>
+    </AutocompleteSearch>
     <v-text-field
       v-model="model.subject"
       :label="$t('agent.newTicket.subject')"
@@ -191,10 +175,10 @@ const onSubmit = submit(async () => {
     />
     <v-row dense>
       <v-col cols="12" sm="4">
-        <v-select v-model="model.category_id" :items="categoryItems" item-title="name" item-value="id" :label="$t('agent.common.category')" clearable :error-messages="fieldErrors.category_id" data-testid="ticket-category" />
+        <AutocompleteSearch v-model="model.category_id" :items="categoryItems" item-title="name" item-value="id" :label="$t('agent.common.category')" clearable :error-messages="fieldErrors.category_id" data-testid="ticket-category" />
       </v-col>
       <v-col cols="12" sm="4">
-        <v-select
+        <AutocompleteSearch
           v-model="model.priority"
           :items="PRIORITIES.map((p) => ({ value: p, title: $t(`priority.${p}`) }))"
           :label="$t('agent.ticket.props.priority')"
@@ -203,7 +187,7 @@ const onSubmit = submit(async () => {
         />
       </v-col>
       <v-col cols="12" sm="4">
-        <v-select v-model="model.team_id" :items="teamItems" item-title="name" item-value="id" :label="$t('agent.common.team')" clearable :error-messages="fieldErrors.team_id" data-testid="ticket-team" />
+        <AutocompleteSearch v-model="model.team_id" :items="teamItems" item-title="name" item-value="id" :label="$t('agent.common.team')" clearable :error-messages="fieldErrors.team_id" data-testid="ticket-team" />
       </v-col>
     </v-row>
     <CustomFieldInput v-for="d in defs" :key="d.id" v-model="model.custom[d.key]" :def="d" :error-messages="fieldErrors[`cf.${d.key}`]" />

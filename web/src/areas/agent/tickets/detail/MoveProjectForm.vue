@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Move a ticket to another project (D-20). Needs the `transfer` action; the
  * server re-checks membership, clears a category of the old project and picks
@@ -31,7 +32,7 @@ const onSubmit = submit(async () => {
 <template>
   <v-form ref="formRef" data-testid="move-project-form" @submit.prevent="onSubmit">
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3">{{ formError }}</v-alert>
-    <v-select
+    <AutocompleteSearch
       v-model="model.project_id"
       :items="targets"
       item-title="name"
@@ -46,7 +47,7 @@ const onSubmit = submit(async () => {
       <template #item="{ item, props: p }">
         <v-list-item v-bind="p" :title="item.name"><template #prepend><ProjectChip :project="item" size="small" class="mr-2" /></template></v-list-item>
       </template>
-    </v-select>
+    </AutocompleteSearch>
     <div class="d-flex justify-end ga-2 mt-2">
       <v-btn variant="text" @click="emit('cancel')">{{ $t('app.cancel') }}</v-btn>
       <v-btn type="submit" color="primary" :loading="submitting" data-testid="move-submit">{{ $t('projects.ticket.move.confirm') }}</v-btn>

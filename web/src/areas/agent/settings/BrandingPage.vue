@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import { useTheme } from 'vuetify'
 import { mdiRefresh } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
+import TwoColumnLayout from '@/components/TwoColumnLayout.vue'
 import BrandingForm from './BrandingForm.vue'
 import BrandingPreview from './BrandingPreview.vue'
 import AssetSlot from './AssetSlot.vue'
@@ -101,8 +102,8 @@ const warningText = (w: S['FieldError']) => w.message || validations.fromServer(
           <li v-for="w in warnings" :key="w.field + w.code">{{ w.field }}: {{ warningText(w) }}</li>
         </ul>
       </v-alert>
-      <v-row>
-        <v-col cols="12" lg="7">
+      <TwoColumnLayout breakpoint="lg" :main-fr="7" :aside-fr="5">
+        <template #main>
           <v-card border flat class="pa-4 mb-4">
             <h2 class="text-subtitle-1 mb-3">{{ $t('agent.branding.images') }}</h2>
             <v-row density="compact">
@@ -114,10 +115,9 @@ const warningText = (w: S['FieldError']) => w.message || validations.fromServer(
           <v-card border flat class="pa-4">
             <BrandingForm :key="formKey" :settings="settings" @draft="(d) => (draft = { ...d })" @saved="onSaved" />
           </v-card>
-        </v-col>
-        <v-col cols="12" lg="5">
-          <div class="st-sticky">
-            <v-card border flat class="pa-4 mb-4">
+        </template>
+        <template #aside>
+            <v-card border flat class="pa-4">
               <h2 class="text-subtitle-1 mb-3">{{ $t('agent.branding.preview') }}</h2>
               <BrandingPreview :draft="draft" :logo-url="logoUrl" />
             </v-card>
@@ -138,14 +138,12 @@ const warningText = (w: S['FieldError']) => w.message || validations.fromServer(
                 data-testid="email-preview-iframe"
               />
             </v-card>
-          </div>
-        </v-col>
-      </v-row>
+        </template>
+      </TwoColumnLayout>
     </template>
   </v-container>
 </template>
 
 <style scoped>
-.st-sticky { position: sticky; top: 72px; }
 .st-iframe { width: 100%; height: 420px; border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)); border-radius: 4px; background: #fff; }
 </style>

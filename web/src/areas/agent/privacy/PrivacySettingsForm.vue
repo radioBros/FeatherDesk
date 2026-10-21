@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Privacy settings (FE-086, D-19 §C): the retention policy, automatic approval
  * of deletion requests and the policy version recorded with consents. "Preview"
@@ -104,7 +105,7 @@ const counts = computed(() =>
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.closed_tickets_action"
           :items="actions"
           :label="$t('privacy.settings.closedTicketsAction')"
@@ -162,7 +163,7 @@ const counts = computed(() =>
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-select
+        <AutocompleteSearch
           v-model="model.erasure_auto_approve_mode"
           :items="modes"
           :label="$t('privacy.settings.autoApproveMode')"

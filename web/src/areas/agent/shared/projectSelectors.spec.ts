@@ -25,7 +25,7 @@ const mob = { id: 'p-mob', key: 'MOB', name: 'Mobile', color: '#e64a19' }
 const projects = [web, mob]
 
 function select(h: AgentHarness, testid: string, index = 0) {
-  const all = h.wrapper.findAllComponents({ name: 'VSelect' }).filter((c) => c.attributes('data-testid') === testid)
+  const all = h.wrapper.findAllComponents({ name: 'AutocompleteSearch' }).filter((c) => c.attributes('data-testid') === testid)
   const c = all[index]
   if (!c) throw new Error(`no select ${testid}[${index}]`)
   return c
@@ -178,7 +178,7 @@ describe('RuleForm, KbCategoryForm, ProjectCell', () => {
     })
     expect(select(h, 'rule-project').exists()).toBe(true)
     await choose(h, 'rule-project', 'p-mob')
-    expect(h.wrapper.findComponent({ name: 'VSelect', props: { modelValue: 'p-mob' } }).exists()).toBe(true)
+    expect(h.wrapper.findComponent({ name: 'AutocompleteSearch', props: { modelValue: 'p-mob' } }).exists()).toBe(true)
   })
   it('kb category: a project admin cannot leave the project empty', async () => {
     const h = await mountAgent(KbCategoryForm, { props: { projects: [web], canGlobal: false } })

@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import SelectionChips from '@/components/SelectionChips.vue'
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -45,7 +46,7 @@ const onSubmit = submit(async () => {
       :error-messages="fieldErrors.name"
       data-testid="token-name"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.scopes"
       :items="scopeItems"
       item-props
@@ -55,7 +56,7 @@ const onSubmit = submit(async () => {
       multiple
       data-testid="token-scopes">
       <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.scopes ?? []).length" /></template>
-    </v-select>
+    </AutocompleteSearch>
     <v-text-field
       v-model="model.expires"
       :label="$t('portal.tokens.expires')"

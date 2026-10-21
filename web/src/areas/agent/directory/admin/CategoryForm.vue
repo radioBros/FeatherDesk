@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Create / edit a ticket category (FE-028). A form component: data comes in
  * through props and nothing loads on mount, so the FE-005 registry test can
@@ -61,7 +62,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.project_id"
       testid="category-project"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.default_team_id"
       :items="teams ?? []"
       item-title="name"
@@ -70,7 +71,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.default_team_id"
       clearable
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.default_priority"
       :items="PRIORITIES.map((p) => ({ value: p, title: $t(`priority.${p}`) }))"
       :label="$t('agent.categories.defaultPriority')"

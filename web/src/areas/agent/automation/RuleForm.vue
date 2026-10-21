@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * Rule builder (FE-063, D-19 A): name, event, ALL/ANY, condition rows
@@ -172,7 +173,7 @@ const onSave = submit(async () => {
         />
       </v-col>
       <v-col cols="12" md="3">
-        <v-select
+        <AutocompleteSearch
           :model-value="model.event"
           :items="eventItems"
           :label="$t('automation.rules.event')"
@@ -183,7 +184,7 @@ const onSave = submit(async () => {
         />
       </v-col>
       <v-col cols="12" md="3">
-        <v-select
+        <AutocompleteSearch
           v-model="model.match"
           :items="[{ value: 'all', title: $t('automation.rules.matchAll') }, { value: 'any', title: $t('automation.rules.matchAny') }]"
           :label="$t('automation.rules.match')"
@@ -198,7 +199,7 @@ const onSave = submit(async () => {
     <v-alert v-if="needsHours" type="info" variant="tonal" density="compact" class="mb-2" data-testid="rule-time-hint">{{ $t('automation.rules.timeHint') }}</v-alert>
     <v-row v-for="(c, i) in model.conditions" :key="`c${i}`" dense class="align-start" data-testid="rule-condition">
       <v-col cols="12" md="3">
-        <v-select
+        <AutocompleteSearch
           :model-value="c.field"
           :items="fieldItems"
           :label="$t('automation.rules.field')"
@@ -209,10 +210,10 @@ const onSave = submit(async () => {
         />
       </v-col>
       <v-col cols="12" md="2">
-        <v-select v-model="c.op" :items="opItems(c.field)" :label="$t('automation.rules.operator')" :rules="[validations.required.select]" density="compact" data-testid="condition-op" />
+        <AutocompleteSearch v-model="c.op" :items="opItems(c.field)" :label="$t('automation.rules.operator')" :rules="[validations.required.select]" density="compact" data-testid="condition-op" />
       </v-col>
       <v-col v-if="c.field === 'custom_field'" cols="12" md="2">
-        <v-select v-model="c.key" :items="cfItems" :label="$t('automation.rules.customField')" :rules="[validations.required.select]" density="compact" data-testid="condition-key" />
+        <AutocompleteSearch v-model="c.key" :items="cfItems" :label="$t('automation.rules.customField')" :rules="[validations.required.select]" density="compact" data-testid="condition-key" />
       </v-col>
       <v-col cols="12" :md="c.field === 'custom_field' ? 4 : 6">
         <v-text-field
@@ -223,7 +224,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="condition-value"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="valueKind(c.field) === 'multi'"
           :model-value="c.value as string[]"
           @update:model-value="(v: string[]) => (c.value = v)"
@@ -234,8 +235,8 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="condition-value">
           <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="((c.value as string[]) ?? []).length" /></template>
-        </v-select>
-        <v-select
+        </AutocompleteSearch>
+        <AutocompleteSearch
           v-else-if="valueKind(c.field) === 'tier'"
           v-model="c.value"
           :items="tierItems"
@@ -264,7 +265,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="condition-value"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="valueKind(c.field) === 'bool'"
           v-model="c.value"
           :items="boolItems"
@@ -294,7 +295,7 @@ const onSave = submit(async () => {
     <div class="text-subtitle-2 mt-2 mb-2">{{ $t('automation.rules.actions') }}</div>
     <v-row v-for="(a, i) in model.actions" :key="`a${i}`" dense class="align-start" data-testid="rule-action">
       <v-col cols="12" md="3">
-        <v-select
+        <AutocompleteSearch
           :model-value="a.type"
           :items="actionItems"
           :label="$t('automation.rules.action')"
@@ -305,7 +306,7 @@ const onSave = submit(async () => {
         />
       </v-col>
       <v-col cols="12" md="8">
-        <v-select
+        <AutocompleteSearch
           v-if="actionParam(a.type) === 'priority'"
           v-model="a.value"
           :items="PRIORITIES.map((p) => ({ value: p, title: $t(`priority.${p}`) }))"
@@ -314,7 +315,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="action-value"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="actionParam(a.type) === 'status'"
           v-model="a.value"
           :items="STATUSES.map((s) => ({ value: s, title: $t(`status.${s}`) }))"
@@ -323,7 +324,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="action-value"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="actionParam(a.type) === 'team'"
           v-model="a.value"
           :items="(teams ?? []).map((tm) => ({ value: tm.id, title: tm.name }))"
@@ -332,7 +333,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="action-value"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="actionParam(a.type) === 'category'"
           v-model="a.value"
           :items="(categories ?? []).map((ct) => ({ value: ct.id, title: ct.name }))"
@@ -341,7 +342,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="action-value"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="actionParam(a.type) === 'tier'"
           v-model="a.value"
           :items="tierItems"
@@ -359,8 +360,8 @@ const onSave = submit(async () => {
           data-testid="action-value"
         />
         <div v-else-if="actionParam(a.type) === 'assign'" class="d-flex ga-2">
-          <v-select v-model="a.assignMode" :items="assignModes" :label="$t('automation.rules.assignMode')" :rules="[validations.required.select]" density="compact" data-testid="action-assign-mode" />
-          <v-autocomplete
+          <AutocompleteSearch v-model="a.assignMode" :items="assignModes" :label="$t('automation.rules.assignMode')" :rules="[validations.required.select]" density="compact" data-testid="action-assign-mode" />
+          <AutocompleteSearch
             v-if="a.assignMode === 'agent'"
             v-model="a.user_id"
             :items="staffItems"
@@ -370,7 +371,7 @@ const onSave = submit(async () => {
             data-testid="action-user"
           />
         </div>
-        <v-autocomplete
+        <AutocompleteSearch
           v-else-if="actionParam(a.type) === 'staff'"
           v-model="a.user_id"
           :items="staffItems"
@@ -391,7 +392,7 @@ const onSave = submit(async () => {
           density="compact"
           data-testid="action-note"
         />
-        <v-select
+        <AutocompleteSearch
           v-else-if="actionParam(a.type) === 'canned'"
           v-model="a.canned_response_id"
           :items="cannedItems"

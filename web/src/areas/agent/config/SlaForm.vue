@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * SLA policy grid (FE-041): first-response and resolution minutes per
  * priority (whole numbers 1…525600, so 0 and 1.5 are rejected before sending)
@@ -86,7 +87,7 @@ const onSave = submit(async () => {
             />
           </td>
           <td class="py-2">
-            <v-select
+            <AutocompleteSearch
               v-model="r.calendar_mode"
               :items="[
                 { value: '24x7', title: $t('agent.sla.mode24x7') },

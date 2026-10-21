@@ -20,7 +20,7 @@ test.describe('admin webhooks', () => {
     await page.getByTestId('webhook-new').click()
     await page.getByTestId('webhook-url').locator('input').fill(url)
     const events = page.getByTestId('webhook-events')
-    await events.locator('input').click()
+    await events.locator('.v-field').click()
     await page.getByRole('option', { name: 'ticket.created', exact: true }).click()
     await page.getByRole('option', { name: 'message.created', exact: true }).click()
     await page.keyboard.press('Escape')

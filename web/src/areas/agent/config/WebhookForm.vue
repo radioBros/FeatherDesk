@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * Create / edit a webhook (FE-040). Save and Test both go through
@@ -61,7 +62,7 @@ const onTest = submit(async () => {
       class="mb-2"
       data-testid="webhook-url"
     />
-    <v-autocomplete
+    <AutocompleteSearch
       v-model="model.events"
       :items="EVENT_TYPES"
       :label="$t('agent.webhooks.events')"
@@ -70,7 +71,7 @@ const onTest = submit(async () => {
       multiple
       data-testid="webhook-events">
       <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.events ?? []).length" /></template>
-    </v-autocomplete>
+    </AutocompleteSearch>
     <ProjectMultiSelect
       v-if="projects?.length"
       v-model="model.project_ids"

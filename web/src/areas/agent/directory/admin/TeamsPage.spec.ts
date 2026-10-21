@@ -102,7 +102,7 @@ describe('TeamMembers (FE-028)', () => {
     expect(rows[0]!.find('[data-testid="member-remove"]').exists()).toBe(true)
     expect(rows[1]!.find('[data-testid="member-remove"]').exists()).toBe(false)
     expect(rows[1]!.find('[data-testid="member-idp"]').exists()).toBe(true)
-    h.wrapper.findComponent({ name: 'VAutocomplete' }).vm.$emit('update:modelValue', 's-9')
+    h.wrapper.findComponent({ name: 'AutocompleteSearch' }).vm.$emit('update:modelValue', 's-9')
     await h.flush()
     await h.wrapper.find('[data-testid="member-add"]').trigger('click')
     await h.flush()

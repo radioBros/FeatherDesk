@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import SelectionChips from '@/components/SelectionChips.vue'
 /**
  * Branding settings form (FE-047): identity, colours (+ per-area overrides),
@@ -82,21 +83,21 @@ const onSave = submit(async () => {
       <h2 class="text-subtitle-1 mb-3">{{ $t('agent.branding.look') }}</h2>
       <v-row density="compact">
         <v-col cols="12" sm="4">
-          <v-select
+          <AutocompleteSearch
             v-model="model.default_theme"
             :items="['light', 'dark', 'system'].map((v) => ({ value: v, title: $t(`agent.branding.theme.${v}`) }))"
             :label="$t('agent.branding.defaultTheme')"
           />
         </v-col>
         <v-col cols="12" sm="4">
-          <v-select
+          <AutocompleteSearch
             v-model="model.radius"
             :items="['sharp', 'default', 'rounded'].map((v) => ({ value: v, title: $t(`agent.branding.radius.${v}`) }))"
             :label="$t('agent.branding.radiusLabel')"
           />
         </v-col>
         <v-col cols="12" sm="4">
-          <v-select v-model="model.font" :items="FONTS.map((v) => ({ value: v, title: $t(`agent.branding.fonts.${v}`) }))" :label="$t('agent.branding.font')" />
+          <AutocompleteSearch v-model="model.font" :items="FONTS.map((v) => ({ value: v, title: $t(`agent.branding.fonts.${v}`) }))" :label="$t('agent.branding.font')" />
         </v-col>
       </v-row>
     </section>
@@ -130,7 +131,7 @@ const onSave = submit(async () => {
 
     <section class="mb-6">
       <h2 class="text-subtitle-1 mb-3">{{ $t('agent.branding.languages') }}</h2>
-      <v-select
+      <AutocompleteSearch
         v-model="model.available_locales"
         :items="locales"
         :label="$t('agent.branding.availableLocales')"
@@ -138,8 +139,8 @@ const onSave = submit(async () => {
         multiple
         data-testid="brand-locales">
         <template #selection="{ item, index }"><SelectionChips :item="item" :index="index" :total="(model.available_locales ?? []).length" /></template>
-      </v-select>
-      <v-select v-model="model.default_locale" :items="defaultLocales" :label="$t('agent.branding.defaultLocale')" />
+      </AutocompleteSearch>
+      <AutocompleteSearch v-model="model.default_locale" :items="defaultLocales" :label="$t('agent.branding.defaultLocale')" />
     </section>
 
     <section class="mb-6">

@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** Staff profile: name and language (FE-030 profile page). A new language applies immediately. */
 import { reactive } from 'vue'
 import { useForm } from '@/composables/useForm'
@@ -44,7 +45,7 @@ const onSave = submit(async () => {
       :error-messages="fieldErrors.name"
       data-testid="profile-name"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.locale"
       :items="SUPPORTED_LOCALES.map((l) => ({ value: l, title: NAMES[l] }))"
       :label="$t('app.language')"

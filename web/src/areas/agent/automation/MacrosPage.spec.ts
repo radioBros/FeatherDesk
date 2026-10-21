@@ -85,7 +85,7 @@ describe('MacroForm (FE-064, FE-005)', () => {
     })
     await typeInto(byTestId('macro-name'), 'Ask for logs')
     await typeInto(byTestId('macro-reply'), 'Could you send the logs?')
-    component(h, 'VSelect', 'macro-status').vm.$emit('update:modelValue', 'pending')
+    component(h, 'AutocompleteSearch', 'macro-status').vm.$emit('update:modelValue', 'pending')
     component(h, 'VCombobox', 'macro-add-tags').vm.$emit('update:modelValue', ['Needs-Info', 'needs-info'])
     await h.flush()
     await click(byTestId('macro-save'))

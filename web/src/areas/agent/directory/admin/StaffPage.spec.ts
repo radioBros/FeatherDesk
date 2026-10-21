@@ -15,7 +15,7 @@ const staff = (extra = {}) =>
   fx.user({ id: 's-1', kind: 'staff', role: 'agent', tier: 2, name: 'Sam Staff', email: 'sam@x.test', team_ids: ['team-1'], ...extra })
 
 function select(h: AgentHarness, testid: string) {
-  return h.wrapper.findAllComponents({ name: 'VSelect' }).find((c) => c.attributes('data-testid') === testid)!
+  return h.wrapper.findAllComponents({ name: 'AutocompleteSearch' }).find((c) => c.attributes('data-testid') === testid)!
 }
 
 describe('StaffPage (FE-027)', () => {

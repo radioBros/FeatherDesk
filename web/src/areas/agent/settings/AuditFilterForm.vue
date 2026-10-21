@@ -1,14 +1,14 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Audit log filters (FE-042): action, actor (staff search), since date.
  * Applying validates first; the page turns the emitted filter into API params.
  */
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import { useForm } from '@/composables/useForm'
 import { validations } from '@/constants/validations'
 import { api, unwrap } from '@/api/client'
-import type { components } from '@/api/schema'
 import type { AuditFilter } from './types'
 const props = defineProps<{ filter?: Partial<AuditFilter> }>()
 const emit = defineEmits<{ apply: [AuditFilter] }>()
@@ -18,21 +18,9 @@ const model = reactive<AuditFilter>({
   actor_id: props.filter?.actor_id ?? null,
   since: props.filter?.since ?? '',
 })
-const staff = ref<components['schemas']['StaffRef'][]>([])
-const searching = ref(false)
-let seq = 0
 async function searchStaff(q: string) {
-  if (!q || q.length < 2) return
-  const mine = ++seq
-  searching.value = true
-  try {
-    const res = await unwrap(api.GET('/agent/staff', { params: { query: { q } } }))
-    if (mine === seq) staff.value = res ?? []
-  } catch {
-    /* keep the previous suggestions */
-  } finally {
-    if (mine === seq) searching.value = false
-  }
+  if (q.length < 2) return []
+  return (await unwrap(api.GET('/agent/staff', { params: { query: { q } } }))) ?? []
 }
 
 const sinceRules = [validations.date]
@@ -54,18 +42,15 @@ function clear() {
         <v-text-field v-model="model.action" :label="$t('agent.audit.action')" :placeholder="$t('agent.audit.actionHint')" :rules="actionRules" density="compact" clearable data-testid="audit-action" />
       </v-col>
       <v-col cols="12" md="3">
-        <v-autocomplete
+        <AutocompleteSearch
           v-model="model.actor_id"
-          :items="staff"
+          :fetch-items="searchStaff"
           item-title="name"
           item-value="id"
           :label="$t('agent.audit.actor')"
-          :loading="searching"
           density="compact"
           clearable
-          no-filter
           data-testid="audit-actor"
-          @update:search="searchStaff"
         />
       </v-col>
       <v-col cols="12" md="3">

@@ -87,7 +87,7 @@ describe('admin Privacy page (FE-084/FE-086)', () => {
   it('filters by type and status', async () => {
     const h = await mountPage()
     await h.flush()
-    const selects = h.wrapper.findAllComponents({ name: 'VSelect' })
+    const selects = h.wrapper.findAllComponents({ name: 'AutocompleteSearch' })
     selects[0]!.vm.$emit('update:modelValue', 'erasure')
     selects[1]!.vm.$emit('update:modelValue', 'pending')
     await h.flush()

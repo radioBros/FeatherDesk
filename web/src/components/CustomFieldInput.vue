@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * One input for any admin-defined custom field (FE-054). The widget follows
  * the definition type and the rules come only from `validations.forField(def)`
@@ -53,12 +54,13 @@ const testid = computed(() => `cf-${props.def.key}`)
     :data-testid="testid"
     @update:model-value="(v: boolean | null) => emit('update:modelValue', !!v)"
   />
-  <v-select
+  <AutocompleteSearch
     v-else-if="def.type === 'select' || def.type === 'multiselect'"
     :model-value="modelValue"
     :items="options"
     :label="label"
     :multiple="def.type === 'multiselect'"
+    :compact-multiple="noRules"
     :clearable="!def.required"
     :rules="fieldRules"
     :disabled="disabled"
@@ -68,10 +70,10 @@ const testid = computed(() => `cf-${props.def.key}`)
     :data-testid="testid"
     @update:model-value="(v: Value) => emit('update:modelValue', v ?? (def.type === 'multiselect' ? [] : null))"
   >
-    <template v-if="def.type === 'multiselect'" #selection="{ item, index }">
+    <template v-if="def.type === 'multiselect' && !noRules" #selection="{ item, index }">
       <SelectionChips :item="item" :index="index" :total="Array.isArray(modelValue) ? modelValue.length : 0" />
     </template>
-  </v-select>
+  </AutocompleteSearch>
   <v-textarea
     v-else-if="def.type === 'textarea'"
     :model-value="(modelValue as string) ?? ''"

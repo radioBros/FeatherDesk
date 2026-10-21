@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Escalate / de-escalate (FE-024): target tier is ±1 and read-only, an
  * optional target team, and a required reason. Emits the `TicketUpdateResult`
@@ -34,7 +35,7 @@ const onSubmit = submit(async () => {
       <span aria-hidden="true">→</span>
       <TierChip :tier="target" data-testid="escalate-target" />
     </div>
-    <v-select
+    <AutocompleteSearch
       v-model="model.target_team_id"
       :items="teams ?? []"
       item-title="name"

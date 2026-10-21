@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Multi project picker (teams, organizations, webhooks, custom fields). An
  * empty selection has a meaning the caller states in `hint` (usually "every
@@ -22,7 +23,7 @@ const emit = defineEmits<{ 'update:modelValue': [string[]] }>()
 </script>
 
 <template>
-  <v-select
+  <AutocompleteSearch
     :model-value="modelValue"
     :items="projects"
     item-title="name"
@@ -42,5 +43,5 @@ const emit = defineEmits<{ 'update:modelValue': [string[]] }>()
     <template #chip="{ item, props: cp }">
       <v-chip v-bind="cp" size="small" label :title="optionOf(item).name">{{ optionOf(item).key }}</v-chip>
     </template>
-  </v-select>
+  </AutocompleteSearch>
 </template>

@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** `security.mfa_required` (FE-074, D-19 §B): who must use two-factor authentication. */
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -23,7 +24,7 @@ const onSubmit = submit(async () => {
 <template>
   <v-form ref="formRef" data-testid="security-form" @submit.prevent="onSubmit">
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3">{{ formError }}</v-alert>
-    <v-select
+    <AutocompleteSearch
       v-model="policy"
       :items="items"
       :label="$t('mfa.policy.label')"

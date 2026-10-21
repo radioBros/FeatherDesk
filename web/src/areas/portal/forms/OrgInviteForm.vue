@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import { computed, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useForm } from '@/composables/useForm'
@@ -45,7 +46,7 @@ const onSubmit = submit(async () => {
       type="email"
       data-testid="invite-member-email"
     />
-    <v-select
+    <AutocompleteSearch
       v-model="model.role"
       :items="roles"
       :label="$t('portal.members.roleLabel')"

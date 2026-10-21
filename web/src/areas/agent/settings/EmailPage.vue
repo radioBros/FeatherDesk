@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /** /agent/admin/email (FE-048, admin): SMTP, senders, template toggles, triage mailbox, test email, template preview. */
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -97,7 +98,7 @@ const LOCALES = ['en', 'it', 'de', 'fr', 'es']
       <v-card>
         <v-card-title class="d-flex align-center ga-2">
           <code class="flex-grow-1">{{ previewKey }}</code>
-          <v-select v-model="previewLocale" :items="LOCALES" :label="$t('agent.email.previewLocale')" density="compact" hide-details style="max-width: 120px" />
+          <AutocompleteSearch v-model="previewLocale" :items="LOCALES" :label="$t('agent.email.previewLocale')" density="compact" hide-details style="max-width: 120px" />
         </v-card-title>
         <v-card-text>
           <iframe v-if="previewKey" :src="previewSrc" sandbox="" referrerpolicy="no-referrer" class="st-iframe" :title="$t('agent.common.preview')" data-testid="template-preview-iframe" />

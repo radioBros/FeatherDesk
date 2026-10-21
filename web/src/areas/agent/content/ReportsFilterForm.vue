@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 /**
  * Report range form (FE-043): from/to dates (to ≥ from), optional team and
  * SLA calendar mode. Emits the validated filter; the page fetches.
@@ -40,7 +41,7 @@ const onApply = submit(() => emit('apply', { ...model }))
   <v-form ref="formRef" class="d-flex flex-wrap align-start ga-3" data-testid="reports-form" @submit.prevent="onApply">
     <v-text-field v-model="model.from" type="date" :label="$t('agent.reports.from')" :rules="[validations.required.any, validations.date]" density="compact" style="max-width: 190px" data-testid="reports-from" />
     <v-text-field v-model="model.to" type="date" :label="$t('agent.reports.to')" :rules="toRules" density="compact" style="max-width: 190px" data-testid="reports-to" />
-    <v-select
+    <AutocompleteSearch
       v-if="showTeam"
       v-model="model.team_id"
       :items="teams"
@@ -51,7 +52,7 @@ const onApply = submit(() => emit('apply', { ...model }))
       clearable
       style="max-width: 220px"
     />
-    <v-select
+    <AutocompleteSearch
       v-if="projects.length > 1"
       v-model="model.project"
       :items="projectItems"
@@ -63,7 +64,7 @@ const onApply = submit(() => emit('apply', { ...model }))
       style="max-width: 240px"
       data-testid="reports-project"
     />
-    <v-select v-model="model.calendar_mode" :items="modeItems" :label="$t('agent.reports.calendarMode')" density="compact" clearable style="max-width: 220px" />
+    <AutocompleteSearch v-model="model.calendar_mode" :items="modeItems" :label="$t('agent.reports.calendarMode')" density="compact" clearable style="max-width: 220px" />
     <v-btn type="submit" color="primary" :loading="submitting" data-testid="reports-apply">{{ $t('agent.reports.apply') }}</v-btn>
   </v-form>
 </template>

@@ -112,6 +112,18 @@ SERVING=$(dc logs app 2>&1 | grep -m1 '"msg":"serving"' | grep -oE '"engine":"[a
 echo "serving: ${SERVING:-<none>}"
 if [ "$ENGINE" = postgres ] && [ "$SERVING" != '"engine":"postgres"' ]; then echo "app is not on Postgres" >&2; exit 2; fi
 
+# A freshly seeded database starts with a backlog: the queue replays the seeded
+# tickets' events (notifications, search index) right after boot. Idle means
+# after that catch-up, so wait until three samples in a row are under 1%.
+echo "== settling (startup backlog, max 180 s)"
+settle_start=$(date +%s) calm=0
+while [ "$calm" -lt 3 ] && [ $(( $(date +%s) - settle_start )) -lt 180 ]; do
+  c=$(docker stats --no-stream --format '{{.CPUPerc}}' "$APP" | tr -d '%')
+  if awk -v c="$c" 'BEGIN{exit !(c < 1)}'; then calm=$((calm + 1)); else calm=0; fi
+  sleep 2
+done
+echo "settled after $(( $(date +%s) - settle_start )) s"
+
 echo "== idle ${IDLE}s (CPU sampled every 5 s)"
 CPU_SAMPLES=()
 end=$(( $(date +%s) + IDLE ))

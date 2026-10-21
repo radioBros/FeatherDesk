@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
+import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { mdiAccountGroupOutline, mdiAccountPlusOutline } from '@mdi/js'
@@ -78,7 +79,7 @@ const roleItems = () => (['requester', 'org_manager'] as CustomerRole[]).map((r)
           <v-list-item-subtitle v-if="m.email">{{ m.email }}</v-list-item-subtitle>
           <template v-if="m.id !== session.me?.id" #append>
             <div class="d-flex align-center ga-2">
-              <v-select
+              <AutocompleteSearch
                 v-if="m.role"
                 :model-value="m.role"
                 :items="roleItems()"
