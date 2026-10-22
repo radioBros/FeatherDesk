@@ -8,8 +8,9 @@
 #      on Postgres);
 #   3. the NEW image (--to) starts on the same data: pending migrations run on
 #      boot (FD_MIGRATE_ON_BOOT default), /readyz turns 200, every pre-existing
-#      table keeps its row count, the admin signs in and the attachment
-#      downloads byte-identical;
+#      table keeps its row count, the admin signs in, the attachment
+#      downloads byte-identical and a webhook secret sealed by the previous
+#      release still opens (test delivery);
 #   4. the upgraded schema equals the schema of a fresh install of the new image
 #      (catches migrations edited in place);
 #   5. the previous image refuses the upgraded database (exit ≠ 0, "newer than
@@ -97,6 +98,7 @@ envs() { # volume pg
   E=(-v "$1":/data)
   for p in FD ST; do
     E+=(-e "${p}_SECRET_KEY=$SECRET" -e "${p}_PUBLIC_URL=http://127.0.0.1" -e "${p}_LOG_LEVEL=warn")
+    E+=(-e "${p}_WEBHOOK_ALLOW_PRIVATE=true" -e "${p}_WEBHOOK_ALLOW_INSECURE=true") # the drill's webhook targets 127.0.0.1
     [ -n "$db" ] && E+=(-e "${p}_DATABASE_URL=$db")
   done
   return 0
@@ -164,6 +166,10 @@ for _ in $(seq 1 120); do
   if printf '%s' "$q" | grep -q '"lag_events":0' && ! printf '%s' "$q" | grep -Eq '"depth":[1-9]'; then break; fi
   sleep 0.5
 done
+# A webhook: its signing secret is sealed with the previous release's keys.
+HOOK=$(curl -sf "${AUTH[@]}" -H 'Content-Type: application/json' -d '{"url":"http://127.0.0.1:9/drill","events":["ticket.created"]}' \
+  "$U/api/v1/admin/webhooks" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)
+[ -n "$HOOK" ] || { echo "creating the webhook failed" >&2; exit 2; }
 stop_app
 OLD_STATUS=$(oneoff "$FROM" "$ID-data" "$PG" migrate status | tail -1)
 log "previous release wrote: ticket #$NUM with an attachment; $OLD_STATUS"
@@ -195,6 +201,9 @@ U=$(serve "$TO" "$ID-data" "$PG")
 curl -sf "${AUTH[@]}" "$U/api/v1/agent/attachments/$ATT" -o "$WORK/after.bin" && cmp -s "$WORK/file.bin" "$WORK/after.bin" \
   && log "token, ticket #$NUM and its attachment survive the upgrade (byte-identical)" || bad "attachment after upgrade"
 curl -sf "${AUTH[@]}" "$U/api/v1/agent/tickets/by-number/$NUM" | grep -q '"subject":"Upgrade drill"' || bad "ticket #$NUM after upgrade"
+# The test delivery opens the secret sealed by the previous release (the target is unreachable on purpose).
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "${AUTH[@]}" "$U/api/v1/admin/webhooks/$HOOK/test")
+[ "$code" = 200 ] && log "secrets sealed by the previous release still open (webhook test delivery: $code)" || bad "webhook secret after upgrade: test delivery $code"
 stop_app
 
 # ---- 4. upgraded schema == fresh install of the new image -----------------------

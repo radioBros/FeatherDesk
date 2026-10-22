@@ -133,7 +133,7 @@ EOF
 if want 1; then
   step "1. §2.3 Postgres overlay (compose.yml + compose.postgres.yml)"
   P=$ID-pg PORT=18401
-  printf 'FD_SECRET_KEY=%s\nST_PUBLIC_URL=http://127.0.0.1:%s\n' "$SECRET" "$PORT" >"$WORK/pg.env"
+  printf 'FD_SECRET_KEY=%s\nFD_PUBLIC_URL=http://127.0.0.1:%s\n' "$SECRET" "$PORT" >"$WORK/pg.env"
   PROJECTS+=("$P|$ROOT/deploy/compose.yml|$ROOT/deploy/compose.postgres.yml")
   t0=$(date +%s)
   # The compose files read these from the environment (deploy/.env in a real install).
@@ -250,7 +250,7 @@ if want 5; then
   # Point the example at the test server; every other line is used as written.
   sed -E 's/^FD_IMAP_HOST=.*/FD_IMAP_HOST=dovecot/; s/^FD_IMAP_PORT=.*/FD_IMAP_PORT=31143/; s/^FD_IMAP_SECURITY=.*/FD_IMAP_SECURITY=none/;
           s/^FD_IMAP_USERNAME=.*/FD_IMAP_USERNAME=support@test.local/; s/^FD_IMAP_PASSWORD=.*/FD_IMAP_PASSWORD=fd-test-imap/' "$f" >"$WORK/imap.env"
-  printf 'FD_SECRET_KEY=%s\nST_PUBLIC_URL=%s\nST_BOOTSTRAP_ADMIN_EMAIL=%s\nST_BOOTSTRAP_ADMIN_PASSWORD=%s\nST_AUTH_STAFF_LOCAL=true\n' \
+  printf 'FD_SECRET_KEY=%s\nFD_PUBLIC_URL=%s\nFD_BOOTSTRAP_ADMIN_EMAIL=%s\nFD_BOOTSTRAP_ADMIN_PASSWORD=%s\nFD_AUTH_STAFF_LOCAL=true\n' \
     "$SECRET" "$BASE" "$ADMIN" "$ADMIN_PW" >>"$WORK/imap.env"
   docker run -d --name "$ID-app5" --network "$TNET" -p "127.0.0.1:$PORT:8080" --env-file "$WORK/imap.env" --read-only --tmpfs /tmp \
     "$IMAGE" serve >/dev/null; CONTAINERS+=("$ID-app5")

@@ -382,6 +382,13 @@ func TestHealthReadyMetrics(t *testing.T) {
 	}
 	rec := do(s, "GET", "/metrics", func(r *http.Request) { r.Header.Set("Authorization", "Bearer mtok") })
 	body := rec.Body.String()
+	// Every series and its HELP/TYPE lines use the fd_ prefix.
+	for _, line := range strings.Split(strings.TrimSpace(body), "\n") {
+		name := strings.TrimPrefix(strings.TrimPrefix(line, "# HELP "), "# TYPE ")
+		if !strings.HasPrefix(name, "fd_") {
+			t.Errorf("metric line without the fd_ prefix: %q", line)
+		}
+	}
 	for _, want := range []string{"fd_http_requests_total", "fd_queue_depth 7", "fd_go_gc_cpu_seconds_total"} {
 		if !strings.Contains(body, want) {
 			t.Errorf("metrics missing %q", want)

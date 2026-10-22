@@ -133,7 +133,7 @@ export FD API_TOKEN TECH_TEAM_ID AGENT_ID TEAM_ID CUSTOMER_TOKEN
 run_block() { # name [VAR=value…] → stdout of the block
   local name=$1; shift
   # The examples set FD/API_TOKEN to placeholders; the test provides real ones.
-  grep -vE '^export (ST|API_TOKEN)=' "$WORK/blocks/$name" >"$WORK/$name.sh"
+  grep -vE '^export (FD|API_TOKEN)=' "$WORK/blocks/$name" >"$WORK/$name.sh"
   if ! env "$@" PATH="$WORK/shim:$PATH" bash -eo pipefail "$WORK/$name.sh" >"$WORK/$name.out" 2>"$WORK/$name.err"; then
     cat "$WORK/$name.out" "$WORK/$name.err" >&2
     fail "doc example '$name' failed"

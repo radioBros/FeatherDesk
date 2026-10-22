@@ -119,7 +119,7 @@ func (m *Metrics) Write(w io.Writer) {
 		fmt.Fprintf(w, "fd_http_request_duration_seconds_bucket{le=\"%g\"} %d\n", b, m.hist[i])
 	}
 	fmt.Fprintf(w, "fd_http_request_duration_seconds_bucket{le=\"+Inf\"} %d\n", m.count)
-	fmt.Fprintf(w, "fd_http_request_duration_seconds_sum %g\nst_http_request_duration_seconds_count %d\n", m.sum, m.count)
+	fmt.Fprintf(w, "fd_http_request_duration_seconds_sum %g\nfd_http_request_duration_seconds_count %d\n", m.sum, m.count)
 	names := make([]string, 0, len(m.gauges))
 	for n := range m.gauges {
 		names = append(names, n)
@@ -149,10 +149,10 @@ func (m *Metrics) Write(w io.Writer) {
 		}
 		return 0
 	}
-	fmt.Fprintf(w, "# HELP fd_go_gc_cpu_seconds_total Estimated CPU time spent in the garbage collector.\n# TYPE fd_go_gc_cpu_seconds_total counter\nst_go_gc_cpu_seconds_total %g\n", val(samples[0]))
-	fmt.Fprintf(w, "# HELP fd_go_cpu_seconds_total Estimated CPU time used by the Go runtime and program.\n# TYPE fd_go_cpu_seconds_total counter\nst_go_cpu_seconds_total %g\n", val(samples[1]))
-	fmt.Fprintf(w, "# HELP fd_go_memory_bytes Memory mapped by the Go runtime.\n# TYPE fd_go_memory_bytes gauge\nst_go_memory_bytes %g\n", val(samples[2]))
-	fmt.Fprintf(w, "# HELP fd_go_goroutines Live goroutines.\n# TYPE fd_go_goroutines gauge\nst_go_goroutines %g\n", val(samples[3]))
+	fmt.Fprintf(w, "# HELP fd_go_gc_cpu_seconds_total Estimated CPU time spent in the garbage collector.\n# TYPE fd_go_gc_cpu_seconds_total counter\nfd_go_gc_cpu_seconds_total %g\n", val(samples[0]))
+	fmt.Fprintf(w, "# HELP fd_go_cpu_seconds_total Estimated CPU time used by the Go runtime and program.\n# TYPE fd_go_cpu_seconds_total counter\nfd_go_cpu_seconds_total %g\n", val(samples[1]))
+	fmt.Fprintf(w, "# HELP fd_go_memory_bytes Memory mapped by the Go runtime.\n# TYPE fd_go_memory_bytes gauge\nfd_go_memory_bytes %g\n", val(samples[2]))
+	fmt.Fprintf(w, "# HELP fd_go_goroutines Live goroutines.\n# TYPE fd_go_goroutines gauge\nfd_go_goroutines %g\n", val(samples[3]))
 }
 
 // serveMetrics is enabled only when FD_METRICS_TOKEN is set (404 otherwise).
