@@ -1,0 +1,14 @@
+Subject: [HD-1042] We received your request: Printer on floor 3 is offline
+
+##- Reply above this line -##
+
+Hello Ada Lovelace,
+
+thank you for contacting us. We have received your request **Printer on floor 3 is offline** and will get back to you as soon as possible.
+
+Your reference number is **HD-1042**.
+
+[View your request](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+This is an automated message from FeatherDesk.

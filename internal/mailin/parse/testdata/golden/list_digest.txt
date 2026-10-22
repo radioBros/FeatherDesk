@@ -1,0 +1,24 @@
+subject: devs Digest, Vol 12, Issue 3
+from: "" <devs-request@lists.example.org>
+message_id: <digest.12.3@lists.example.org>
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 
+from_html: false
+has_html: false
+unknown_charset: false
+attachments:
+- attachment-1.eml (message/rfc822, 110 bytes, cid="", inline=false)
+- attachment-2.eml (message/rfc822, 109 bytes, cid="", inline=false)
+--- text ---
+Today's Topics:
+
+   1. Topic one
+   2. Topic two
+--- stripped (false) ---
+Today's Topics:
+
+   1. Topic one
+   2. Topic two

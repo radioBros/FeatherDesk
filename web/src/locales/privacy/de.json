@@ -1,0 +1,140 @@
+{
+  "privacy": {
+    "nav": {
+      "admin": "Datenschutz",
+      "myData": "Meine Daten"
+    },
+    "admin": {
+      "subtitle": "Datenexporte, Löschanfragen und Aufbewahrung",
+      "tabRequests": "Anfragen",
+      "tabSettings": "Aufbewahrung und Einstellungen"
+    },
+    "type": {
+      "export": "Datenexport",
+      "erasure": "Kontolöschung"
+    },
+    "status": {
+      "pending": "Ausstehend",
+      "processing": "In Bearbeitung",
+      "ready": "Bereit",
+      "failed": "Fehlgeschlagen",
+      "expired": "Abgelaufen",
+      "completed": "Abgeschlossen",
+      "rejected": "Abgelehnt"
+    },
+    "mode": {
+      "label": "Löschmodus",
+      "anonymize": "Konto anonymisieren",
+      "anonymize_and_redact": "Anonymisieren und Nachrichten schwärzen",
+      "hintAnonymize": "Name und E-Mail werden ersetzt, Anmeldemethoden entfernt und das Konto deaktiviert. Tickets und Nachrichten bleiben erhalten.",
+      "hintRedact": "Ersetzt zusätzlich die von der Person verfassten Nachrichten durch [redacted] und löscht ihre Anhänge sowie die benutzerdefinierten Feldwerte ihrer Tickets."
+    },
+    "col": {
+      "type": "Anfrage",
+      "status": "Zustand",
+      "person": "Person",
+      "requested": "Angefragt",
+      "expires": "Verfügbar bis",
+      "size": "Dateigröße",
+      "actions": "Aktionen"
+    },
+    "filter": {
+      "type": "Art der Anfrage",
+      "status": "Zustand"
+    },
+    "action": {
+      "download": "Herunterladen",
+      "approve": "Genehmigen",
+      "reject": "Ablehnen",
+      "export": "Daten exportieren",
+      "erase": "Personenbezogene Daten löschen",
+      "preview": "Vorschau",
+      "save": "Einstellungen speichern",
+      "cancel": "Abbrechen",
+      "refresh": "Aktualisieren"
+    },
+    "requests": {
+      "empty": "Noch keine Datenschutzanfragen.",
+      "loadFailed": "Die Datenschutzanfragen konnten nicht geladen werden.",
+      "rejected": "Anfrage abgelehnt",
+      "auto": "wird am {date} automatisch genehmigt"
+    },
+    "approve": {
+      "title": "Löschanfrage genehmigen"
+    },
+    "reject": {
+      "title": "Löschanfrage ablehnen",
+      "reason": "Begründung (für den Kunden sichtbar)"
+    },
+    "erase": {
+      "title": "Personenbezogene Daten löschen",
+      "intro": "Dieser Schritt ist endgültig. Tickets bleiben als Geschäftsunterlagen erhalten, aber die Person ist über dieses Konto nicht mehr identifizierbar.",
+      "confirm": "Mir ist bewusst, dass dies nicht rückgängig gemacht werden kann",
+      "done": "Personenbezogene Daten gelöscht: {messages} Nachrichten geschwärzt, {attachments} Anhänge gelöscht"
+    },
+    "export": {
+      "includeInternal": "Interne Notizen und Felder nur für Mitarbeitende einschließen",
+      "queued": "Export angefordert. Eine E-Mail folgt, sobald er bereit ist."
+    },
+    "actions": {
+      "title": "Datenschutz",
+      "recent": "Letzte Anfragen",
+      "none": "Keine Anfragen für diese Person."
+    },
+    "settings": {
+      "retention": "Aufbewahrungsrichtlinie",
+      "retentionHint": "Wird einmal täglich angewendet. Die Vorschau zeigt, was der nächste Lauf ändern würde.",
+      "closedTicketsMonths": "Geschlossene Tickets aufbewahren (Monate)",
+      "closedTicketsMonthsHint": "0 bewahrt sie unbegrenzt auf",
+      "closedTicketsAction": "Danach",
+      "purge": "Ticket löschen",
+      "anonymize": "Ticketinhalt anonymisieren",
+      "inboundEmailDays": "Eingehende Original-E-Mails aufbewahren (Tage)",
+      "auditLogMonths": "Audit-Protokoll aufbewahren (Monate)",
+      "auditLogMonthsHint": "0 behält die Servereinstellung bei (FD_AUDIT_RETENTION_DAYS)",
+      "exportDays": "Fertige Exporte aufbewahren (Tage)",
+      "erasure": "Löschanfragen",
+      "autoApproveDays": "Automatisch genehmigen nach (Tagen)",
+      "autoApproveDaysHint": "0 bedeutet, dass eine Administratorin oder ein Administrator jede Anfrage entscheidet",
+      "autoApproveMode": "Modus für automatische Genehmigungen",
+      "policyVersion": "Version der Datenschutzerklärung",
+      "policyVersionHint": "Wird mit jeder Einwilligung gespeichert, zum Beispiel das Datum der Erklärung",
+      "saved": "Datenschutzeinstellungen gespeichert"
+    },
+    "preview": {
+      "title": "Probelauf",
+      "intro": "Was der Aufbewahrungsjob mit den obigen Werten jetzt verarbeiten würde (es wird nichts geändert).",
+      "closedTickets": "Geschlossene Tickets",
+      "inboundEmails": "Eingehende Original-E-Mails",
+      "auditEntries": "Einträge im Audit-Protokoll",
+      "expiredExports": "Abgelaufene Exportdateien",
+      "autoApprovals": "Zu genehmigende Löschanfragen"
+    },
+    "my": {
+      "title": "Meine Daten",
+      "intro": "Laden Sie eine Kopie Ihrer personenbezogenen Daten herunter oder bitten Sie uns, Ihr Konto zu löschen.",
+      "introStaff": "Laden Sie eine Kopie der personenbezogenen Daten herunter, die dieser Helpdesk über Sie speichert.",
+      "link": "Meine Daten und Datenschutz",
+      "exportTitle": "Ihre Daten exportieren",
+      "exportBody": "Wir erstellen eine ZIP-Datei mit Ihrem Profil, Ihren Tickets und Nachrichten, Ihren Anhängen und Ihren Einwilligungen. Sie erhalten eine E-Mail, sobald sie bereit ist; die Datei kann {days} Tage lang heruntergeladen werden.",
+      "exportButton": "Datenexport anfordern",
+      "exportPending": "Ihr Export wird vorbereitet.",
+      "requestsTitle": "Ihre Anfragen",
+      "empty": "Sie haben noch keine Anfragen gestellt.",
+      "deletionTitle": "Ihr Konto löschen",
+      "deletionBody": "Eine Administratorin oder ein Administrator prüft die Anfrage. Nach der Löschung können Sie sich nicht mehr anmelden, und Ihr Name und Ihre E-Mail-Adresse werden aus unseren Unterlagen entfernt.",
+      "deletionPending": "Ihre Löschanfrage wartet auf Prüfung.",
+      "reason": "Begründung (optional)",
+      "confirm": "Mir ist bewusst, dass mein Konto gelöscht wird und dies nicht rückgängig gemacht werden kann",
+      "deletionButton": "Kontolöschung beantragen",
+      "deletionRequested": "Löschung beantragt",
+      "consentsTitle": "Einwilligungen",
+      "consentLine": "Datenschutzerklärung akzeptiert",
+      "noConsents": "Keine Einwilligungen gespeichert."
+    },
+    "consent": {
+      "accept": "Ich habe die Datenschutzerklärung gelesen und akzeptiere sie",
+      "read": "Datenschutzerklärung lesen"
+    }
+  }
+}

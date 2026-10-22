@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Caddy in front of FeatherDesk (DEP-015). Automatic HTTPS; WebSocket
+# upgrades (/api/v1/ws, subprotocol featherdesk.v1) are proxied natively,
+# no extra directive needed. Caddy sets X-Forwarded-For/-Proto/-Host itself.
+#
+# In FeatherDesk' .env:
+#   FD_PUBLIC_URL=https://help.example.com
+#   FD_TRUSTED_PROXIES=<Caddy's address as seen by the app>, e.g. 172.16.0.0/12
+#   (the compose network) or 127.0.0.1/32 when Caddy runs on the host.
+
+help.example.com {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	reverse_proxy 127.0.0.1:8080 {
+		# Keep idle WebSockets open past the app's 60 s ping interval.
+		stream_timeout 24h
+		stream_close_delay 5m
+	}
+}

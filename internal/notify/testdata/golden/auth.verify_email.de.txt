@@ -1,0 +1,12 @@
+Subject: Bestätigen Sie Ihre E-Mail-Adresse
+
+Hallo Ada Lovelace,
+
+bitte bestätigen Sie Ihre E-Mail-Adresse für FeatherDesk.
+
+[E-Mail-Adresse bestätigen](https://help.example.test/auth/token/abc123)
+
+Dieser Link läuft in 60 Minuten ab. Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren.
+
+-- 
+Dies ist eine automatische Nachricht von FeatherDesk.

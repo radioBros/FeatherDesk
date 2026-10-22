@@ -1,0 +1,140 @@
+{
+  "privacy": {
+    "nav": {
+      "admin": "Privacy",
+      "myData": "My data"
+    },
+    "admin": {
+      "subtitle": "Data exports, deletion requests and retention",
+      "tabRequests": "Requests",
+      "tabSettings": "Retention and settings"
+    },
+    "type": {
+      "export": "Data export",
+      "erasure": "Account deletion"
+    },
+    "status": {
+      "pending": "Pending",
+      "processing": "In progress",
+      "ready": "Ready",
+      "failed": "Failed",
+      "expired": "Expired",
+      "completed": "Completed",
+      "rejected": "Rejected"
+    },
+    "mode": {
+      "label": "Erasure mode",
+      "anonymize": "Anonymize the account",
+      "anonymize_and_redact": "Anonymize and redact their messages",
+      "hintAnonymize": "Name and email are replaced, sign-in methods are removed and the account is disabled. Tickets and messages stay.",
+      "hintRedact": "Also replaces the messages they wrote with [redacted] and deletes their attachments and the custom-field values of their tickets."
+    },
+    "col": {
+      "type": "Request",
+      "status": "State",
+      "person": "Person",
+      "requested": "Requested",
+      "expires": "Available until",
+      "size": "File size",
+      "actions": "Actions"
+    },
+    "filter": {
+      "type": "Request type",
+      "status": "State"
+    },
+    "action": {
+      "download": "Download",
+      "approve": "Approve",
+      "reject": "Reject",
+      "export": "Export data",
+      "erase": "Erase personal data",
+      "preview": "Preview",
+      "save": "Save settings",
+      "cancel": "Cancel",
+      "refresh": "Refresh"
+    },
+    "requests": {
+      "empty": "No privacy requests yet.",
+      "loadFailed": "The privacy requests could not be loaded.",
+      "rejected": "Request rejected",
+      "auto": "approved automatically on {date}"
+    },
+    "approve": {
+      "title": "Approve the deletion request"
+    },
+    "reject": {
+      "title": "Reject the deletion request",
+      "reason": "Reason (shown to the customer)"
+    },
+    "erase": {
+      "title": "Erase personal data",
+      "intro": "This is irreversible. Tickets stay for business records, but the person can no longer be identified from this account.",
+      "confirm": "I understand that this cannot be undone",
+      "done": "Personal data erased: {messages} messages redacted, {attachments} attachments deleted"
+    },
+    "export": {
+      "includeInternal": "Include internal notes and staff-only fields",
+      "queued": "Export requested. An email is sent when it is ready."
+    },
+    "actions": {
+      "title": "Privacy",
+      "recent": "Recent requests",
+      "none": "No requests for this person."
+    },
+    "settings": {
+      "retention": "Retention policy",
+      "retentionHint": "Applied once a day. Use the preview to see what the next run would change.",
+      "closedTicketsMonths": "Keep closed tickets (months)",
+      "closedTicketsMonthsHint": "0 keeps them forever",
+      "closedTicketsAction": "Then",
+      "purge": "Delete the ticket",
+      "anonymize": "Anonymize the ticket content",
+      "inboundEmailDays": "Keep raw inbound emails (days)",
+      "auditLogMonths": "Keep the audit log (months)",
+      "auditLogMonthsHint": "0 keeps the server setting (FD_AUDIT_RETENTION_DAYS)",
+      "exportDays": "Keep finished exports (days)",
+      "erasure": "Deletion requests",
+      "autoApproveDays": "Approve automatically after (days)",
+      "autoApproveDaysHint": "0 means an administrator decides every request",
+      "autoApproveMode": "Mode for automatic approvals",
+      "policyVersion": "Privacy policy version",
+      "policyVersionHint": "Stored with every consent, for example the policy date",
+      "saved": "Privacy settings saved"
+    },
+    "preview": {
+      "title": "Dry run",
+      "intro": "What the retention job would process right now with the values above (nothing is changed).",
+      "closedTickets": "Closed tickets",
+      "inboundEmails": "Raw inbound emails",
+      "auditEntries": "Audit log entries",
+      "expiredExports": "Expired export files",
+      "autoApprovals": "Deletion requests to approve"
+    },
+    "my": {
+      "title": "My data",
+      "intro": "Download a copy of your personal data or ask us to delete your account.",
+      "introStaff": "Download a copy of the personal data this help desk holds about you.",
+      "link": "My data and privacy",
+      "exportTitle": "Export your data",
+      "exportBody": "We prepare a ZIP file with your profile, your tickets and messages, your attachments and your consent records. You get an email when it is ready; the file can be downloaded for {days} days.",
+      "exportButton": "Request a data export",
+      "exportPending": "Your export is being prepared.",
+      "requestsTitle": "Your requests",
+      "empty": "You have not made any requests yet.",
+      "deletionTitle": "Delete your account",
+      "deletionBody": "An administrator reviews the request. After deletion you can no longer sign in, and your name and email are removed from our records.",
+      "deletionPending": "Your deletion request is waiting for review.",
+      "reason": "Reason (optional)",
+      "confirm": "I understand that my account will be deleted and that this cannot be undone",
+      "deletionButton": "Request account deletion",
+      "deletionRequested": "Deletion requested",
+      "consentsTitle": "Consent records",
+      "consentLine": "Privacy policy accepted",
+      "noConsents": "No consent records."
+    },
+    "consent": {
+      "accept": "I have read and accept the privacy policy",
+      "read": "Read the privacy policy"
+    }
+  }
+}

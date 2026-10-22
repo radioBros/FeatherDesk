@@ -1,0 +1,33 @@
+subject: Re: [#1050] VPN access
+from: "Hans Schmidt" <hans@example.de>
+message_id: <a1b2c3d4-tb@example.net>
+in_reply_to: [<0192f000-0000-7000-8000-0000000000bb.aaaaaaaaaaaa@help.example.com>]
+references: [<0192f000-0000-7000-8000-0000000000bb.aaaaaaaaaaaa@help.example.com>]
+to: [support@help.example.com]
+cc: []
+date: 2026-10-20T09:00:00Z
+from_html: false
+has_html: false
+unknown_charset: false
+attachments:
+--- text ---
+Hallo,
+
+der VPN-Zugang funktioniert jetzt. Vielen Dank für die schnelle Hilfe!
+
+Grüße
+Hans
+
+-- 
+Hans Schmidt
+Example GmbH
+
+Am 20.10.2026 um 09:00 schrieb Acme Support:
+> Bitte versuchen Sie es erneut.
+--- stripped (true) ---
+Hallo,
+
+der VPN-Zugang funktioniert jetzt. Vielen Dank für die schnelle Hilfe!
+
+Grüße
+Hans

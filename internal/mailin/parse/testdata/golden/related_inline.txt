@@ -1,0 +1,20 @@
+subject: Logo looks broken
+from: "Designer" <design@example.com>
+message_id: <related-1@example.com>
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 2026-10-20T13:00:00Z
+from_html: false
+has_html: true
+unknown_charset: false
+attachments:
+- logo.png (image/png, 69 bytes, cid="logo123@example.com", inline=true)
+- réport.csv (text/csv, 8 bytes, cid="", inline=false)
+--- text ---
+See the logo below:
+[image: logo.png]
+--- stripped (false) ---
+See the logo below:
+[image: logo.png]

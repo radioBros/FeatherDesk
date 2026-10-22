@@ -1,0 +1,78 @@
+-- Per-project ticket sequence and refs (D-20, PRJ-002).
+--
+-- tickets.project_id is NOT NULL. Existing tickets join the Default project
+-- with project_seq = number, so the old "#1042" and the new "HD-1042" name
+-- the same ticket. The Default project's counter starts at the global
+-- ticket-number counter: while it is the only project, refs and numbers
+-- stay equal. Other projects start at 1.
+--
+-- project_seq comes from counters row "ticket_seq:<project_id>", incremented
+-- in the inserting transaction. The ticket service allocates it explicitly
+-- (store.NextProjectSeq); an INSERT that leaves project_seq at 0 gets one
+-- from the trigger below, so raw inserts (fixtures, seeds) can never collide.
+
+@@sqlite
+-- SQLite cannot ADD COLUMN a NOT NULL REFERENCES column with a default while
+-- foreign keys are on: the reference is enforced by the triggers below.
+ALTER TABLE tickets ADD COLUMN project_id TEXT NOT NULL DEFAULT '00000000-0000-7000-8000-000000000001';
+@@end
+@@postgres
+ALTER TABLE tickets ADD COLUMN project_id TEXT NOT NULL DEFAULT '00000000-0000-7000-8000-000000000001' REFERENCES projects (id);
+@@end
+ALTER TABLE tickets ADD COLUMN project_seq BIGINT NOT NULL DEFAULT 0;
+UPDATE tickets SET project_seq = number;
+CREATE UNIQUE INDEX tickets_project_seq_uq ON tickets (project_id, project_seq);
+CREATE INDEX tickets_project_status_updated_idx ON tickets (project_id, status, updated_at);
+
+-- The global counter is always >= MAX(number) (numbers are allocated from it).
+INSERT INTO counters (name, int_value, text_value)
+SELECT 'ticket_seq:00000000-0000-7000-8000-000000000001', int_value, '' FROM counters WHERE name = 'ticket_number';
+
+@@sqlite
+-- +StatementBegin
+CREATE TRIGGER tickets_project_fk_ins BEFORE INSERT ON tickets
+WHEN NOT EXISTS (SELECT 1 FROM projects WHERE id = NEW.project_id)
+BEGIN
+    SELECT RAISE(ABORT, 'tickets.project_id must reference projects');
+END;
+-- +StatementEnd
+-- +StatementBegin
+CREATE TRIGGER tickets_project_fk_upd BEFORE UPDATE OF project_id ON tickets
+WHEN NOT EXISTS (SELECT 1 FROM projects WHERE id = NEW.project_id)
+BEGIN
+    SELECT RAISE(ABORT, 'tickets.project_id must reference projects');
+END;
+-- +StatementEnd
+-- +StatementBegin
+CREATE TRIGGER tickets_project_seq_ins AFTER INSERT ON tickets
+WHEN NEW.project_seq = 0
+BEGIN
+    INSERT OR IGNORE INTO counters (name, int_value, text_value) VALUES ('ticket_seq:' || NEW.project_id, 0, '');
+    UPDATE counters SET int_value = int_value + 1 WHERE name = 'ticket_seq:' || NEW.project_id;
+    UPDATE tickets SET project_seq = (SELECT int_value FROM counters WHERE name = 'ticket_seq:' || NEW.project_id) WHERE id = NEW.id;
+END;
+-- +StatementEnd
+-- A project referenced by tickets cannot be deleted (Postgres: the FK).
+-- +StatementBegin
+CREATE TRIGGER projects_tickets_restrict BEFORE DELETE ON projects
+WHEN EXISTS (SELECT 1 FROM tickets WHERE project_id = OLD.id)
+BEGIN
+    SELECT RAISE(ABORT, 'project has tickets');
+END;
+-- +StatementEnd
+@@end
+@@postgres
+-- +StatementBegin
+CREATE FUNCTION fd_tickets_project_seq() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.project_seq IS NULL OR NEW.project_seq = 0 THEN
+        INSERT INTO counters (name, int_value, text_value) VALUES ('ticket_seq:' || NEW.project_id, 1, '')
+        ON CONFLICT (name) DO UPDATE SET int_value = counters.int_value + 1
+        RETURNING int_value INTO NEW.project_seq;
+    END IF;
+    RETURN NEW;
+END
+$$;
+-- +StatementEnd
+CREATE TRIGGER tickets_project_seq BEFORE INSERT ON tickets FOR EACH ROW EXECUTE FUNCTION fd_tickets_project_seq();
+@@end

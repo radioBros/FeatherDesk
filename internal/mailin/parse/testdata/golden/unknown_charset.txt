@@ -1,0 +1,16 @@
+subject: test
+from: "" <ivan@example.ru>
+message_id: 
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 
+from_html: false
+has_html: false
+unknown_charset: true
+attachments:
+--- text ---
+plain ascii body
+--- stripped (false) ---
+plain ascii body

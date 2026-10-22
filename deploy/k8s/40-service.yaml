@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+apiVersion: v1
+kind: Service
+metadata:
+  name: featherdesk
+  namespace: featherdesk
+  labels:
+    app.kubernetes.io/name: featherdesk
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: featherdesk
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

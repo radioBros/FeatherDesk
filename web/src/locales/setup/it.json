@@ -1,0 +1,78 @@
+{
+  "setup": {
+    "title": "Configura il tuo help desk",
+    "next": "Avanti",
+    "alreadyDone": "La configurazione è già stata completata. Accedi con l'account amministratore.",
+    "steps": {
+      "token": "Token di configurazione",
+      "admin": "Amministratore",
+      "branding": "Aspetto",
+      "email": "Email",
+      "sso": "Single sign-on",
+      "done": "Fatto"
+    },
+    "token": {
+      "intro": "Per dimostrare che gestisci questo server, incolla il token di configurazione monouso. È stato scritto nel log del server all'avvio dell'istanza.",
+      "label": "Token di configurazione",
+      "hint": "Cerca \"setup token\" nel log del container",
+      "wrong": "Questo token di configurazione non è valido. Copialo di nuovo dal log del server."
+    },
+    "admin": {
+      "reenter": "Per sicurezza la password non viene mai salvata nel browser. Inseriscila di nuovo.",
+      "name": "Nome",
+      "confirmPassword": "Conferma password",
+      "passwordHint": "Almeno 10 caratteri"
+    },
+    "branding": {
+      "productName": "Nome del prodotto",
+      "companyName": "Nome dell'azienda",
+      "primaryColor": "Colore principale",
+      "pickColor": "Scegli un colore",
+      "logo": "Logo (facoltativo)",
+      "logoHint": "PNG, JPEG, WebP o SVG, fino a 1 MB",
+      "create": "Crea l'help desk",
+      "logoFailed": "Non è stato possibile caricare il logo ({reason}). Puoi aggiungerlo più tardi in Aspetto."
+    },
+    "smtp": {
+      "intro": "Facoltativo: collega un server SMTP perché i clienti ricevano le notifiche e possano registrarsi. Puoi saltare questo passaggio e configurarlo più tardi.",
+      "host": "Host SMTP",
+      "port": "Porta",
+      "security": "Sicurezza",
+      "starttls": "STARTTLS (porta 587)",
+      "tls": "TLS (porta 465)",
+      "none": "Nessuna (sconsigliato)",
+      "username": "Nome utente",
+      "password": "Password",
+      "fromAddress": "Indirizzo mittente",
+      "fromName": "Nome mittente",
+      "testTo": "Invia l'email di prova a",
+      "test": "Invia email di prova",
+      "save": "Salva e continua",
+      "skip": "Salta per ora",
+      "testOk": "Email di prova inviata a {to}. Verifica che sia arrivata.",
+      "error": {
+        "auth_failed": "Il server ha rifiutato nome utente o password.",
+        "tls_mismatch": "L'impostazione di sicurezza non corrisponde al server. Prova un'altra porta o modalità.",
+        "connection_refused": "Il server ha rifiutato la connessione. Controlla host e porta.",
+        "timeout": "Il server non ha risposto in tempo.",
+        "dns": "Non è stato possibile risolvere il nome host.",
+        "rejected": "Il server ha rifiutato il messaggio.",
+        "other": "Non è stato possibile inviare l'email di prova."
+      }
+    },
+    "sso": {
+      "intro": "Per consentire a staff e clienti di accedere con il tuo identity provider (ad esempio Authentik), registra questi URI di reindirizzamento, poi imposta le variabili d'ambiente OIDC e riavvia.",
+      "staffRedirect": "URI di reindirizzamento staff",
+      "customerRedirect": "URI di reindirizzamento clienti",
+      "backchannel": "URI di logout back-channel",
+      "copy": "Copia",
+      "copied": "Copiato",
+      "later": "Il single sign-on è facoltativo. L'amministratore appena creato può sempre accedere con email e password."
+    },
+    "done": {
+      "title": "Il tuo help desk è pronto",
+      "body": "Hai effettuato l'accesso come {email}. Ora crea team e categorie e invita i tuoi agenti.",
+      "open": "Apri il pannello agenti"
+    }
+  }
+}

@@ -1,0 +1,186 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# FeatherDesk on Authentik 2026.8.4 (AUTH-022 / DEP-005). Keys verified
+# against blueprints/schema.json and blueprints/testing/oidc-conformance.yaml
+# at tag version/2026.8.4 (2026-10-21).
+#
+# Creates:
+#   - groups fd-admins, fd-supervisors, fd-agents, fd-l2, fd-l3
+#   - two confidential OAuth2/OIDC providers (authorization-code grant, S256
+#     PKCE accepted by default, scopes openid email profile, claims in the ID
+#     token, back-channel logout)
+#   - applications featherdesk-staff (only members of fd-admins,
+#     fd-supervisors or fd-agents) and featherdesk-customer (any user)
+#
+# Everything environment-specific comes from the Authentik server/worker env
+# (!Env), so the same file works for dev and production:
+#   FD_PUBLIC_URL                          e.g. https://help.example.com
+#   FD_BACKCHANNEL_BASE_URL                optional: base URL the Authentik WORKER POSTs
+#                                          back-channel logout tokens to, when it cannot
+#                                          reach FD_PUBLIC_URL (e.g. http://app:8080 inside
+#                                          a compose network). Empty/unset = FD_PUBLIC_URL.
+#   FD_OIDC_STAFF_CLIENT_ID / _SECRET      choose random values, set the same in FeatherDesk
+#   FD_OIDC_CUSTOMER_CLIENT_ID / _SECRET
+#
+# Map the groups in FeatherDesk with:
+#   FD_OIDC_STAFF_ROLE_MAP=fd-admins=admin,fd-supervisors=supervisor,fd-agents=agent
+#   FD_OIDC_STAFF_TIER_MAP=fd-l2=2,fd-l3=3
+# Issuer URLs: <authentik>/application/o/featherdesk-staff/ and …/featherdesk-customer/
+#
+# Dev-only seeded users live in featherdesk-dev-users.blueprint.yaml, which
+# only deploy/compose.dev.yml mounts. Never import that one in production.
+version: 1
+metadata:
+  name: FeatherDesk
+  labels:
+    blueprints.goauthentik.io/description: "FeatherDesk staff + customer OIDC applications and fd-* groups"
+entries:
+  # ---------------------------------------------------------------- groups --
+  - model: authentik_core.group
+    id: fd-admins
+    identifiers:
+      name: fd-admins
+    attrs:
+      attributes:
+        featherdesk_role: admin
+  - model: authentik_core.group
+    id: fd-supervisors
+    identifiers:
+      name: fd-supervisors
+    attrs:
+      attributes:
+        featherdesk_role: supervisor
+  - model: authentik_core.group
+    id: fd-agents
+    identifiers:
+      name: fd-agents
+    attrs:
+      attributes:
+        featherdesk_role: agent
+  - model: authentik_core.group
+    id: fd-l2
+    identifiers:
+      name: fd-l2
+    attrs:
+      attributes:
+        featherdesk_tier: 2
+  - model: authentik_core.group
+    id: fd-l3
+    identifiers:
+      name: fd-l3
+    attrs:
+      attributes:
+        featherdesk_tier: 3
+
+  # ------------------------------------------------------- staff provider --
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider-staff
+    identifiers:
+      name: featherdesk-staff
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      client_type: confidential
+      # Authentik 2026.x allows only the listed grants; empty = none (authorize
+      # answers "invalid_request"). FeatherDesk uses the code flow (+ PKCE).
+      grant_types: [authorization_code, refresh_token]
+      client_id: !Env [FD_OIDC_STAFF_CLIENT_ID, featherdesk-staff]
+      client_secret: !Env FD_OIDC_STAFF_CLIENT_SECRET
+      issuer_mode: per_provider
+      sub_mode: hashed_user_id
+      include_claims_in_id_token: true
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      redirect_uris:
+        - matching_mode: strict
+          redirect_uri_type: authorization
+          url: !Format ["%s/api/v1/auth/oidc/staff/callback", !Env [FD_PUBLIC_URL, "http://localhost:8080"]]
+        - matching_mode: regex
+          redirect_uri_type: logout
+          url: !Format ["^%s/.*$", !Env [FD_PUBLIC_URL, "http://localhost:8080"]]
+      logout_method: backchannel
+      # Called server-to-server by the Authentik worker: FD_BACKCHANNEL_BASE_URL when set,
+      # else FD_PUBLIC_URL. (!Env does not resolve a tag given as its default; !If does.)
+      logout_uri: !Format ["%s/api/v1/auth/oidc/staff/backchannel-logout", !If [!Env FD_BACKCHANNEL_BASE_URL, !Env FD_BACKCHANNEL_BASE_URL, !Env [FD_PUBLIC_URL, "http://localhost:8080"]]]
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+
+  - model: authentik_core.application
+    id: app-staff
+    identifiers:
+      slug: featherdesk-staff
+    attrs:
+      name: FeatherDesk (staff)
+      provider: !KeyOf provider-staff
+      policy_engine_mode: any
+      meta_launch_url: !Format ["%s/agent", !Env [FD_PUBLIC_URL, "http://localhost:8080"]]
+      meta_description: Help desk agent panel
+
+  # Only fd-* staff may use the staff application (policy engine mode: any).
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf app-staff
+      group: !KeyOf fd-admins
+    attrs:
+      order: 10
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf app-staff
+      group: !KeyOf fd-supervisors
+    attrs:
+      order: 20
+  - model: authentik_policies.policybinding
+    identifiers:
+      target: !KeyOf app-staff
+      group: !KeyOf fd-agents
+    attrs:
+      order: 30
+
+  # ---------------------------------------------------- customer provider --
+  - model: authentik_providers_oauth2.oauth2provider
+    id: provider-customer
+    identifiers:
+      name: featherdesk-customer
+    attrs:
+      authorization_flow: !Find [authentik_flows.flow, [slug, default-provider-authorization-implicit-consent]]
+      invalidation_flow: !Find [authentik_flows.flow, [slug, default-provider-invalidation-flow]]
+      client_type: confidential
+      grant_types: [authorization_code, refresh_token]
+      client_id: !Env [FD_OIDC_CUSTOMER_CLIENT_ID, featherdesk-customer]
+      client_secret: !Env FD_OIDC_CUSTOMER_CLIENT_SECRET
+      issuer_mode: per_provider
+      sub_mode: hashed_user_id
+      include_claims_in_id_token: true
+      access_code_validity: minutes=1
+      access_token_validity: minutes=5
+      redirect_uris:
+        - matching_mode: strict
+          redirect_uri_type: authorization
+          url: !Format ["%s/api/v1/auth/oidc/customer/callback", !Env [FD_PUBLIC_URL, "http://localhost:8080"]]
+        - matching_mode: regex
+          redirect_uri_type: logout
+          url: !Format ["^%s/.*$", !Env [FD_PUBLIC_URL, "http://localhost:8080"]]
+      logout_method: backchannel
+      # Called server-to-server by the Authentik worker: FD_BACKCHANNEL_BASE_URL when set,
+      # else FD_PUBLIC_URL. (!Env does not resolve a tag given as its default; !If does.)
+      logout_uri: !Format ["%s/api/v1/auth/oidc/customer/backchannel-logout", !If [!Env FD_BACKCHANNEL_BASE_URL, !Env FD_BACKCHANNEL_BASE_URL, !Env [FD_PUBLIC_URL, "http://localhost:8080"]]]
+      property_mappings:
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-openid]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-email]]
+        - !Find [authentik_providers_oauth2.scopemapping, [managed, goauthentik.io/providers/oauth2/scope-profile]]
+      signing_key: !Find [authentik_crypto.certificatekeypair, [name, authentik Self-signed Certificate]]
+
+  - model: authentik_core.application
+    id: app-customer
+    identifiers:
+      slug: featherdesk-customer
+    attrs:
+      name: FeatherDesk (customer portal)
+      provider: !KeyOf provider-customer
+      policy_engine_mode: any
+      meta_launch_url: !Env [FD_PUBLIC_URL, "http://localhost:8080"]
+      meta_description: Help desk customer portal

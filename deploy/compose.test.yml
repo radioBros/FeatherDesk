@@ -1,0 +1,92 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# TEST / CI ONLY (DEP-031): S3 (MinIO) and IMAP (Dovecot) servers for the
+# integration tests. Standalone file: never merged with compose.yml, never
+# referenced by compose.postgres.yml, k8s or Helm (scripts/check-test-images.sh
+# fails the build if either image shows up there).
+#
+#   docker compose -f deploy/compose.test.yml up -d --wait
+#   FD_TEST_S3_URL='s3://test/st?endpoint=http://127.0.0.1:19000&region=us-east-1&path_style=true' \
+#   FD_S3_ACCESS_KEY=fd-test FD_S3_SECRET_KEY=fd-test-secret-123 go test ./internal/blob -run S3Integration
+#   FD_TEST_IMAP_URL='imap://support@test.local:fd-test-imap@127.0.0.1:31143/INBOX' \
+#   FD_TEST_IMAP_RESTART="docker compose -f $PWD/deploy/compose.test.yml restart dovecot" \
+#   go test ./internal/mailin -run DovecotIntegration
+#   # fallback poll (server without IDLE, NOT-033):
+#   FD_TEST_IMAP_URL='imap://support@test.local:fd-test-imap@127.0.0.1:31144/INBOX' FD_TEST_IMAP_NO_IDLE=1 \
+#   go test ./internal/mailin -run DovecotIntegration
+#
+# MinIO: minio/minio is no longer published on Docker Hub or quay.io (checked
+# 2026-10-21); pgsty/minio is the maintained community build of the same server.
+name: featherdesk-test
+
+services:
+  minio:
+    # pgsty/minio RELEASE.2026-08-04T00-00-00Z (tag latest), digest resolved 2026-10-21.
+    image: pgsty/minio@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: fd-test
+      MINIO_ROOT_PASSWORD: fd-test-secret-123
+    ports:
+      - "127.0.0.1:19000:9000"
+      - "127.0.0.1:19001:9001"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      start_interval: 1s
+      retries: 10
+
+  # One-shot: creates the bucket `test` used by TestS3Integration.
+  minio-init:
+    image: pgsty/minio@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - mc alias set t http://minio:9000 fd-test fd-test-secret-123 && mc mb --ignore-existing t/test
+    restart: "no"
+
+  dovecot:
+    # dovecot/dovecot:2.4.5, digest resolved 2026-10-21.
+    image: dovecot/dovecot@sha256:43c14def08a57f25107593cbcf64a0a6fbae84a7b9de7aa038513c9b21e91914
+    environment:
+      USER_PASSWORD: fd-test-imap
+    ports:
+      - "127.0.0.1:31143:31143"
+      - "127.0.0.1:31993:31993"
+    volumes:
+      - ./dovecot/featherdesk-test.conf:/etc/dovecot/conf.d/featherdesk-test.conf:ro
+    tmpfs:
+      - /srv/vmail:uid=1000,gid=1000
+    healthcheck:
+      test: ["CMD", "doveadm", "service", "status", "imap-login"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      start_interval: 1s
+      retries: 10
+
+  # Same server with IDLE hidden: the inbound source must fall back to polling.
+  dovecot-noidle:
+    image: dovecot/dovecot@sha256:43c14def08a57f25107593cbcf64a0a6fbae84a7b9de7aa038513c9b21e91914
+    environment:
+      USER_PASSWORD: fd-test-imap
+    ports:
+      - "127.0.0.1:31144:31143"
+    volumes:
+      - ./dovecot/featherdesk-test.conf:/etc/dovecot/conf.d/featherdesk-test.conf:ro
+      - ./dovecot/featherdesk-test-noidle.conf:/etc/dovecot/conf.d/zz-featherdesk-test-noidle.conf:ro
+    tmpfs:
+      - /srv/vmail:uid=1000,gid=1000
+    healthcheck:
+      test: ["CMD", "doveadm", "service", "status", "imap-login"]
+      interval: 5s
+      timeout: 3s
+      start_period: 5s
+      start_interval: 1s
+      retries: 10

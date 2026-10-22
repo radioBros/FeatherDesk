@@ -1,0 +1,140 @@
+{
+  "privacy": {
+    "nav": {
+      "admin": "Privacidad",
+      "myData": "Mis datos"
+    },
+    "admin": {
+      "subtitle": "Exportaciones de datos, solicitudes de eliminación y conservación",
+      "tabRequests": "Solicitudes",
+      "tabSettings": "Conservación y ajustes"
+    },
+    "type": {
+      "export": "Exportación de datos",
+      "erasure": "Eliminación de la cuenta"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "processing": "En curso",
+      "ready": "Lista",
+      "failed": "Fallida",
+      "expired": "Caducada",
+      "completed": "Completada",
+      "rejected": "Rechazada"
+    },
+    "mode": {
+      "label": "Modo de borrado",
+      "anonymize": "Anonimizar la cuenta",
+      "anonymize_and_redact": "Anonimizar y ocultar sus mensajes",
+      "hintAnonymize": "Se sustituyen el nombre y el correo, se eliminan los métodos de acceso y se desactiva la cuenta. Los tickets y mensajes se conservan.",
+      "hintRedact": "Además sustituye los mensajes escritos por la persona por [redacted] y elimina sus adjuntos y los valores de los campos personalizados de sus tickets."
+    },
+    "col": {
+      "type": "Solicitud",
+      "status": "Estado",
+      "person": "Persona",
+      "requested": "Solicitada",
+      "expires": "Disponible hasta",
+      "size": "Tamaño del archivo",
+      "actions": "Acciones"
+    },
+    "filter": {
+      "type": "Tipo de solicitud",
+      "status": "Estado"
+    },
+    "action": {
+      "download": "Descargar",
+      "approve": "Aprobar",
+      "reject": "Rechazar",
+      "export": "Exportar datos",
+      "erase": "Borrar datos personales",
+      "preview": "Vista previa",
+      "save": "Guardar ajustes",
+      "cancel": "Cancelar",
+      "refresh": "Actualizar"
+    },
+    "requests": {
+      "empty": "Todavía no hay solicitudes de privacidad.",
+      "loadFailed": "No se pudieron cargar las solicitudes de privacidad.",
+      "rejected": "Solicitud rechazada",
+      "auto": "se aprobará automáticamente el {date}"
+    },
+    "approve": {
+      "title": "Aprobar la solicitud de eliminación"
+    },
+    "reject": {
+      "title": "Rechazar la solicitud de eliminación",
+      "reason": "Motivo (visible para el cliente)"
+    },
+    "erase": {
+      "title": "Borrar datos personales",
+      "intro": "Esta acción es irreversible. Los tickets se conservan como registros de la empresa, pero la persona ya no se puede identificar a partir de esta cuenta.",
+      "confirm": "Entiendo que esto no se puede deshacer",
+      "done": "Datos personales borrados: {messages} mensajes ocultados, {attachments} adjuntos eliminados"
+    },
+    "export": {
+      "includeInternal": "Incluir notas internas y campos solo para el equipo",
+      "queued": "Exportación solicitada. Se enviará un correo cuando esté lista."
+    },
+    "actions": {
+      "title": "Privacidad",
+      "recent": "Solicitudes recientes",
+      "none": "No hay solicitudes para esta persona."
+    },
+    "settings": {
+      "retention": "Política de conservación",
+      "retentionHint": "Se aplica una vez al día. La vista previa muestra lo que cambiaría la próxima ejecución.",
+      "closedTicketsMonths": "Conservar los tickets cerrados (meses)",
+      "closedTicketsMonthsHint": "0 los conserva para siempre",
+      "closedTicketsAction": "Después",
+      "purge": "Eliminar el ticket",
+      "anonymize": "Anonimizar el contenido del ticket",
+      "inboundEmailDays": "Conservar los correos entrantes originales (días)",
+      "auditLogMonths": "Conservar el registro de auditoría (meses)",
+      "auditLogMonthsHint": "0 mantiene el ajuste del servidor (FD_AUDIT_RETENTION_DAYS)",
+      "exportDays": "Conservar las exportaciones terminadas (días)",
+      "erasure": "Solicitudes de eliminación",
+      "autoApproveDays": "Aprobar automáticamente después de (días)",
+      "autoApproveDaysHint": "0 significa que un administrador decide cada solicitud",
+      "autoApproveMode": "Modo de las aprobaciones automáticas",
+      "policyVersion": "Versión de la política de privacidad",
+      "policyVersionHint": "Se guarda con cada consentimiento, por ejemplo la fecha de la política",
+      "saved": "Ajustes de privacidad guardados"
+    },
+    "preview": {
+      "title": "Simulación",
+      "intro": "Lo que el proceso de conservación procesaría ahora con los valores de arriba (no se modifica nada).",
+      "closedTickets": "Tickets cerrados",
+      "inboundEmails": "Correos entrantes originales",
+      "auditEntries": "Entradas del registro de auditoría",
+      "expiredExports": "Archivos de exportación caducados",
+      "autoApprovals": "Solicitudes de eliminación por aprobar"
+    },
+    "my": {
+      "title": "Mis datos",
+      "intro": "Descargue una copia de sus datos personales o pídanos que eliminemos su cuenta.",
+      "introStaff": "Descargue una copia de los datos personales que este servicio de asistencia guarda sobre usted.",
+      "link": "Mis datos y privacidad",
+      "exportTitle": "Exportar sus datos",
+      "exportBody": "Preparamos un archivo ZIP con su perfil, sus tickets y mensajes, sus adjuntos y sus consentimientos. Recibirá un correo cuando esté listo; el archivo se puede descargar durante {days} días.",
+      "exportButton": "Solicitar una exportación de datos",
+      "exportPending": "Su exportación se está preparando.",
+      "requestsTitle": "Sus solicitudes",
+      "empty": "Todavía no ha hecho ninguna solicitud.",
+      "deletionTitle": "Eliminar su cuenta",
+      "deletionBody": "Un administrador revisa la solicitud. Tras la eliminación ya no podrá iniciar sesión, y su nombre y su correo se eliminarán de nuestros registros.",
+      "deletionPending": "Su solicitud de eliminación está pendiente de revisión.",
+      "reason": "Motivo (opcional)",
+      "confirm": "Entiendo que mi cuenta se eliminará y que esto no se puede deshacer",
+      "deletionButton": "Solicitar la eliminación de la cuenta",
+      "deletionRequested": "Eliminación solicitada",
+      "consentsTitle": "Consentimientos registrados",
+      "consentLine": "Política de privacidad aceptada",
+      "noConsents": "No hay consentimientos registrados."
+    },
+    "consent": {
+      "accept": "He leído y acepto la política de privacidad",
+      "read": "Leer la política de privacidad"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+Subject: Verifique su dirección de correo
+
+Hola Ada Lovelace,
+
+confirme su dirección de correo para FeatherDesk.
+
+[Verificar dirección de correo](https://help.example.test/auth/token/abc123)
+
+Este enlace caduca en 60 minutos. Si usted no lo ha solicitado, puede ignorar este correo.
+
+-- 
+Este es un mensaje automático de FeatherDesk.

@@ -1,0 +1,19 @@
+Subject: [HD-1042] Escaladé : Printer on floor 3 is offline
+
+##- Répondez au-dessus de cette ligne -##
+
+Bonjour Grace Hopper,
+
+Alan Turing a escaladé le ticket **HD-1042 Printer on floor 3 is offline** de L1 à L2.
+
+**Motif:** Needs network access
+
+- **Objet:** Printer on floor 3 is offline
+- **Priorité:** high
+- **Équipe:** IT
+- **Niveau:** L2
+
+[Ouvrir le ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Ceci est un message automatique de FeatherDesk.

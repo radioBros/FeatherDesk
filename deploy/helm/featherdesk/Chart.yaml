@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+apiVersion: v2
+name: featherdesk
+description: Lightweight help desk in one container (SQLite or Postgres, embedded SPA). Single replica by design.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://radiobros.com/
+maintainers:
+  - name: RadioBros
+    url: https://radiobros.com/
+sources:
+  - https://github.com/radioBros/FeatherDesk
+keywords: [helpdesk, ticketing, support]
+annotations:
+  licenses: AGPL-3.0-only

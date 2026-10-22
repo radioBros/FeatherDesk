@@ -1,0 +1,71 @@
+{
+  "notifications": {
+    "bell": {
+      "label": "Benachrichtigungen",
+      "labelUnread": "Benachrichtigungen, {n} ungelesen"
+    },
+    "menu": {
+      "markAllRead": "Alle als gelesen markieren",
+      "seeAll": "Alle Benachrichtigungen anzeigen",
+      "empty": "Keine neuen Benachrichtigungen",
+      "loadFailed": "Benachrichtigungen konnten nicht geladen werden"
+    },
+    "page": {
+      "title": "Benachrichtigungen",
+      "subtitle": "Neuigkeiten zu Ihren Tickets",
+      "filter": "Anzeigen",
+      "filterAll": "Alle",
+      "filterUnread": "Ungelesen",
+      "type": "Art",
+      "allTypes": "Alle Arten",
+      "loadMore": "Mehr laden",
+      "empty": "Noch keine Benachrichtigungen",
+      "emptyUnread": "Keine ungelesenen Benachrichtigungen",
+      "markRead": "Als gelesen markieren",
+      "delete": "Benachrichtigung löschen",
+      "deleted": "Benachrichtigung gelöscht",
+      "allRead": "Alle Benachrichtigungen als gelesen markiert",
+      "unread": "Ungelesen",
+      "settings": "Benachrichtigungseinstellungen"
+    },
+    "someone": "Jemand",
+    "noTicket": "ein Ticket",
+    "types": {
+      "staff_ticket_new": { "label": "Neues Ticket in meiner Warteschlange", "title": "Neues Ticket {ref}" },
+      "staff_customer_replied": { "label": "Antwort des Kunden", "title": "{actor} hat auf {ref} geantwortet" },
+      "staff_assigned": { "label": "Mir zugewiesenes Ticket", "title": "{actor} hat Ihnen {ref} zugewiesen" },
+      "staff_escalated": { "label": "An mein Team eskaliertes Ticket", "title": "{ref} wurde an {tier} eskaliert" },
+      "staff_mentioned": { "label": "Erwähnung in einer Notiz", "title": "{actor} hat Sie in {ref} erwähnt" },
+      "staff_sla": { "label": "SLA-Warnungen und -Verletzungen", "title": "SLA-Warnung für {ref}", "breached": "SLA verletzt für {ref}" },
+      "staff_children_resolved": { "label": "Verknüpfte Tickets gelöst", "title": "Alle verknüpften Tickets von {ref} sind gelöst" },
+      "customer_ticket_received": { "label": "Anfrage eingegangen", "title": "Wir haben Ihre Anfrage {ref} erhalten" },
+      "customer_reply": { "label": "Antwort auf meine Anfrage", "title": "{actor} hat auf Ihre Anfrage {ref} geantwortet" },
+      "customer_resolved": { "label": "Anfrage gelöst", "title": "Ihre Anfrage {ref} wurde gelöst" }
+    },
+    "sla": {
+      "first_response": "Erste Antwort fällig",
+      "resolution": "Lösung fällig"
+    },
+    "prefs": {
+      "title": "Benachrichtigungen",
+      "subtitle": "Wählen Sie, wie Sie über jede Art von Neuigkeit informiert werden.",
+      "type": "Neuigkeit",
+      "inApp": "In der App",
+      "email": "E-Mail",
+      "browser": "Browser-Pop-up",
+      "emailForced": "Antworten auf Ihre Anfragen werden immer per E-Mail gesendet.",
+      "save": "Benachrichtigungseinstellungen speichern",
+      "saved": "Benachrichtigungseinstellungen gespeichert",
+      "browserTitle": "Browser-Benachrichtigungen",
+      "browserHint": "Pop-ups erscheinen, solange ein Tab dieses Helpdesks im Hintergrund geöffnet ist. Sind alle Tabs geschlossen, kommt nichts an.",
+      "enable": "Browser-Benachrichtigungen erlauben",
+      "granted": "Browser-Benachrichtigungen sind in diesem Browser erlaubt.",
+      "denied": "Browser-Benachrichtigungen sind blockiert. Erlauben Sie sie in den Website-Einstellungen des Browsers und laden Sie die Seite neu.",
+      "unsupported": "Dieser Browser kann keine Benachrichtigungen anzeigen.",
+      "sound": "Bei jedem Pop-up einen Ton abspielen (nur in diesem Browser)"
+    },
+    "validation": {
+      "permission": "Erlauben Sie zuerst Browser-Benachrichtigungen"
+    }
+  }
+}

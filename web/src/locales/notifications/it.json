@@ -1,0 +1,71 @@
+{
+  "notifications": {
+    "bell": {
+      "label": "Notifiche",
+      "labelUnread": "Notifiche, {n} non lette"
+    },
+    "menu": {
+      "markAllRead": "Segna tutte come lette",
+      "seeAll": "Vedi tutte le notifiche",
+      "empty": "Non hai nuove notifiche",
+      "loadFailed": "Impossibile caricare le notifiche"
+    },
+    "page": {
+      "title": "Notifiche",
+      "subtitle": "Aggiornamenti sui tuoi ticket",
+      "filter": "Mostra",
+      "filterAll": "Tutte",
+      "filterUnread": "Non lette",
+      "type": "Tipo",
+      "allTypes": "Tutti i tipi",
+      "loadMore": "Carica altre",
+      "empty": "Ancora nessuna notifica",
+      "emptyUnread": "Nessuna notifica non letta",
+      "markRead": "Segna come letta",
+      "delete": "Elimina notifica",
+      "deleted": "Notifica eliminata",
+      "allRead": "Tutte le notifiche sono state segnate come lette",
+      "unread": "Non letta",
+      "settings": "Impostazioni delle notifiche"
+    },
+    "someone": "Qualcuno",
+    "noTicket": "un ticket",
+    "types": {
+      "staff_ticket_new": { "label": "Nuovo ticket nella mia coda", "title": "Nuovo ticket {ref}" },
+      "staff_customer_replied": { "label": "Risposta del cliente", "title": "{actor} ha risposto su {ref}" },
+      "staff_assigned": { "label": "Ticket assegnato a me", "title": "{actor} ti ha assegnato {ref}" },
+      "staff_escalated": { "label": "Ticket inoltrato al mio team", "title": "{ref} è stato inoltrato a {tier}" },
+      "staff_mentioned": { "label": "Menzione in una nota", "title": "{actor} ti ha menzionato su {ref}" },
+      "staff_sla": { "label": "Avvisi e violazioni SLA", "title": "Avviso SLA su {ref}", "breached": "SLA violato su {ref}" },
+      "staff_children_resolved": { "label": "Ticket collegati risolti", "title": "Tutti i ticket collegati a {ref} sono risolti" },
+      "customer_ticket_received": { "label": "Richiesta ricevuta", "title": "Abbiamo ricevuto la tua richiesta {ref}" },
+      "customer_reply": { "label": "Risposta alla mia richiesta", "title": "{actor} ha risposto alla tua richiesta {ref}" },
+      "customer_resolved": { "label": "Richiesta risolta", "title": "La tua richiesta {ref} è stata risolta" }
+    },
+    "sla": {
+      "first_response": "Scadenza prima risposta",
+      "resolution": "Scadenza risoluzione"
+    },
+    "prefs": {
+      "title": "Notifiche",
+      "subtitle": "Scegli come ricevere ogni tipo di aggiornamento.",
+      "type": "Aggiornamento",
+      "inApp": "Nell'app",
+      "email": "Email",
+      "browser": "Popup del browser",
+      "emailForced": "Le risposte alle tue richieste vengono sempre inviate via email.",
+      "save": "Salva impostazioni notifiche",
+      "saved": "Impostazioni delle notifiche salvate",
+      "browserTitle": "Notifiche del browser",
+      "browserHint": "I popup compaiono mentre una scheda di questo help desk è aperta in background. Se tutte le schede sono chiuse non arriva nulla.",
+      "enable": "Consenti le notifiche del browser",
+      "granted": "Le notifiche sono consentite in questo browser.",
+      "denied": "Le notifiche del browser sono bloccate. Consentile nelle impostazioni del sito del browser, poi ricarica.",
+      "unsupported": "Questo browser non può mostrare notifiche.",
+      "sound": "Riproduci un suono con ogni popup (solo in questo browser)"
+    },
+    "validation": {
+      "permission": "Consenti prima le notifiche del browser"
+    }
+  }
+}

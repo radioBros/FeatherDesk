@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Subject}}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2933;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5f7;">
+<tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:6px;overflow:hidden;">
+{{- if .Marker}}
+<tr><td style="padding:8px 24px;font-size:11px;color:#616e7c;">{{.Marker}}</td></tr>
+{{- end}}
+<tr><td style="background:{{.HeaderColor}};padding:16px 24px;">
+{{- if .Brand.DefaultLogo}}<img src="{{.Brand.LogoURL}}" alt="" height="32" style="height:32px;display:inline-block;vertical-align:middle;border:0;"><span style="color:#ffffff;font-size:18px;font-weight:600;vertical-align:middle;padding-left:10px;">{{.Brand.ProductName}}</span>{{else if .Brand.LogoURL}}<img src="{{.Brand.LogoURL}}" alt="{{.Brand.ProductName}}" height="32" style="height:32px;display:block;border:0;">{{else}}<span style="color:#ffffff;font-size:18px;font-weight:600;">{{.Brand.ProductName}}</span>{{end}}
+</td></tr>
+<tr><td style="padding:24px;font-size:15px;line-height:1.5;">
+{{.Body}}
+</td></tr>
+<tr><td style="padding:16px 24px;border-top:1px solid #e4e7eb;font-size:12px;line-height:1.5;color:#616e7c;">
+{{- if .Footer}}{{.Footer}}{{end}}
+<p style="margin:8px 0;">{{.Automated}} {{.Brand.ProductName}}.</p>
+{{- if or .Brand.PrivacyURL .Brand.TermsURL .Brand.ImprintURL}}
+<p style="margin:8px 0;">
+{{- if .Brand.PrivacyURL}}<a href="{{.Brand.PrivacyURL}}" style="color:{{.PrimaryColor}};">{{.Privacy}}</a> {{end}}
+{{- if .Brand.TermsURL}}<a href="{{.Brand.TermsURL}}" style="color:{{.PrimaryColor}};">{{.Terms}}</a> {{end}}
+{{- if .Brand.ImprintURL}}<a href="{{.Brand.ImprintURL}}" style="color:{{.PrimaryColor}};">{{.Imprint}}</a>{{end}}
+</p>
+{{- end}}
+{{- if .Brand.PoweredBy}}
+<p style="margin:8px 0;">{{.PoweredByLabel}} <a href="https://radiobros.com/" style="color:{{.PrimaryColor}};">FeatherDesk</a> &middot; {{.ByAuthorLabel}} <a href="https://radiobros.com/" style="color:{{.PrimaryColor}};">RadioBros</a></p>
+{{- end}}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>

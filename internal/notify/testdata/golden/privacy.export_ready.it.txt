@@ -1,0 +1,12 @@
+Subject: La tua esportazione dei dati è pronta
+
+Ciao Ada Lovelace,
+
+l'esportazione dei dati personali che hai richiesto a FeatherDesk è pronta.
+
+[Scarica l'esportazione](https://help.example.test/auth/token/abc123)
+
+Il file viene eliminato dopo 7 giorni. Se non hai richiesto tu questa esportazione, contattaci.
+
+-- 
+Questo è un messaggio automatico di FeatherDesk.

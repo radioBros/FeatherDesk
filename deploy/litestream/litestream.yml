@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Litestream configuration for deploy/compose.litestream.yml (DEP-020).
+# Every value comes from the sidecar's env file (default deploy/litestream.env):
+#
+#   LITESTREAM_BUCKET            bucket name                      (required)
+#   LITESTREAM_PATH              key prefix inside the bucket     (default featherdesk)
+#   LITESTREAM_ENDPOINT          S3-compatible endpoint URL; empty = AWS S3
+#   LITESTREAM_REGION            region                           (default us-east-1)
+#   LITESTREAM_FORCE_PATH_STYLE  true for MinIO, Garage, …       (default false)
+#   LITESTREAM_ACCESS_KEY_ID / LITESTREAM_SECRET_ACCESS_KEY
+#
+# The SQLite file is the one `serve` opens when FD_DATABASE_URL is unset.
+# FeatherDesk runs SQLite in WAL mode with one writer connection, the default
+# auto-checkpoint and a PASSIVE checkpoint every 5 min (internal/app). Passive
+# checkpoints never reset the WAL past an open reader, and Litestream holds its
+# own read transaction to pace checkpoints, so no app setting has to change.
+dbs:
+  - path: /data/featherdesk.db
+    replica:
+      type: s3
+      bucket: ${LITESTREAM_BUCKET}
+      path: ${LITESTREAM_PATH}
+      endpoint: ${LITESTREAM_ENDPOINT}
+      region: ${LITESTREAM_REGION}
+      force-path-style: ${LITESTREAM_FORCE_PATH_STYLE}
+      sync-interval: 1s

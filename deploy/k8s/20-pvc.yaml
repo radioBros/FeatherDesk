@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# /data: SQLite database, local attachments, backups, instance lock.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: featherdesk-data
+  namespace: featherdesk
+  labels:
+    app.kubernetes.io/name: featherdesk
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi

@@ -1,0 +1,78 @@
+{
+  "setup": {
+    "title": "Configurez votre centre d'assistance",
+    "next": "Suivant",
+    "alreadyDone": "La configuration est déjà terminée. Connectez-vous avec le compte administrateur.",
+    "steps": {
+      "token": "Jeton de configuration",
+      "admin": "Administrateur",
+      "branding": "Image de marque",
+      "email": "E-mail",
+      "sso": "Authentification unique",
+      "done": "Terminé"
+    },
+    "token": {
+      "intro": "Pour prouver que vous administrez ce serveur, collez le jeton de configuration à usage unique. Il a été affiché dans le journal du serveur au démarrage de l'instance.",
+      "label": "Jeton de configuration",
+      "hint": "Cherchez « setup token » dans le journal du conteneur",
+      "wrong": "Ce jeton de configuration n'est pas valide. Copiez-le à nouveau depuis le journal du serveur."
+    },
+    "admin": {
+      "reenter": "Pour votre sécurité, le mot de passe n'est jamais enregistré dans le navigateur. Veuillez le saisir à nouveau.",
+      "name": "Nom",
+      "confirmPassword": "Confirmez le mot de passe",
+      "passwordHint": "Au moins 10 caractères"
+    },
+    "branding": {
+      "productName": "Nom du produit",
+      "companyName": "Nom de l'entreprise",
+      "primaryColor": "Couleur principale",
+      "pickColor": "Choisir une couleur",
+      "logo": "Logo (facultatif)",
+      "logoHint": "PNG, JPEG, WebP ou SVG, jusqu'à 1 Mo",
+      "create": "Créer le centre d'assistance",
+      "logoFailed": "Le logo n'a pas pu être envoyé ({reason}). Vous pourrez l'ajouter plus tard dans Image de marque."
+    },
+    "smtp": {
+      "intro": "Facultatif : connectez un serveur SMTP pour que les clients reçoivent les notifications et puissent s'inscrire. Vous pouvez passer cette étape et la configurer plus tard.",
+      "host": "Hôte SMTP",
+      "port": "Port",
+      "security": "Sécurité",
+      "starttls": "STARTTLS (port 587)",
+      "tls": "TLS (port 465)",
+      "none": "Aucune (déconseillé)",
+      "username": "Nom d'utilisateur",
+      "password": "Mot de passe",
+      "fromAddress": "Adresse d'expédition",
+      "fromName": "Nom de l'expéditeur",
+      "testTo": "Envoyer l'e-mail de test à",
+      "test": "Envoyer un e-mail de test",
+      "save": "Enregistrer et continuer",
+      "skip": "Ignorer pour l'instant",
+      "testOk": "E-mail de test envoyé à {to}. Vérifiez qu'il est bien arrivé.",
+      "error": {
+        "auth_failed": "Le serveur a refusé le nom d'utilisateur ou le mot de passe.",
+        "tls_mismatch": "Le paramètre de sécurité ne correspond pas au serveur. Essayez un autre port ou un autre mode de sécurité.",
+        "connection_refused": "Le serveur a refusé la connexion. Vérifiez l'hôte et le port.",
+        "timeout": "Le serveur n'a pas répondu à temps.",
+        "dns": "Le nom d'hôte n'a pas pu être résolu.",
+        "rejected": "Le serveur a refusé le message.",
+        "other": "L'e-mail de test n'a pas pu être envoyé."
+      }
+    },
+    "sso": {
+      "intro": "Pour que le personnel et les clients se connectent avec votre fournisseur d'identité (par exemple Authentik), enregistrez-y ces URI de redirection, puis définissez les variables d'environnement OIDC et redémarrez.",
+      "staffRedirect": "URI de redirection du personnel",
+      "customerRedirect": "URI de redirection des clients",
+      "backchannel": "URI de déconnexion en arrière-plan (back-channel)",
+      "copy": "Copier",
+      "copied": "Copié",
+      "later": "L'authentification unique est facultative. L'administrateur que vous venez de créer peut toujours se connecter avec son e-mail et son mot de passe."
+    },
+    "done": {
+      "title": "Votre centre d'assistance est prêt",
+      "body": "Vous êtes connecté en tant que {email}. Créez maintenant des équipes et des catégories, puis invitez vos agents.",
+      "open": "Ouvrir l'espace agents"
+    }
+  }
+}

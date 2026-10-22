@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Production compose (DEP-003): exactly ONE service. The database (SQLite),
+# API, WebSocket hub, queue, scheduler and SPA all run inside it. SSO, SMTP,
+# IMAP and (optionally) Postgres / S3 are external and referenced by URL.
+#
+#   cp .env.example deploy/.env      # set FD_SECRET_KEY and FD_PUBLIC_URL
+#   docker compose -f deploy/compose.yml up -d
+#   docker compose -f deploy/compose.yml logs app | grep "setup token"
+#
+# Optional overlays: compose.postgres.yml (Postgres engine), compose.dev.yml
+# (local Authentik + Mailpit). Never add a second service here.
+name: featherdesk
+
+services:
+  app:
+    image: ${FD_IMAGE:-ghcr.io/radiobros/featherdesk}:${FD_VERSION:-latest}
+    restart: unless-stopped
+    env_file:
+      - path: ${FD_ENV_FILE:-.env}
+        required: true
+    # Bound to localhost: put a TLS reverse proxy in front (deploy/examples/).
+    ports:
+      - "${FD_BIND:-127.0.0.1}:${FD_PORT:-8080}:8080"
+    volumes:
+      - fd-data:/data
+    # Hardened by default: read-only root, no capabilities, no privilege gain.
+    # The only writable paths are /data (volume) and /tmp (tmpfs).
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    # Reference low-end host (CONVENTIONS §10). The binary derives
+    # GOMEMLIMIT = 75% of this limit (192 MiB). Raising these is optional.
+    mem_limit: 256m
+    cpus: 1
+    pids_limit: 256
+    stop_grace_period: 25s
+    healthcheck:
+      test: ["CMD", "/featherdesk", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      start_interval: 1s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  fd-data:

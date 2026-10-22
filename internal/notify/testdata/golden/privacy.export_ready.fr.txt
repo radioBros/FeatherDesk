@@ -1,0 +1,12 @@
+Subject: Votre export de données est prêt
+
+Bonjour Ada Lovelace,
+
+l'export des données personnelles que vous avez demandé à FeatherDesk est prêt.
+
+[Télécharger l'export](https://help.example.test/auth/token/abc123)
+
+Le fichier est supprimé après 7 jours. Si vous n'avez pas demandé cet export, contactez-nous.
+
+-- 
+Ceci est un message automatique de FeatherDesk.

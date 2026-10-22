@@ -1,0 +1,114 @@
+{
+  "mfa": {
+    "code": "Codice a 6 cifre",
+    "recoveryCode": "Codice di recupero",
+    "verify": "Verifica",
+    "validation": {
+      "otpCode": "Inserisci il codice a 6 cifre",
+      "recoveryCode": "Inserisci un codice di recupero come abcd-efgh-jkmn"
+    },
+    "method": {
+      "totp": "App di autenticazione",
+      "email": "Codice via email",
+      "recovery": "Codice di recupero"
+    },
+    "step": {
+      "title": "Verifica in due passaggi",
+      "enrollTitle": "Configura la verifica in due passaggi",
+      "enrollIntro": "Questo sito richiede un secondo passaggio all'accesso. Configuralo ora per continuare.",
+      "hint": {
+        "totp": "Inserisci il codice a 6 cifre dalla tua app di autenticazione.",
+        "email": "Ti inviamo un codice a 6 cifre al tuo indirizzo email.",
+        "recovery": "Inserisci uno dei codici di recupero che hai salvato. Ogni codice funziona una sola volta."
+      },
+      "expired": "Questo tentativo di accesso è scaduto. Accedi di nuovo.",
+      "restart": "Accedi di nuovo",
+      "tooMany": "Troppi tentativi. Attendi un momento e riprova.",
+      "noMethod": "Nessun metodo di verifica disponibile per questo account. Chiedi a un amministratore di reimpostare la verifica in due passaggi.",
+      "methodLabel": "Metodo di verifica",
+      "emailSent": "Abbiamo inviato un codice al tuo indirizzo email. È valido per 10 minuti.",
+      "resendIn": "Invia di nuovo tra {s} s",
+      "resend": "Invia un nuovo codice",
+      "sendEmail": "Inviami un codice via email",
+      "cancel": "Annulla e torna indietro"
+    },
+    "setup": {
+      "title": "Configura un'app di autenticazione",
+      "start": "Mostra il codice QR",
+      "scan": "Scansiona questo codice QR con la tua app di autenticazione.",
+      "qrLabel": "Codice QR per la tua app di autenticazione",
+      "manual": "Oppure inserisci questa chiave manualmente:",
+      "confirm": "Conferma e attiva"
+    },
+    "codes": {
+      "title": "I tuoi codici di recupero",
+      "warning": "Conserva questi codici in un luogo sicuro. Ognuno ti fa accedere una volta se perdi il dispositivo. Vengono mostrati solo ora.",
+      "copy": "Copia",
+      "copied": "Copiati",
+      "download": "Scarica",
+      "continue": "Li ho salvati, continua",
+      "saved": "Li ho salvati"
+    },
+    "reauth": {
+      "title": "Conferma la password",
+      "intro": "Per sicurezza, inserisci la password per modificare la verifica in due passaggi."
+    },
+    "profile": {
+      "title": "Verifica in due passaggi",
+      "loadFailed": "Impossibile caricare le impostazioni della verifica in due passaggi.",
+      "unavailable": "Il tuo account accede tramite il provider di identità della tua organizzazione, che gestisce la verifica in due passaggi.",
+      "intro": "Proteggi il tuo account con un secondo passaggio dopo la password.",
+      "required": "Questo sito richiede la verifica in due passaggi. Configura almeno un metodo.",
+      "on": "Attiva",
+      "off": "Disattiva",
+      "setUp": "Configura",
+      "replace": "Sostituisci",
+      "turnOff": "Disattiva",
+      "turnOn": "Attiva",
+      "emailUnavailable": "Non disponibile: l'email non è configurata su questo sito",
+      "remaining": "{n} codici non usati rimasti",
+      "regenerate": "Nuovi codici",
+      "totpEnabled": "App di autenticazione attivata",
+      "emailEnabled": "Codici via email attivati",
+      "disabled": "Metodo disattivato",
+      "disableConfirm": {
+        "totp": "Disattivare l'app di autenticazione?",
+        "email": "Disattivare i codici via email?"
+      },
+      "regenerateConfirm": "Creare nuovi codici di recupero? Quelli vecchi smetteranno di funzionare."
+    },
+    "admin": {
+      "label": "Verifica in due passaggi",
+      "sso": "gestita dal provider di identità",
+      "reset": "Reimposta la verifica in due passaggi",
+      "resetTitle": "Reimpostare la verifica in due passaggi?",
+      "resetConfirm": "Rimuove l'app di autenticazione, i codici via email e i codici di recupero dell'utente. Potrà accedere solo con la password (o configurarla di nuovo se il sito lo richiede). L'operazione viene registrata nel log di audit.",
+      "resetDone": "La verifica in due passaggi è stata reimpostata"
+    },
+    "policy": {
+      "title": "Sicurezza",
+      "label": "Richiedi la verifica in due passaggi",
+      "hint": "Vale per gli account con password locale. Gli account single sign-on usano il loro provider di identità.",
+      "none": "Nessuno (facoltativa)",
+      "staff": "Tutti gli account dello staff",
+      "all": "Tutti",
+      "saved": "Impostazioni di sicurezza salvate"
+    }
+  },
+  "mcp": {
+    "title": "Collega un assistente IA",
+    "intro": "Gli assistenti IA che supportano il Model Context Protocol (MCP), come Claude Code, Claude Desktop o Cursor, possono lavorare con i tuoi ticket usando uno dei tuoi token API. L'assistente agisce a tuo nome e non può mai fare più di quanto consentono gli ambiti del token. Crea un token qui sotto, poi incolla una di queste configurazioni nel tuo assistente.",
+    "endpoint": "Endpoint MCP",
+    "scopes": "Ambiti del token consigliati",
+    "readWrite": "Per leggere e gestire i ticket:",
+    "readOnly": "Sola lettura:",
+    "copy": "Copia",
+    "copied": "Copiato",
+    "replaceToken": "Sostituisci {placeholder} con il tuo token. Tratta la configurazione come una password.",
+    "hint": {
+      "claudeCode": "Esegui questo comando in un terminale.",
+      "claudeDesktop": "Aggiungi questo a claude_desktop_config.json (lo apri dalle impostazioni sviluppatore dell'app) e riavvia l'app. Serve Node.js: mcp-remote collega l'app all'endpoint.",
+      "cursor": "Aggiungi questo a ~/.cursor/mcp.json (o a .cursor/mcp.json in un progetto)."
+    }
+  }
+}

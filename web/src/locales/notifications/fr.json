@@ -1,0 +1,71 @@
+{
+  "notifications": {
+    "bell": {
+      "label": "Notifications",
+      "labelUnread": "Notifications, {n} non lues"
+    },
+    "menu": {
+      "markAllRead": "Tout marquer comme lu",
+      "seeAll": "Voir toutes les notifications",
+      "empty": "Vous êtes à jour",
+      "loadFailed": "Impossible de charger les notifications"
+    },
+    "page": {
+      "title": "Notifications",
+      "subtitle": "Les nouvelles de vos tickets",
+      "filter": "Afficher",
+      "filterAll": "Toutes",
+      "filterUnread": "Non lues",
+      "type": "Genre",
+      "allTypes": "Tous les genres",
+      "loadMore": "Charger plus",
+      "empty": "Aucune notification pour l'instant",
+      "emptyUnread": "Aucune notification non lue",
+      "markRead": "Marquer comme lue",
+      "delete": "Supprimer la notification",
+      "deleted": "Notification supprimée",
+      "allRead": "Toutes les notifications sont marquées comme lues",
+      "unread": "Non lue",
+      "settings": "Réglages des notifications"
+    },
+    "someone": "Quelqu'un",
+    "noTicket": "un ticket",
+    "types": {
+      "staff_ticket_new": { "label": "Nouveau ticket dans ma file", "title": "Nouveau ticket {ref}" },
+      "staff_customer_replied": { "label": "Réponse du client", "title": "{actor} a répondu sur {ref}" },
+      "staff_assigned": { "label": "Ticket qui m'est attribué", "title": "{actor} vous a attribué {ref}" },
+      "staff_escalated": { "label": "Ticket escaladé vers mon équipe", "title": "{ref} a été escaladé vers {tier}" },
+      "staff_mentioned": { "label": "Mention dans une note", "title": "{actor} vous a mentionné sur {ref}" },
+      "staff_sla": { "label": "Alertes et dépassements de SLA", "title": "Alerte SLA sur {ref}", "breached": "SLA dépassé sur {ref}" },
+      "staff_children_resolved": { "label": "Tickets liés résolus", "title": "Tous les tickets liés à {ref} sont résolus" },
+      "customer_ticket_received": { "label": "Demande reçue", "title": "Nous avons reçu votre demande {ref}" },
+      "customer_reply": { "label": "Réponse à ma demande", "title": "{actor} a répondu à votre demande {ref}" },
+      "customer_resolved": { "label": "Demande résolue", "title": "Votre demande {ref} a été résolue" }
+    },
+    "sla": {
+      "first_response": "Première réponse attendue",
+      "resolution": "Résolution attendue"
+    },
+    "prefs": {
+      "title": "Notifications",
+      "subtitle": "Choisissez comment être informé de chaque type de nouvelle.",
+      "type": "Nouvelle",
+      "inApp": "Dans l'application",
+      "email": "E-mail",
+      "browser": "Fenêtre du navigateur",
+      "emailForced": "Les réponses à vos demandes sont toujours envoyées par e-mail.",
+      "save": "Enregistrer les réglages des notifications",
+      "saved": "Réglages des notifications enregistrés",
+      "browserTitle": "Notifications du navigateur",
+      "browserHint": "Les fenêtres apparaissent tant qu'un onglet de ce centre d'assistance est ouvert en arrière-plan. Rien n'arrive quand tous les onglets sont fermés.",
+      "enable": "Autoriser les notifications du navigateur",
+      "granted": "Les notifications sont autorisées dans ce navigateur.",
+      "denied": "Les notifications du navigateur sont bloquées. Autorisez-les dans les réglages du site du navigateur, puis rechargez.",
+      "unsupported": "Ce navigateur ne peut pas afficher de notifications.",
+      "sound": "Jouer un son à chaque fenêtre (ce navigateur uniquement)"
+    },
+    "validation": {
+      "permission": "Autorisez d'abord les notifications du navigateur"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+Subject: Ihr Anmeldelink
+
+Hallo Ada Lovelace,
+
+mit dem folgenden Link melden Sie sich bei FeatherDesk an.
+
+[Anmelden](https://help.example.test/auth/token/abc123)
+
+Dieser Link läuft in 60 Minuten ab. Falls Sie dies nicht angefordert haben, können Sie diese E-Mail ignorieren.
+
+-- 
+Dies ist eine automatische Nachricht von FeatherDesk.

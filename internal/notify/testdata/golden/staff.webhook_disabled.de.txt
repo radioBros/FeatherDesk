@@ -1,0 +1,10 @@
+Subject: Webhook deaktiviert: https://help.example.test/auth/token/abc123
+
+Hallo Ada Lovelace,
+
+der Webhook **https://help.example.test/auth/token/abc123** wurde nach 20 aufeinanderfolgenden fehlgeschlagenen Zustellungen automatisch deaktiviert (too many failures).
+
+Beheben Sie das Problem am Empfänger und aktivieren Sie den Webhook danach in den Administrationseinstellungen von FeatherDesk wieder.
+
+-- 
+Dies ist eine automatische Nachricht von FeatherDesk.

@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# golangci-lint v2 (DEP-008). Standard linter set (errcheck, govet, ineffassign,
+# staticcheck, unused). CI runs it with only-new-issues on pull requests: the
+# 66 findings present when the gate was introduced (2026-10-21) are tracked as
+# debt in development/deployment/deployment_log.md and fixed by their owners.
+version: "2"
+run:
+  timeout: 10m
+  tests: true
+linters:
+  default: standard
+  settings:
+    errcheck:
+      # Best-effort cleanup and diagnostic output: failures here are either
+      # unrecoverable or already reported by the primary error path.
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+        - (*database/sql.Rows).Close
+        - (net.Conn).Close
+        - (io.ReadCloser).Close
+        - os.Remove
+        - os.RemoveAll
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+  exclusions:
+    generated: strict
+    paths:
+      - web/node_modules
+formatters:
+  enable:
+    - gofmt

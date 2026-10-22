@@ -1,0 +1,12 @@
+Subject: Votre lien de connexion
+
+Bonjour Ada Lovelace,
+
+utilisez le lien ci-dessous pour vous connecter à FeatherDesk.
+
+[Se connecter](https://help.example.test/auth/token/abc123)
+
+Ce lien expire dans 60 minutes. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail.
+
+-- 
+Ceci est un message automatique de FeatherDesk.

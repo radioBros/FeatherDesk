@@ -1,0 +1,140 @@
+{
+  "privacy": {
+    "nav": {
+      "admin": "Privacy",
+      "myData": "I miei dati"
+    },
+    "admin": {
+      "subtitle": "Esportazioni dei dati, richieste di cancellazione e conservazione",
+      "tabRequests": "Richieste",
+      "tabSettings": "Conservazione e impostazioni"
+    },
+    "type": {
+      "export": "Esportazione dei dati",
+      "erasure": "Cancellazione dell'account"
+    },
+    "status": {
+      "pending": "In attesa",
+      "processing": "In corso",
+      "ready": "Pronta",
+      "failed": "Non riuscita",
+      "expired": "Scaduta",
+      "completed": "Completata",
+      "rejected": "Respinta"
+    },
+    "mode": {
+      "label": "Modalità di cancellazione",
+      "anonymize": "Anonimizza l'account",
+      "anonymize_and_redact": "Anonimizza e oscura i messaggi",
+      "hintAnonymize": "Nome ed email vengono sostituiti, i metodi di accesso rimossi e l'account disattivato. Ticket e messaggi restano.",
+      "hintRedact": "Sostituisce inoltre i messaggi scritti dalla persona con [redacted] ed elimina i suoi allegati e i valori dei campi personalizzati dei suoi ticket."
+    },
+    "col": {
+      "type": "Richiesta",
+      "status": "Stato",
+      "person": "Persona",
+      "requested": "Richiesta il",
+      "expires": "Disponibile fino al",
+      "size": "Dimensione del file",
+      "actions": "Azioni"
+    },
+    "filter": {
+      "type": "Tipo di richiesta",
+      "status": "Stato"
+    },
+    "action": {
+      "download": "Scarica",
+      "approve": "Approva",
+      "reject": "Respingi",
+      "export": "Esporta i dati",
+      "erase": "Cancella i dati personali",
+      "preview": "Anteprima",
+      "save": "Salva le impostazioni",
+      "cancel": "Annulla",
+      "refresh": "Aggiorna"
+    },
+    "requests": {
+      "empty": "Ancora nessuna richiesta privacy.",
+      "loadFailed": "Impossibile caricare le richieste privacy.",
+      "rejected": "Richiesta respinta",
+      "auto": "approvata automaticamente il {date}"
+    },
+    "approve": {
+      "title": "Approva la richiesta di cancellazione"
+    },
+    "reject": {
+      "title": "Respingi la richiesta di cancellazione",
+      "reason": "Motivo (visibile al cliente)"
+    },
+    "erase": {
+      "title": "Cancella i dati personali",
+      "intro": "L'operazione è irreversibile. I ticket restano come documentazione aziendale, ma la persona non è più identificabile da questo account.",
+      "confirm": "Ho capito che l'operazione non può essere annullata",
+      "done": "Dati personali cancellati: {messages} messaggi oscurati, {attachments} allegati eliminati"
+    },
+    "export": {
+      "includeInternal": "Includi note interne e campi riservati allo staff",
+      "queued": "Esportazione richiesta. Riceverai un'email quando sarà pronta."
+    },
+    "actions": {
+      "title": "Privacy",
+      "recent": "Richieste recenti",
+      "none": "Nessuna richiesta per questa persona."
+    },
+    "settings": {
+      "retention": "Criteri di conservazione",
+      "retentionHint": "Applicati una volta al giorno. Usa l'anteprima per vedere cosa cambierebbe la prossima esecuzione.",
+      "closedTicketsMonths": "Conserva i ticket chiusi (mesi)",
+      "closedTicketsMonthsHint": "0 li conserva per sempre",
+      "closedTicketsAction": "Poi",
+      "purge": "Elimina il ticket",
+      "anonymize": "Anonimizza il contenuto del ticket",
+      "inboundEmailDays": "Conserva le email in arrivo originali (giorni)",
+      "auditLogMonths": "Conserva il registro di audit (mesi)",
+      "auditLogMonthsHint": "0 mantiene l'impostazione del server (FD_AUDIT_RETENTION_DAYS)",
+      "exportDays": "Conserva le esportazioni completate (giorni)",
+      "erasure": "Richieste di cancellazione",
+      "autoApproveDays": "Approva automaticamente dopo (giorni)",
+      "autoApproveDaysHint": "0 significa che ogni richiesta è decisa da un amministratore",
+      "autoApproveMode": "Modalità per le approvazioni automatiche",
+      "policyVersion": "Versione dell'informativa privacy",
+      "policyVersionHint": "Salvata con ogni consenso, ad esempio la data dell'informativa",
+      "saved": "Impostazioni privacy salvate"
+    },
+    "preview": {
+      "title": "Simulazione",
+      "intro": "Cosa elaborerebbe adesso il processo di conservazione con i valori indicati sopra (nulla viene modificato).",
+      "closedTickets": "Ticket chiusi",
+      "inboundEmails": "Email in arrivo originali",
+      "auditEntries": "Voci del registro di audit",
+      "expiredExports": "File di esportazione scaduti",
+      "autoApprovals": "Richieste di cancellazione da approvare"
+    },
+    "my": {
+      "title": "I miei dati",
+      "intro": "Scarica una copia dei tuoi dati personali o chiedici di cancellare il tuo account.",
+      "introStaff": "Scarica una copia dei dati personali che questo help desk conserva su di te.",
+      "link": "I miei dati e la privacy",
+      "exportTitle": "Esporta i tuoi dati",
+      "exportBody": "Prepariamo un file ZIP con il tuo profilo, i tuoi ticket e messaggi, i tuoi allegati e i tuoi consensi. Riceverai un'email quando sarà pronto; il file si può scaricare per {days} giorni.",
+      "exportButton": "Richiedi un'esportazione dei dati",
+      "exportPending": "La tua esportazione è in preparazione.",
+      "requestsTitle": "Le tue richieste",
+      "empty": "Non hai ancora fatto richieste.",
+      "deletionTitle": "Cancella il tuo account",
+      "deletionBody": "Un amministratore esamina la richiesta. Dopo la cancellazione non potrai più accedere e il tuo nome e la tua email verranno rimossi dai nostri archivi.",
+      "deletionPending": "La tua richiesta di cancellazione è in attesa di revisione.",
+      "reason": "Motivo (facoltativo)",
+      "confirm": "Ho capito che il mio account verrà cancellato e che l'operazione non può essere annullata",
+      "deletionButton": "Richiedi la cancellazione dell'account",
+      "deletionRequested": "Cancellazione richiesta",
+      "consentsTitle": "Consensi registrati",
+      "consentLine": "Informativa privacy accettata",
+      "noConsents": "Nessun consenso registrato."
+    },
+    "consent": {
+      "accept": "Ho letto e accetto l'informativa sulla privacy",
+      "read": "Leggi l'informativa sulla privacy"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+Subject: Votre code de connexion
+
+Bonjour Ada Lovelace,
+
+utilisez ce code pour terminer votre connexion à FeatherDesk :
+
+**482913**
+
+Le code expire dans 60 minutes et ne fonctionne qu'une seule fois. Si vous n'avez pas essayé de vous connecter, changez votre mot de passe : quelqu'un d'autre le connaît.
+
+-- 
+Ceci est un message automatique de FeatherDesk.

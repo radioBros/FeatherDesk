@@ -1,0 +1,34 @@
+subject: Re: [#1042] Printer not working – still
+from: "Jürgen Müller" <juergen@example.org>
+message_id: <CAF=abc123@mail.gmail.com>
+in_reply_to: [<0192f000-0000-7000-8000-0000000000aa.0123456789ab@help.example.com>]
+references: [<ticket-0192f000-0000-7000-8000-000000000001@help.example.com> <0192f000-0000-7000-8000-0000000000aa.0123456789ab@help.example.com>]
+to: [support+t-abc@help.example.com]
+cc: ["Anna" <anna@example.org> "Bob, Jr." <bob@example.org>]
+date: 2026-10-20T08:15:00Z
+from_html: false
+has_html: true
+unknown_charset: false
+attachments:
+--- text ---
+Hi,
+
+the printer still shows error E-42 after the reboot. Café on floor 2 is affected too.
+
+Thanks,
+Jürgen
+
+On Tue, Oct 20, 2026 at 9:00 AM Acme Support <support@help.example.com>
+wrote:
+
+> ##- Reply above this line -##
+>
+> Please reboot the printer.
+>
+--- stripped (true) ---
+Hi,
+
+the printer still shows error E-42 after the reboot. Café on floor 2 is affected too.
+
+Thanks,
+Jürgen

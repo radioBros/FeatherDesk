@@ -1,0 +1,675 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# CI (DEP-008 … DEP-012, DEP-016/017/019/020/022…024/026…028/030…032, AUTH-029…031,
+# NOT-023/026). Every gate here
+# enforces a CONVENTIONS §10 budget or a contract; relax one only in a reviewed
+# PR that records the reason in development/deployment/deployment_log.md.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *" # nightly: load test + integration containers
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Explicit `shell: bash` = `bash --noprofile --norc -eo pipefail`, so a gate
+# piped into `tee` still fails the step.
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GO_VERSION: "1.27.x"
+  NODE_VERSION: "24"
+  PNPM_VERSION: "11.0.8"
+  PG_IMAGE: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+  MAILPIT_IMAGE: axllent/mailpit@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+  IMAGE: featherdesk:ci
+
+jobs:
+  # ------------------------------------------------------------------ Go --
+  go:
+    name: go (vet, gofmt, test -race on SQLite + Postgres 18, shard ${{ matrix.shard }}/2)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    # The race suite runs every store test on both engines; two shards keep each
+    # job well under the timeout (one job took ~18 min).
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    env:
+      CI: "true"
+      FD_TEST_POSTGRES_URL: postgres://st:st@127.0.0.1:55432/fd_test?sslmode=disable
+      # DB-017: TestBootRefusesPostgres15 boots `serve` against Postgres 15.
+      FD_TEST_POSTGRES15_URL: postgres://st:st@127.0.0.1:55415/st?sslmode=disable
+      FD_REQUIRE_POSTGRES15: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      # Not a `services:` container: those cannot pass the tuning flags.
+      - name: Postgres 18 (tuned like compose.postgres.yml)
+        run: |
+          docker run -d --name pg -p 127.0.0.1:55432:5432 \
+            -e POSTGRES_USER=st -e POSTGRES_PASSWORD=st -e POSTGRES_DB=fd_test \
+            --tmpfs /var/lib/postgresql "$PG_IMAGE" \
+            -c shared_buffers=32MB -c max_connections=60 -c work_mem=2MB -c fsync=off
+          for _ in $(seq 1 60); do docker exec pg pg_isready -U st -d fd_test && exit 0; sleep 1; done; exit 1
+      - name: Postgres 15 (only for the "refuse Postgres < 16" boot test, DB-017)
+        run: |
+          docker run -d --name pg15 -p 127.0.0.1:55415:5432 \
+            -e POSTGRES_USER=st -e POSTGRES_PASSWORD=st -e POSTGRES_DB=st --tmpfs /var/lib/postgresql/data \
+            postgres:15-alpine@sha256:09e4f20b14ddb3dfe3a0c825b206032aaf8f28300ba2070c0b60fc1c10c6abc7
+          for _ in $(seq 1 60); do docker exec pg15 pg_isready -U st -d st && exit 0; sleep 1; done; exit 1
+      - name: gofmt
+        run: |
+          out=$(gofmt -l cmd internal api tools web/embed.go)
+          if [ -n "$out" ]; then echo "::error::gofmt needed"; echo "$out"; exit 1; fi
+      - name: go vet
+        run: go vet ./...
+      - name: go test -race (both engines; CI=true makes a missing Postgres fail)
+        run: |
+          heavy='/internal/(authn|demo|kb|mailin|webhooks|privacy)(/|$)'
+          if [ "${{ matrix.shard }}" = 1 ]; then pkgs=$(go list ./... | grep -E "$heavy")
+          else pkgs=$(go list ./... | grep -vE "$heavy"); fi
+          # shellcheck disable=SC2086
+          go test -race -count=1 -timeout 25m -coverprofile=coverage.out $pkgs
+      - name: Schema parity between migrations/sqlite and migrations/postgres
+        run: go test -count=1 -run 'TestSchemaParity' ./internal/store/...
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: coverage.out
+          if-no-files-found: ignore
+
+  golangci:
+    name: golangci-lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # 66 pre-existing findings are tracked debt (TD-DEP-01 in deployment_log.md):
+    # on PRs only new issues fail; on main/nightly the full report is informational
+    # until the debt is paid, then drop continue-on-error.
+    continue-on-error: ${{ github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: v2.15.0
+          only-new-issues: ${{ github.event_name == 'pull_request' }}
+
+  # ----------------------------------------------------------------- web --
+  web:
+    name: web (typecheck, lint, test, build, budget, i18n)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - name: i18n key parity (5 locales, every area pack)
+        run: node scripts/check-i18n.mjs
+      - run: pnpm test
+      - run: pnpm build
+      - name: Bundle budget (initial JS per area ≤ 300 KB gzip; 200 KB target)
+        run: pnpm budget | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------- contract + inventory --
+  openapi:
+    name: openapi lint + route inventory
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      FD_TEST_POSTGRES_URL: postgres://st:st@127.0.0.1:55432/fd_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Postgres 18 (route tests run on both engines; CI=true requires it)
+        run: |
+          docker run -d --name pg -p 127.0.0.1:55432:5432 \
+            -e POSTGRES_USER=st -e POSTGRES_PASSWORD=st -e POSTGRES_DB=fd_test \
+            --tmpfs /var/lib/postgresql "$PG_IMAGE" \
+            -c shared_buffers=32MB -c max_connections=60 -c fsync=off
+          for _ in $(seq 1 60); do docker exec pg pg_isready -U st -d fd_test && exit 0; sleep 1; done; exit 1
+      - name: redocly lint
+        run: npx --yes @redocly/cli@2.66.0 lint api/openapi.yaml
+      - name: Every mounted route is in the spec (AssertRoutes)
+        run: go test -count=1 -run 'TestRoutesDocumented|TestEmailRoutesInSpec' ./internal/app/ ./internal/tickets/ ./internal/notify/
+      - name: Generated TS types are current
+        working-directory: web
+        run: |
+          corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+          pnpm install --frozen-lockfile
+          pnpm gen:api
+          git diff --exit-code -- src/api/schema.d.ts
+
+  # ------------------------------------------------------ repo hygiene ----
+  hygiene:
+    name: SPDX headers, dependency gate, test-image grep, .env.example, k8s
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: SPDX-License-Identifier in every .go/.ts/.vue
+        run: scripts/spdx.sh --check
+      - name: Runtime Go modules ≤ 15, no AWS SDK
+        run: scripts/depgate.sh
+      - name: Direct modules on the allowlist, go-imap/v2 pinned at v2.0.0-beta.8 (PLT-017)
+        run: go test -count=1 -run 'TestDependencyGate' ./cmd/featherdesk/
+      - name: govulncheck (0 affected vulnerabilities; a tool run, not a module dependency)
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
+      - name: Test-only containers never in prod packaging
+        run: scripts/check-test-images.sh
+      - name: .env.example matches config + module env + docs
+        run: go test -count=1 -run 'TestEnvExample' ./internal/config/
+      - name: Helm lint/template, replicaCount guard, kubeconform
+        run: scripts/k8s-validate.sh
+      - name: gitleaks
+        run: |
+          range=""
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            range="--log-opts=${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+          fi
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/repo" -w /repo \
+            zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            git /repo --config /repo/.gitleaks.toml --redact --no-banner $range
+
+  # ------------------------------------------------- docs, licences ----
+  docs:
+    # DEP-016/017/027/028/032: link check, docs drift greps, the doc test that runs
+    # the manual's curl examples and webhook-signature snippets against a live
+    # server. DEP-026: THIRD_PARTY_NOTICES current + licence compatibility.
+    # DEP-019: a migration change needs a `### Migrations` note in CHANGELOG.md.
+    name: docs (lychee, doc-test, drift greps, THIRD_PARTY_NOTICES, changelog)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: Links (relative links + anchors always; external URLs on main/nightly)
+        run: |
+          offline=""
+          [ "${{ github.event_name }}" = pull_request ] && offline="--offline"
+          docker run --rm -v "$PWD:/repo:ro" -w /repo \
+            lycheeverse/lychee:0.24.2@sha256:e2d19e57cf6ab037026f20b8e449a1f30d9d7f81eef4194763aab2eab20bd28d \
+            --config lychee.toml $offline README.md CONTRIBUTING.md CODE_OF_CONDUCT.md SECURITY.md CHANGELOG.md 'docs/**/*.md'
+      - name: Docs cover every FD_SMTP_*, FD_DATABASE/BLOB/S3/IMAP key and every BrandingSettings key
+        run: scripts/docs-check.sh
+      - name: Doc test (curl examples §10, signature snippets §12.3, against a live server)
+        run: |
+          command -v uuidgen >/dev/null || sudo apt-get install -y uuid-runtime
+          scripts/doc-test.sh
+      - name: THIRD_PARTY_NOTICES current, every shipped licence AGPL-3.0-compatible
+        run: |
+          (cd web && pnpm install --frozen-lockfile)
+          go run ./tools/notices -check
+      - name: A migration change needs a CHANGELOG.md `### Migrations` note
+        if: github.event_name == 'pull_request'
+        run: git diff --name-only "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" | scripts/changelog-check.sh -
+
+  kind:
+    # DEP-023: the Helm chart on a real cluster: SQLite on the PVC, then an external
+    # Postgres pod; /readyz, WebSocket ping/pong through a port-forward, no restarts,
+    # read-only root filesystem. kind, helm and kubectl are preinstalled on the runner.
+    name: kind (helm install → /readyz + WS ping; SQLite and Postgres pod)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Tool versions
+        run: kind version && helm version --short && kubectl version --client
+      - run: docker build --build-arg VERSION=ci --build-arg COMMIT=${{ github.sha }} -t "$IMAGE" .
+      - name: helm install on kind (SQLite PVC, then external Postgres pod)
+        run: scripts/kind-smoke.sh --image "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  doc-test-ops:
+    # DEP-032: the operator commands of docs/DOCUMENTATION.md §2.3 (Postgres overlay,
+    # migrate-engine), §2.4 (blob-migrate → MinIO), §2.5 (k8s manifests + Helm on kind)
+    # and §6.4 (env IMAP mailbox → Dovecot), extracted from the manual and run.
+    name: doc-test-ops (compose overlay, MinIO, Dovecot, kind)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Tool versions (kind, helm, kubectl preinstalled on ubuntu-24.04)
+        run: kind version && helm version --short && kubectl version --client
+      - run: docker build --build-arg VERSION=ci --build-arg COMMIT=${{ github.sha }} -t "$IMAGE" .
+      - name: Ops doc test
+        run: scripts/doc-test-ops.sh --image "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------------------------ E2E --
+  e2e:
+    # playwright.config.ts boots the built binary itself (fresh DB, SMTP → Mailpit,
+    # loopback trusted as proxy for the per-test client IP), so the email flows
+    # (register → verify, reset, invites) run for real. Both projects, both engines.
+    name: e2e (${{ matrix.engine }}; binary + Mailpit + Playwright chromium & mobile)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    needs: [web]
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [sqlite, postgres]
+    services:
+      mailpit:
+        image: axllent/mailpit@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+        ports: ["1025:1025", "8025:8025"]
+        env:
+          MP_SMTP_DISABLE_RDNS: "true"
+          MP_DISABLE_VERSION_CHECK: "true"
+      postgres:
+        image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+        env:
+          POSTGRES_USER: st
+          POSTGRES_PASSWORD: st
+          POSTGRES_DB: fd_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U st -d fd_e2e" --health-interval 2s --health-timeout 2s --health-retries 30
+    env:
+      E2E_SERVER_BIN: bin/featherdesk
+      E2E_MAILPIT_URL: http://127.0.0.1:8025
+      E2E_DATABASE_URL: ${{ matrix.engine == 'postgres' && 'postgres://st:st@127.0.0.1:5432/fd_e2e?sslmode=disable' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: Build SPA + binary
+        run: |
+          (cd web && pnpm install --frozen-lockfile && pnpm build)
+          CGO_ENABLED=0 go build -trimpath -o bin/featherdesk ./cmd/featherdesk
+      - name: Playwright (chromium + mobile)
+        working-directory: web
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.engine }}
+          path: |
+            web/playwright-report
+            web/test-results
+
+  # ---------------------------------------------------------------- image --
+  image:
+    name: image (buildx multi-arch, size gate, Trivy, smoke, footprint)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build linux/amd64 + linux/arm64
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=ci-${{ github.sha }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Load linux/amd64 for the gates
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE }}
+          build-args: |
+            VERSION=ci-${{ github.sha }}
+            COMMIT=${{ github.sha }}
+          cache-from: type=gha
+      - name: Image sanity (version, user, no GOMEMLIMIT, digest-pinned base)
+        run: |
+          docker run --rm "$IMAGE" version
+          test "$(docker image inspect -f '{{.Config.User}}' "$IMAGE")" = "nonroot:nonroot"
+          if docker image inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$IMAGE" | grep -E '^(GOMEMLIMIT|GOGC)='; then
+            echo "::error::GOMEMLIMIT/GOGC baked into the image"; exit 1
+          fi
+          grep -E 'static-debian13:nonroot@sha256:[0-9a-f]{64}' Dockerfile
+      - name: Size gate (≤ 30 MB compressed; 20 MB target)
+        run: |
+          bytes=$(docker save "$IMAGE" | gzip -c | wc -c)
+          mb=$(awk -v b="$bytes" 'BEGIN{printf "%.2f", b/1048576}')
+          echo "Image (amd64, compressed): **${mb} MiB** (target 20, limit 30)" >>"$GITHUB_STEP_SUMMARY"
+          [ "$bytes" -le 31457280 ] || { echo "::error::image ${mb} MiB > 30 MiB"; exit 1; }
+      - name: Trivy (fail on fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+      - name: Prod compose smoke (1 service, healthy, read_only ticket loop + attachment, WebSocket, no OOM)
+        run: scripts/compose-smoke.sh --image "$IMAGE"
+      - name: Footprint (idle RSS, idle CPU, cold start on the prod compose, 1 000 tickets)
+        run: scripts/footprint.sh --image "$IMAGE"
+      - name: Footprint with the Postgres overlay (Postgres RSS reported separately)
+        run: FD_FOOTPRINT_PORT=18090 scripts/footprint.sh --image "$IMAGE" --engine postgres
+
+  proxies:
+    name: reverse proxy examples (Caddy, nginx, Traefik; HTTPS + WebSocket)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - run: docker build --build-arg VERSION=ci --build-arg COMMIT=${{ github.sha }} -t "$IMAGE" .
+      - name: Each example serves the SPA over TLS, sets Secure cookies, forwards the client IP and upgrades /api/v1/ws
+        run: scripts/proxy-test.sh --image "$IMAGE" caddy nginx traefik
+
+  # ------------------------------------------------- nightly: load + IT --
+  loadtest:
+    name: load test (50 agents, 200 WS, 10 req/s, 10 min, 256m/1 CPU)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - run: docker build --build-arg VERSION=nightly --build-arg COMMIT=${{ github.sha }} -t "$IMAGE" .
+      - run: scripts/loadtest.sh --image "$IMAGE" --duration 10m | tee -a "$GITHUB_STEP_SUMMARY"
+
+  smoke:
+    # DEP-022: the shipped stack end to end on an EMPTY database, every run. Prod compose +
+    # dev overlay (app image built from source, Authentik + blueprints, Mailpit) with no
+    # break-glass admin, so web/e2e/smoke-stack.spec.ts starts at the first-run wizard, then
+    # staff SSO, customer register → ticket → agent reply live over the WebSocket → escalate
+    # → resolve, reply mail in Mailpit. Authentik migrates while the app image builds and
+    # Playwright installs; the whole job must stay within 10 minutes.
+    name: smoke (prod compose + dev overlay + SSO)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Both empty: no FD_BOOTSTRAP_ADMIN_*, the app prints a setup token instead.
+      FD_DEV_BOOTSTRAP_ADMIN_EMAIL: ""
+      FD_DEV_BOOTSTRAP_ADMIN_PASSWORD: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: Stack in the background (Authentik first, then the app image build)
+        run: |
+          echo "127.0.0.1 authentik.localhost" | sudo tee -a /etc/hosts
+          # Keeps running into the next steps (the runner reaps it at job end); its exit code lands in stack-up.rc.
+          {
+            # Set-but-empty is the switch (unset falls back to the .env.dev admin): be explicit here too.
+            export FD_DEV_BOOTSTRAP_ADMIN_EMAIL="" FD_DEV_BOOTSTRAP_ADMIN_PASSWORD=""
+            dc() { docker compose -f deploy/compose.yml -f deploy/compose.dev.yml "$@"; }
+            rc=0
+            dc up -d --wait mailpit authentik-postgresql && dc up -d authentik-server authentik-worker && dc up -d --build app || rc=$?
+            echo "$rc" > "$RUNNER_TEMP/stack-up.rc"
+          } > "$RUNNER_TEMP/stack-up.log" 2>&1 &
+      - name: Playwright (chromium) while the stack starts
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+      - name: Wait for the stack (blueprints applied, app ready, setup token)
+        run: |
+          for _ in $(seq 1 300); do [ -f "$RUNNER_TEMP/stack-up.rc" ] && break; sleep 1; done
+          cat "$RUNNER_TEMP/stack-up.log"
+          [ "$(cat "$RUNNER_TEMP/stack-up.rc" 2>/dev/null)" = 0 ] || { echo "::error::compose up failed or timed out"; exit 1; }
+          st=""
+          for _ in $(seq 1 100); do
+            st=$(curl -s -H 'Authorization: Bearer dev-akadmin-api-token-0123456789' 'http://localhost:9000/api/v3/managed/blueprints/?search=FeatherDesk' \
+              | python3 -c 'import sys,json; print(",".join(sorted(b["status"] for b in json.load(sys.stdin)["results"])))' 2>/dev/null || true)
+            [ "$st" = "successful,successful" ] && break; sleep 3
+          done
+          echo "blueprints: $st"; [ "$st" = "successful,successful" ]
+          for _ in $(seq 1 60); do curl -fsS http://localhost:8080/readyz && break; sleep 1; done
+          tok=$(docker compose -f deploy/compose.yml -f deploy/compose.dev.yml logs app | grep -oE 'setup token: [A-Za-z0-9_-]+' | tail -1 | cut -d' ' -f3 || true)
+          [ -n "$tok" ] || { echo "::error::no setup token in the app log (database not empty, or a bootstrap admin set?)"; exit 1; }
+          echo "::add-mask::$tok"
+          echo "E2E_SETUP_TOKEN=$tok" >> "$GITHUB_ENV"
+      - name: Playwright smoke-stack.spec.ts (one-shot, chromium)
+        working-directory: web
+        env:
+          E2E_BASE_URL: http://localhost:8080
+          E2E_AUTHENTIK_URL: http://authentik.localhost:9000
+          E2E_MAILPIT_URL: http://localhost:8025
+        run: pnpm exec playwright test e2e/smoke-stack.spec.ts --project=chromium
+      - if: failure()
+        run: docker compose -f deploy/compose.yml -f deploy/compose.dev.yml logs --no-color > "$RUNNER_TEMP/smoke-stack.log" 2>&1 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: smoke
+          path: |
+            web/playwright-report
+            web/test-results
+            ${{ runner.temp }}/stack-up.log
+            ${{ runner.temp }}/smoke-stack.log
+
+  e2e-sso:
+    # AUTH-023: staff/customer SSO, group → role/tier sync, demotion/disable and
+    # RP-initiated logout against a real Authentik (deploy/compose.dev.yml).
+    name: e2e-sso (Authentik 2026.8.4 + Playwright)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'sso')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: Dev stack (app from source, Authentik + blueprints, Mailpit)
+        run: |
+          docker compose -f deploy/compose.yml -f deploy/compose.dev.yml up -d --build --wait mailpit authentik-postgresql
+          docker compose -f deploy/compose.yml -f deploy/compose.dev.yml up -d --build
+          # Both blueprints applied (the dev users one depends on the main one).
+          for _ in $(seq 1 120); do
+            st=$(curl -s -H 'Authorization: Bearer dev-akadmin-api-token-0123456789' 'http://localhost:9000/api/v3/managed/blueprints/?search=FeatherDesk' \
+              | python3 -c 'import sys,json; print(",".join(sorted(b["status"] for b in json.load(sys.stdin)["results"])))' 2>/dev/null || true)
+            [ "$st" = "successful,successful" ] && break; sleep 3
+          done
+          echo "blueprints: $st"; [ "$st" = "successful,successful" ]
+          for _ in $(seq 1 60); do curl -fsS http://localhost:8080/readyz && break; sleep 1; done
+          echo "127.0.0.1 authentik.localhost" | sudo tee -a /etc/hosts
+      - name: Inbound raw-MIME webhook → ticket, original.eml sha256 (NOT-023, NOT-026)
+        run: scripts/inbound-mime-e2e.sh
+      - name: Team map for the AUTH-031 interop case (creates the team, restarts the app with the map)
+        run: scripts/dev-team-map.sh fd-tech technical
+      - name: Playwright sso.spec.ts
+        working-directory: web
+        env:
+          E2E_BASE_URL: http://localhost:8080
+          E2E_AUTHENTIK_URL: http://authentik.localhost:9000
+          E2E_TEAM_MAP: fd-tech=technical
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          # One worker: the chromium and mobile projects must not hammer the single Authentik
+          # (server + worker on the same 2-4 vCPUs) concurrently.
+          pnpm exec playwright test e2e/sso.spec.ts --workers=1
+      - if: failure()
+        run: docker compose -f deploy/compose.yml -f deploy/compose.dev.yml logs --no-color > "$RUNNER_TEMP/dev-stack.log" 2>&1 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: e2e-sso
+          path: |
+            web/playwright-report
+            web/test-results
+            ${{ runner.temp }}/dev-stack.log
+
+  e2e-sso-keycloak:
+    # AUTH-029: the AUTH-023 staff scenarios against Keycloak (realm import, no blueprint).
+    name: e2e-sso-keycloak (Keycloak 26.8.1 + Playwright)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'sso')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: App from source + Keycloak (realm import)
+        run: |
+          docker compose -f deploy/compose.yml -f deploy/compose.keycloak.yml up -d --build --wait
+          echo "127.0.0.1 keycloak.localhost" | sudo tee -a /etc/hosts
+      - name: Playwright sso-keycloak.spec.ts
+        working-directory: web
+        env:
+          E2E_BASE_URL: http://localhost:8080
+          E2E_KEYCLOAK_URL: http://keycloak.localhost:8180
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test e2e/sso-keycloak.spec.ts --workers=1
+      - if: failure()
+        run: docker compose -f deploy/compose.yml -f deploy/compose.keycloak.yml logs --no-color > "$RUNNER_TEMP/keycloak-stack.log" 2>&1 || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: e2e-sso-keycloak
+          path: |
+            web/playwright-report
+            web/test-results
+            ${{ runner.temp }}/keycloak-stack.log
+
+  screenshots:
+    # DEP-027: README screenshots regenerated with no manual steps (`pnpm screenshots`).
+    name: screenshots (portal, agent, branding; light + dark)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+      - name: pnpm screenshots
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm screenshots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshots
+          path: docs/screenshots
+
+  drills:
+    name: backup/restore drill (DEP-013, SQLite + Postgres; DEP-020 Litestream)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build --build-arg VERSION=nightly --build-arg COMMIT=${{ github.sha }} -t "$IMAGE" .
+      - run: scripts/restore-drill.sh --engine sqlite --image "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"
+      - run: scripts/restore-drill.sh --engine postgres --image "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Litestream overlay (DEP-020) - 100 tickets, volume destroyed, restored from the replica
+        run: scripts/litestream-drill.sh --image "$IMAGE" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  integration:
+    name: integration (MinIO S3 blob store, Dovecot IMAP)
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      FD_TEST_S3_URL: s3://test/st?endpoint=http://127.0.0.1:19000&region=us-east-1&path_style=true
+      FD_S3_ACCESS_KEY: fd-test
+      FD_S3_SECRET_KEY: fd-test-secret-123
+      FD_TEST_IMAP_URL: imap://support@test.local:fd-test-imap@127.0.0.1:31143/INBOX
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - run: docker compose -f deploy/compose.test.yml up -d --wait || docker compose -f deploy/compose.test.yml ps -a
+      - name: blob-s3
+        run: go test -count=1 -run TestS3Integration ./internal/blob/
+      - name: inbound-imap
+        # NOT-033: also restarts Dovecot mid-test to prove reconnect without loss.
+        env:
+          FD_TEST_IMAP_RESTART: docker compose -f ${{ github.workspace }}/deploy/compose.test.yml restart dovecot
+        run: go test -count=1 -run TestDovecotIntegration ./internal/mailin/
+      - name: inbound-imap-poll-fallback
+        env:
+          FD_TEST_IMAP_URL: imap://support@test.local:fd-test-imap@127.0.0.1:31144/INBOX
+          FD_TEST_IMAP_NO_IDLE: "1"
+        run: go test -count=1 -run TestDovecotIntegration ./internal/mailin/
+      - if: always()
+        run: docker compose -f deploy/compose.test.yml down -v

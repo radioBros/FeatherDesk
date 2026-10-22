@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# gitleaks configuration (DEP-011): default rules plus an allowlist for files
+# that hold PUBLIC, dev/test-only credentials on purpose. Anything outside
+# these paths that looks like a secret fails CI.
+title = "FeatherDesk"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Committed dev/test fixtures (public values, never used in production)"
+paths = [
+  '''^deploy/\.env\.dev$''',
+  '''^deploy/compose\.(dev|test)\.yml$''',
+  '''^deploy/authentik/.*\.blueprint\.yaml$''',
+  '''^deploy/dovecot/''',
+  '''_test\.go$''',
+  '''\.spec\.ts$''',
+  '''^web/e2e/''',
+  '''^web/playwright\.config\.ts$''',
+  '''^scripts/(footprint|loadtest|doc-test|doc-test-ops)\.sh$''',
+  '''^tools/loadtest/''',
+  '''^docs/.*\.md$''',
+  '''^\.env\.example$''',
+  '''^\.github/workflows/ci\.yml$''',  # throwaway akadmin token of the ephemeral dev Authentik in CI
+]

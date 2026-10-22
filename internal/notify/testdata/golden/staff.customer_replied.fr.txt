@@ -1,0 +1,16 @@
+Subject: [HD-1042] Le client a répondu : Printer on floor 3 is offline
+
+##- Répondez au-dessus de cette ligne -##
+
+Bonjour Grace Hopper,
+
+le client a répondu sur le ticket **HD-1042 Printer on floor 3 is offline** :
+
+**Ada Lovelace:**
+
+The printer shows **error 42** since this morning.
+
+[Ouvrir le ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Ceci est un message automatique de FeatherDesk.

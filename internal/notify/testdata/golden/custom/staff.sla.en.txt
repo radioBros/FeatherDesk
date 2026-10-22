@@ -1,0 +1,21 @@
+Subject: [HD-1042] SLA breached: Printer on floor 3 is offline
+
+##- Reply above this line -##
+
+Hello Grace Hopper,
+
+The first response target of ticket **HD-1042 Printer on floor 3 is offline** was missed at 2026-10-20 10:00 (UTC).
+
+- **Subject:** Printer on floor 3 is offline
+- **Priority:** high
+- **Team:** IT
+- **Tier:** L2
+
+[Open the ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Acme Inc. · 1 Main St · **Springfield**
+This is an automated message from Acme Desk.
+Privacy policy: https://acme.test/privacy
+Terms: https://acme.test/terms
+Imprint: https://acme.test/imprint

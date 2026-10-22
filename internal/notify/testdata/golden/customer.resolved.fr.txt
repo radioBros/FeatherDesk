@@ -1,0 +1,14 @@
+Subject: [HD-1042] Votre demande a été résolue : Printer on floor 3 is offline
+
+##- Répondez au-dessus de cette ligne -##
+
+Bonjour Ada Lovelace,
+
+votre demande **Printer on floor 3 is offline** a été marquée comme résolue. Si vous avez encore besoin d'aide, répondez simplement à cet e-mail.
+
+Votre avis compte : [évaluez notre support](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001?rate=1)
+
+[Voir votre demande](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Ceci est un message automatique de FeatherDesk.

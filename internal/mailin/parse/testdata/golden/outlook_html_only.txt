@@ -1,0 +1,55 @@
+subject: RE: [#1043] Invoices
+from: "Maria Rossi" <maria@example.it>
+message_id: <AM0PR01MB1234@eurprd01.prod.outlook.com>
+in_reply_to: []
+references: []
+to: [support@help.example.com]
+cc: []
+date: 2026-10-20T08:01:02Z
+from_html: true
+has_html: true
+unknown_charset: false
+attachments:
+--- text ---
+Hello team,
+
+please find the **invoice** numbers below & check [the portal](https://portal.example.com/invoices?id=7).
+
+| Invoice | Amount |
+| --- | --- |
+| INV-1 | € 10 |
+| INV-2 | € 20 \| net |
+
+- First
+- Second
+   - Nested
+
+Regards,
+Maria
+
+click me
+
+**From:** Acme Support &lt;support@help.example.com>
+**Sent:** Monday, October 19, 2026 4:00 PM
+**To:** Maria Rossi &lt;maria@example.it>
+**Subject:** [#1043] Invoices
+
+Old text that must be stripped.
+--- stripped (true) ---
+Hello team,
+
+please find the **invoice** numbers below & check [the portal](https://portal.example.com/invoices?id=7).
+
+| Invoice | Amount |
+| --- | --- |
+| INV-1 | € 10 |
+| INV-2 | € 20 \| net |
+
+- First
+- Second
+   - Nested
+
+Regards,
+Maria
+
+click me

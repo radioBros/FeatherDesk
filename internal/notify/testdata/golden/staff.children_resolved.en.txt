@@ -1,0 +1,12 @@
+Subject: [HD-1042] All child tickets resolved: Printer on floor 3 is offline
+
+##- Reply above this line -##
+
+Hello Grace Hopper,
+
+all child tickets of **HD-1042 Printer on floor 3 is offline** are now resolved. You may want to resolve the parent ticket too.
+
+[Open the ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+This is an automated message from FeatherDesk.

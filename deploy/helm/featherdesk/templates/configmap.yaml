@@ -1,0 +1,17 @@
+{{- include "featherdesk.validate" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "featherdesk.fullname" . }}
+  labels:
+    {{- include "featherdesk.labels" . | nindent 4 }}
+data:
+  {{- range $k, $v := .Values.env }}
+  {{ $k }}: {{ $v | toString | quote }}
+  {{- end }}
+  {{- with .Values.blob.url }}
+  FD_BLOB_URL: {{ . | quote }}
+  {{- end }}
+  {{- range $k, $v := .Values.imap }}
+  {{ $k }}: {{ $v | toString | quote }}
+  {{- end }}

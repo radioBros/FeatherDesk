@@ -1,0 +1,70 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# DEV/CI ONLY overlay (AUTH-029): app built from source + Keycloak 26.8.1 with
+# the realm in deploy/keycloak/featherdesk-realm.json (groups fd-admins,
+# fd-supervisors, fd-agents, fd-l2, fd-l3; confidential clients
+# featherdesk-staff-dev / featherdesk-customer-dev, each with a Group
+# Membership mapper, full group path OFF, claim `groups`; back-channel logout
+# URL = the app's compose service).
+#
+#   docker compose -f deploy/compose.yml -f deploy/compose.keycloak.yml up -d --build --wait
+#   cd web && E2E_BASE_URL=http://localhost:8080 E2E_KEYCLOAK_URL=http://keycloak.localhost:8180 \
+#     pnpm exec playwright test e2e/sso-keycloak.spec.ts --workers=1
+#
+#   app        http://localhost:8080        (break-glass admin@dev.test, see .env.dev)
+#   Keycloak   http://keycloak.localhost:8180  (admin console: admin / dev-keycloak-admin-password)
+#
+# Same issuer trick as the Authentik overlay: the browser resolves
+# *.localhost to 127.0.0.1 and the app container reaches the same URL through
+# the network alias, so go-oidc sees one issuer. Do not combine with
+# compose.dev.yml (8 GB hosts: one IdP at a time). All credentials are public
+# dev values.
+name: featherdesk-keycloak
+
+services:
+  app:
+    image: featherdesk:dev
+    build:
+      context: ..
+      args:
+        VERSION: dev
+        COMMIT: local
+    env_file: !override
+      - path: .env.dev
+        required: true
+    environment:
+      FD_OIDC_STAFF_ISSUER: http://keycloak.localhost:8180/realms/featherdesk
+      FD_OIDC_STAFF_LABEL: Sign in with Keycloak
+      FD_OIDC_CUSTOMER_ISSUER: http://keycloak.localhost:8180/realms/featherdesk
+    depends_on:
+      keycloak:
+        condition: service_healthy
+
+  keycloak:
+    # quay.io/keycloak/keycloak:26.8.1, index digest resolved 2026-10-21.
+    image: quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: dev-keycloak-admin-password
+      KC_HTTP_PORT: "8180"
+      # Fixed issuer for browser and app alike.
+      KC_HOSTNAME: http://keycloak.localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"
+      KC_HEALTH_ENABLED: "true"
+      KC_LOG_LEVEL: info
+    ports:
+      - "127.0.0.1:8180:8180"
+    networks:
+      default:
+        aliases: [keycloak.localhost]
+    volumes:
+      - ./keycloak/featherdesk-realm.json:/opt/keycloak/data/import/featherdesk-realm.json:ro
+    healthcheck:
+      # No curl in the image: plain HTTP over bash's /dev/tcp to the management port.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 5s
+      timeout: 5s
+      start_period: 120s
+      start_interval: 2s
+      retries: 30

@@ -1,0 +1,20 @@
+Subject: [HD-1042] Nuova risposta alla tua richiesta: Printer on floor 3 is offline
+
+##- Rispondi sopra questa riga -##
+
+Ciao Ada Lovelace,
+
+Grace Hopper ha risposto alla tua richiesta **Printer on floor 3 is offline**:
+
+We restarted the print server. Could you try again?
+
+- step one
+- step two
+
+Grace Hopper  
+Support Team
+
+[Visualizza la conversazione](https://help.example.test/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Questo è un messaggio automatico di FeatherDesk.

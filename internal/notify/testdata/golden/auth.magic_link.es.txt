@@ -1,0 +1,12 @@
+Subject: Su enlace de acceso
+
+Hola Ada Lovelace,
+
+utilice el siguiente enlace para acceder a FeatherDesk.
+
+[Acceder](https://help.example.test/auth/token/abc123)
+
+Este enlace caduca en 60 minutos. Si usted no lo ha solicitado, puede ignorar este correo.
+
+-- 
+Este es un mensaje automático de FeatherDesk.

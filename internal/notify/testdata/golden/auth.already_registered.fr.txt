@@ -1,0 +1,12 @@
+Subject: Vous avez déjà un compte
+
+Bonjour Ada Lovelace,
+
+quelqu'un a tenté de s'inscrire sur FeatherDesk avec cette adresse e-mail, mais un compte existe déjà.
+
+[Se connecter ou réinitialiser le mot de passe](https://help.example.test/auth/token/abc123)
+
+Si ce n'était pas vous, vous pouvez ignorer cet e-mail.
+
+-- 
+Ceci est un message automatique de FeatherDesk.

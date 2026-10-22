@@ -1,0 +1,12 @@
+Subject: Ya tiene una cuenta
+
+Hola Ada Lovelace,
+
+alguien ha intentado registrarse en FeatherDesk con esta dirección de correo, pero ya existe una cuenta.
+
+[Acceder o restablecer la contraseña](https://help.example.test/auth/token/abc123)
+
+Si no ha sido usted, puede ignorar este correo.
+
+-- 
+Este es un mensaje automático de FeatherDesk.

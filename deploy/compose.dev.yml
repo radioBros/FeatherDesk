@@ -1,0 +1,162 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# DEV ONLY overlay (DEP-004/005): app built from source + Authentik 2026.8.4
+# (postgresql + server + worker, no Redis since 2025.10) + Mailpit.
+#
+#   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml up -d --build
+#
+#   app          http://localhost:8080   (agent panel /agent, SSO buttons enabled)
+#   Authentik    http://authentik.localhost:9000  (akadmin / see .env.dev)
+#   Mailpit UI   http://localhost:8025   (SMTP mailpit:1025, env-locked in the app)
+#
+# Browsers resolve *.localhost to 127.0.0.1, and inside the compose network
+# authentik.localhost is an alias of the server container, so the OIDC issuer
+# URL is identical for the browser and the app (go-oidc checks it verbatim).
+# The other direction (Authentik worker → app, back-channel logout) goes to the
+# compose service http://app:8080 (FD_BACKCHANNEL_BASE_URL in .env.dev).
+#
+# Options:
+#   FD_DEV_SMTP_HOST= (empty) …up        leave SMTP unset: configure it in Admin → Email
+#   FD_DEV_BOOTSTRAP_ADMIN_EMAIL= FD_DEV_BOOTSTRAP_ADMIN_PASSWORD= …up
+#                                        no break-glass admin: first-run wizard on a fresh DB
+#   --profile smtp-auth                  extra Mailpit that requires SMTP AUTH (NOT-019), localhost:1026/8026
+#
+# To run the app natively instead (make dev), start only the dependencies:
+#   docker compose -f deploy/compose.yml -f deploy/compose.dev.yml up -d authentik-server authentik-worker mailpit
+#
+# All credentials here and in .env.dev are public dev values. Never reuse them.
+name: featherdesk-dev
+
+services:
+  app:
+    image: featherdesk:dev
+    build:
+      context: ..
+      args:
+        VERSION: dev
+        COMMIT: local
+    env_file: !override
+      - path: .env.dev
+        required: true
+    environment:
+      FD_SMTP_HOST: ${FD_DEV_SMTP_HOST-mailpit}
+      # AUTH-031 interop: team membership from the IdP groups claim. Empty = off.
+      # An unknown team is a boot error, so create the team first, then e.g.
+      #   FD_DEV_TEAM_MAP=fd-tech=technical docker compose … up -d app
+      FD_OIDC_STAFF_TEAM_MAP: ${FD_DEV_TEAM_MAP-}
+      # Break-glass admin (same defaults as .env.dev). Both empty = a fresh DB boots with no
+      # admin, so the first-run wizard /setup opens and the log prints its setup token
+      # (the CI smoke, DEP-022):
+      #   FD_DEV_BOOTSTRAP_ADMIN_EMAIL= FD_DEV_BOOTSTRAP_ADMIN_PASSWORD= docker compose … up -d
+      FD_BOOTSTRAP_ADMIN_EMAIL: ${FD_DEV_BOOTSTRAP_ADMIN_EMAIL-admin@dev.test}
+      FD_BOOTSTRAP_ADMIN_PASSWORD: ${FD_DEV_BOOTSTRAP_ADMIN_PASSWORD-dev-admin-password-123}
+    depends_on:
+      mailpit:
+        condition: service_healthy
+      authentik-server:
+        condition: service_started
+
+  mailpit:
+    # axllent/mailpit:latest, digest resolved 2026-10-21.
+    image: axllent/mailpit@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    environment:
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_MAX_MESSAGES: "2000"
+      # Without these, a host with no outside DNS stalls every SMTP greeting
+      # ~10 s on Mailpit's reverse lookup of the client (the app's send times out).
+      MP_SMTP_DISABLE_RDNS: "true"
+      MP_DISABLE_VERSION_CHECK: "true"
+
+  mailpit-auth:
+    profiles: [smtp-auth]
+    image: axllent/mailpit@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
+    ports:
+      - "127.0.0.1:8026:8025"
+      - "127.0.0.1:1026:1025"
+    environment:
+      MP_SMTP_AUTH: "dev:dev-smtp-password"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_SMTP_DISABLE_RDNS: "true"
+      MP_DISABLE_VERSION_CHECK: "true"
+
+  authentik-postgresql:
+    # postgres:16-alpine as in Authentik's own compose at version/2026.8.4.
+    image: postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authentik
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: dev-authentik-db-password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      start_interval: 1s
+      retries: 5
+    volumes:
+      - authentik-db:/var/lib/postgresql/data
+
+  authentik-server:
+    image: ghcr.io/goauthentik/server:2026.8.4@sha256:e7226ae116dac5aa0a5643803e735b010038f492c401e08e16b3bf1ac54c090c
+    restart: unless-stopped
+    command: server
+    env_file:
+      - path: .env.dev
+        required: true
+    environment: &authentik-env
+      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
+      AUTHENTIK_POSTGRESQL__NAME: authentik
+      AUTHENTIK_POSTGRESQL__USER: authentik
+      AUTHENTIK_POSTGRESQL__PASSWORD: dev-authentik-db-password
+      AUTHENTIK_SECRET_KEY: dev-only-authentik-secret-key-not-for-production-0123456789
+      AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+      AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+      AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+      AUTHENTIK_BOOTSTRAP_PASSWORD: dev-akadmin-password
+      AUTHENTIK_BOOTSTRAP_TOKEN: dev-akadmin-api-token-0123456789
+      AUTHENTIK_BOOTSTRAP_EMAIL: akadmin@dev.test
+    ports:
+      - "127.0.0.1:9000:9000"
+    networks:
+      default:
+        aliases: [authentik.localhost]
+    shm_size: 512mb
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+    volumes:
+      - authentik-data:/data
+      - ./authentik/featherdesk.blueprint.yaml:/blueprints/custom/featherdesk.blueprint.yaml:ro
+      - ./authentik/featherdesk-dev-users.blueprint.yaml:/blueprints/custom/featherdesk-dev-users.blueprint.yaml:ro
+
+  authentik-worker:
+    image: ghcr.io/goauthentik/server:2026.8.4@sha256:e7226ae116dac5aa0a5643803e735b010038f492c401e08e16b3bf1ac54c090c
+    restart: unless-stopped
+    command: worker
+    env_file:
+      - path: .env.dev
+        required: true
+    environment: *authentik-env
+    shm_size: 512mb
+    depends_on:
+      authentik-postgresql:
+        condition: service_healthy
+      # Both containers mount the same fresh named volume; creating them concurrently races
+      # on Docker's image-content copy into it ("failed to create symlink ... media: file
+      # exists", the whole `up` aborts). Creating the worker after the server is started
+      # serialises that first mount.
+      authentik-server:
+        condition: service_started
+    volumes:
+      - authentik-data:/data
+      - ./authentik/featherdesk.blueprint.yaml:/blueprints/custom/featherdesk.blueprint.yaml:ro
+      - ./authentik/featherdesk-dev-users.blueprint.yaml:/blueprints/custom/featherdesk-dev-users.blueprint.yaml:ro
+
+volumes:
+  authentik-db:
+  authentik-data:

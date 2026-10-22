@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Non-secret FD_* settings; see .env.example for every variable.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: featherdesk
+  namespace: featherdesk
+  labels:
+    app.kubernetes.io/name: featherdesk
+data:
+  FD_PUBLIC_URL: https://help.example.com
+  FD_LOG_FORMAT: json
+  FD_LOG_LEVEL: info
+  # Pod network of your ingress controller (X-Forwarded-For is trusted only from here).
+  FD_TRUSTED_PROXIES: 10.0.0.0/8

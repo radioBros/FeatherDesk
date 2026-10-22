@@ -1,0 +1,21 @@
+Subject: [HD-1042] Nuevo ticket: Printer on floor 3 is offline
+
+##- Responda por encima de esta línea -##
+
+Hola Grace Hopper,
+
+Ada Lovelace ha abierto un nuevo ticket.
+
+- **Asunto:** Printer on floor 3 is offline
+- **Prioridad:** high
+- **Equipo:** IT
+- **Nivel:** L2
+
+**Ada Lovelace:**
+
+The printer shows **error 42** since this morning.
+
+[Abrir el ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Este es un mensaje automático de FeatherDesk.

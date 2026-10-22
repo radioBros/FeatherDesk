@@ -1,0 +1,78 @@
+{
+  "setup": {
+    "title": "Configura tu centro de soporte",
+    "next": "Siguiente",
+    "alreadyDone": "La configuración ya se ha completado. Inicia sesión con la cuenta de administrador.",
+    "steps": {
+      "token": "Token de configuración",
+      "admin": "Administrador",
+      "branding": "Marca",
+      "email": "Correo",
+      "sso": "Inicio de sesión único",
+      "done": "Listo"
+    },
+    "token": {
+      "intro": "Para demostrar que administras este servidor, pega el token de configuración de un solo uso. Aparece en el registro del servidor desde que se inició la instancia.",
+      "label": "Token de configuración",
+      "hint": "Busca «setup token» en el registro del contenedor",
+      "wrong": "Este token de configuración no es válido. Cópialo de nuevo del registro del servidor."
+    },
+    "admin": {
+      "reenter": "Por seguridad, la contraseña nunca se guarda en el navegador. Vuelve a introducirla.",
+      "name": "Nombre",
+      "confirmPassword": "Confirmar contraseña",
+      "passwordHint": "Al menos 10 caracteres"
+    },
+    "branding": {
+      "productName": "Nombre del producto",
+      "companyName": "Nombre de la empresa",
+      "primaryColor": "Color principal",
+      "pickColor": "Elegir un color",
+      "logo": "Logotipo (opcional)",
+      "logoHint": "PNG, JPEG, WebP o SVG, hasta 1 MB",
+      "create": "Crear el centro de soporte",
+      "logoFailed": "No se pudo subir el logotipo ({reason}). Puedes añadirlo más tarde en Marca."
+    },
+    "smtp": {
+      "intro": "Opcional: conecta un servidor SMTP para que los clientes reciban notificaciones y puedan registrarse. Puedes omitir este paso y configurarlo más tarde.",
+      "host": "Servidor SMTP",
+      "port": "Puerto",
+      "security": "Seguridad",
+      "starttls": "STARTTLS (puerto 587)",
+      "tls": "TLS (puerto 465)",
+      "none": "Ninguna (no recomendado)",
+      "username": "Usuario",
+      "password": "Contraseña",
+      "fromAddress": "Dirección del remitente",
+      "fromName": "Nombre del remitente",
+      "testTo": "Enviar el correo de prueba a",
+      "test": "Enviar correo de prueba",
+      "save": "Guardar y continuar",
+      "skip": "Omitir por ahora",
+      "testOk": "Correo de prueba enviado a {to}. Comprueba que haya llegado.",
+      "error": {
+        "auth_failed": "El servidor rechazó el usuario o la contraseña.",
+        "tls_mismatch": "La configuración de seguridad no coincide con el servidor. Prueba otro puerto u otro modo de seguridad.",
+        "connection_refused": "El servidor rechazó la conexión. Comprueba el servidor y el puerto.",
+        "timeout": "El servidor no respondió a tiempo.",
+        "dns": "No se pudo resolver el nombre del servidor.",
+        "rejected": "El servidor rechazó el mensaje.",
+        "other": "No se pudo enviar el correo de prueba."
+      }
+    },
+    "sso": {
+      "intro": "Para que el personal y los clientes inicien sesión con tu proveedor de identidad (por ejemplo, Authentik), registra en él estas URI de redirección, define las variables de entorno OIDC y reinicia.",
+      "staffRedirect": "URI de redirección del personal",
+      "customerRedirect": "URI de redirección de clientes",
+      "backchannel": "URI de cierre de sesión por canal secundario (back-channel)",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "later": "El inicio de sesión único es opcional. El administrador que acabas de crear siempre puede entrar con correo y contraseña."
+    },
+    "done": {
+      "title": "Tu centro de soporte está listo",
+      "body": "Has iniciado sesión como {email}. Ahora crea equipos y categorías e invita a tus agentes.",
+      "open": "Abrir el panel de agentes"
+    }
+  }
+}

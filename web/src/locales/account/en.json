@@ -1,0 +1,114 @@
+{
+  "mfa": {
+    "code": "6-digit code",
+    "recoveryCode": "Recovery code",
+    "verify": "Verify",
+    "validation": {
+      "otpCode": "Enter the 6-digit code",
+      "recoveryCode": "Enter a recovery code like abcd-efgh-jkmn"
+    },
+    "method": {
+      "totp": "Authenticator app",
+      "email": "Code by email",
+      "recovery": "Recovery code"
+    },
+    "step": {
+      "title": "Two-step verification",
+      "enrollTitle": "Set up two-step verification",
+      "enrollIntro": "This site requires a second step when you sign in. Set it up now to continue.",
+      "hint": {
+        "totp": "Enter the 6-digit code from your authenticator app.",
+        "email": "We send a 6-digit code to your email address.",
+        "recovery": "Enter one of the recovery codes you saved. Each code works once."
+      },
+      "expired": "This sign-in attempt has expired. Please sign in again.",
+      "restart": "Sign in again",
+      "tooMany": "Too many attempts. Wait a moment and try again.",
+      "noMethod": "No verification method is available for this account. Ask an administrator to reset your two-step verification.",
+      "methodLabel": "Verification method",
+      "emailSent": "We sent a code to your email address. It is valid for 10 minutes.",
+      "resendIn": "Send again in {s} s",
+      "resend": "Send a new code",
+      "sendEmail": "Email me a code",
+      "cancel": "Cancel and go back"
+    },
+    "setup": {
+      "title": "Set up an authenticator app",
+      "start": "Show the QR code",
+      "scan": "Scan this QR code with your authenticator app.",
+      "qrLabel": "QR code for your authenticator app",
+      "manual": "Or enter this key manually:",
+      "confirm": "Confirm and turn on"
+    },
+    "codes": {
+      "title": "Your recovery codes",
+      "warning": "Save these codes somewhere safe. Each one signs you in once if you lose your device. They are shown only now.",
+      "copy": "Copy",
+      "copied": "Copied",
+      "download": "Download",
+      "continue": "I saved them, continue",
+      "saved": "I saved them"
+    },
+    "reauth": {
+      "title": "Confirm your password",
+      "intro": "For your security, enter your password to change two-step verification."
+    },
+    "profile": {
+      "title": "Two-step verification",
+      "loadFailed": "Could not load the two-step verification settings.",
+      "unavailable": "Your account signs in through your organization's identity provider, which handles two-step verification.",
+      "intro": "Protect your account with a second step after your password.",
+      "required": "This site requires two-step verification. Set up at least one method.",
+      "on": "On",
+      "off": "Off",
+      "setUp": "Set up",
+      "replace": "Replace",
+      "turnOff": "Turn off",
+      "turnOn": "Turn on",
+      "emailUnavailable": "Not available: email is not configured on this site",
+      "remaining": "{n} unused codes left",
+      "regenerate": "New codes",
+      "totpEnabled": "Authenticator app turned on",
+      "emailEnabled": "Email codes turned on",
+      "disabled": "Method turned off",
+      "disableConfirm": {
+        "totp": "Turn off the authenticator app?",
+        "email": "Turn off codes by email?"
+      },
+      "regenerateConfirm": "Create new recovery codes? The old ones stop working."
+    },
+    "admin": {
+      "label": "Two-step verification",
+      "sso": "managed by the identity provider",
+      "reset": "Reset two-step verification",
+      "resetTitle": "Reset two-step verification?",
+      "resetConfirm": "This removes the user's authenticator app, email codes and recovery codes. They can sign in with their password only (or set it up again if the site requires it). This is recorded in the audit log.",
+      "resetDone": "Two-step verification was reset"
+    },
+    "policy": {
+      "title": "Security",
+      "label": "Require two-step verification",
+      "hint": "Applies to accounts with a local password. Single sign-on accounts use their identity provider.",
+      "none": "Nobody (optional)",
+      "staff": "All staff accounts",
+      "all": "Everyone",
+      "saved": "Security settings saved"
+    }
+  },
+  "mcp": {
+    "title": "Connect an AI assistant",
+    "intro": "AI assistants that speak the Model Context Protocol (MCP), such as Claude Code, Claude Desktop or Cursor, can work with your tickets using one of your API tokens. The assistant acts as you and can never do more than the token's scopes allow. Create a token below, then paste one of these configurations into your assistant.",
+    "endpoint": "MCP endpoint",
+    "scopes": "Recommended token scopes",
+    "readWrite": "To read and work tickets:",
+    "readOnly": "Read only:",
+    "copy": "Copy",
+    "copied": "Copied",
+    "replaceToken": "Replace {placeholder} with your token. Treat the configuration like a password.",
+    "hint": {
+      "claudeCode": "Run this in a terminal.",
+      "claudeDesktop": "Add this to claude_desktop_config.json (open it from the app's developer settings) and restart the app. It needs Node.js: mcp-remote connects the app to the endpoint.",
+      "cursor": "Add this to ~/.cursor/mcp.json (or .cursor/mcp.json in a project)."
+    }
+  }
+}

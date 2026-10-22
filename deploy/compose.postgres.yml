@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Optional Postgres engine overlay (DEP-029, D-14). SQLite stays the default
+# and the recommended choice for small hosts; use this when you want Postgres
+# managed next to the app. An external Postgres needs no overlay: just set
+# FD_DATABASE_URL in .env.
+#
+#   # in deploy/.env: FD_PG_PASSWORD=<random>
+#   docker compose -f deploy/compose.yml -f deploy/compose.postgres.yml up -d
+#
+# Tuned for the 512 MB reference host (CONVENTIONS §10); Postgres idle RSS is
+# reported separately by scripts/footprint.sh --engine postgres (target ≤ 60 MB).
+services:
+  app:
+    environment:
+      FD_DATABASE_URL: postgres://${FD_PG_USER:-featherdesk}:${FD_PG_PASSWORD:?set FD_PG_PASSWORD in deploy/.env}@postgres:5432/${FD_PG_DB:-featherdesk}?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    # postgres:18-alpine, digest resolved 2026-10-21.
+    image: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${FD_PG_USER:-featherdesk}
+      POSTGRES_PASSWORD: ${FD_PG_PASSWORD:?set FD_PG_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${FD_PG_DB:-featherdesk}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=32MB
+      - -c
+      - max_connections=20
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=16MB
+      - -c
+      - effective_cache_size=128MB
+      - -c
+      - wal_buffers=1MB
+    volumes:
+      # Postgres 18 images keep PGDATA under /var/lib/postgresql/18/docker.
+      - fd-pg:/var/lib/postgresql
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 1
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      start_interval: 1s
+      retries: 5
+
+volumes:
+  fd-pg:

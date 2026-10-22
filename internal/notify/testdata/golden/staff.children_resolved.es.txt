@@ -1,0 +1,12 @@
+Subject: [HD-1042] Todos los tickets hijos resueltos: Printer on floor 3 is offline
+
+##- Responda por encima de esta línea -##
+
+Hola Grace Hopper,
+
+todos los tickets hijos de **HD-1042 Printer on floor 3 is offline** ya están resueltos. Puede que también quiera resolver el ticket principal.
+
+[Abrir el ticket](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Este es un mensaje automático de FeatherDesk.

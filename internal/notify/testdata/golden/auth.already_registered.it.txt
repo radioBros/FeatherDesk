@@ -1,0 +1,12 @@
+Subject: Hai già un account
+
+Ciao Ada Lovelace,
+
+qualcuno ha provato a registrarsi su FeatherDesk con questo indirizzo email, ma esiste già un account.
+
+[Accedi o reimposta la password](https://help.example.test/auth/token/abc123)
+
+Se non sei stato tu, puoi ignorare questa email.
+
+-- 
+Questo è un messaggio automatico di FeatherDesk.

@@ -1,0 +1,12 @@
+Subject: You have been invited to FeatherDesk
+
+Hello Ada Lovelace,
+
+Grace Hopper invited you to FeatherDesk.
+
+[Accept the invitation](https://help.example.test/auth/token/abc123)
+
+This link expires in 60 minutes. If you did not request this, you can ignore this email.
+
+-- 
+This is an automated message from FeatherDesk.

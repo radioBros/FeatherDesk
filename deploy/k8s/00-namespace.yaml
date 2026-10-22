@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+# Plain manifests (DEP-023). Apply in order: kubectl apply -f deploy/k8s/
+# The Helm chart in deploy/helm/featherdesk renders the same objects.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: featherdesk
+  labels:
+    app.kubernetes.io/name: featherdesk
+    pod-security.kubernetes.io/enforce: restricted

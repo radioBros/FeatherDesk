@@ -1,0 +1,16 @@
+Subject: [HD-1042] Sie wurden erwähnt: Printer on floor 3 is offline
+
+##- Bitte oberhalb dieser Zeile antworten -##
+
+Hallo Grace Hopper,
+
+Alan Turing hat Sie in einer internen Notiz zum Ticket **HD-1042 Printer on floor 3 is offline** erwähnt:
+
+**Ada Lovelace:**
+
+The printer shows **error 42** since this morning.
+
+[Ticket öffnen](https://help.example.test/agent/tickets/0192f000-0000-7000-8000-000000000001)
+
+-- 
+Dies ist eine automatische Nachricht von FeatherDesk.

@@ -1,0 +1,71 @@
+{
+  "notifications": {
+    "bell": {
+      "label": "Notifications",
+      "labelUnread": "Notifications, {n} unread"
+    },
+    "menu": {
+      "markAllRead": "Mark all as read",
+      "seeAll": "See all notifications",
+      "empty": "You are all caught up",
+      "loadFailed": "Notifications could not be loaded"
+    },
+    "page": {
+      "title": "Notifications",
+      "subtitle": "Updates about your tickets",
+      "filter": "Show",
+      "filterAll": "All",
+      "filterUnread": "Unread",
+      "type": "Kind",
+      "allTypes": "All kinds",
+      "loadMore": "Load more",
+      "empty": "No notifications yet",
+      "emptyUnread": "No unread notifications",
+      "markRead": "Mark as read",
+      "delete": "Delete notification",
+      "deleted": "Notification deleted",
+      "allRead": "All notifications marked as read",
+      "unread": "Unread",
+      "settings": "Notification settings"
+    },
+    "someone": "Someone",
+    "noTicket": "a ticket",
+    "types": {
+      "staff_ticket_new": { "label": "New ticket in my queue", "title": "New ticket {ref}" },
+      "staff_customer_replied": { "label": "Customer replied", "title": "{actor} replied on {ref}" },
+      "staff_assigned": { "label": "Ticket assigned to me", "title": "{actor} assigned {ref} to you" },
+      "staff_escalated": { "label": "Ticket escalated to my team", "title": "{ref} was escalated to {tier}" },
+      "staff_mentioned": { "label": "Mentioned in a note", "title": "{actor} mentioned you on {ref}" },
+      "staff_sla": { "label": "SLA warnings and breaches", "title": "SLA warning on {ref}", "breached": "SLA breached on {ref}" },
+      "staff_children_resolved": { "label": "Linked tickets resolved", "title": "Every linked ticket of {ref} is resolved" },
+      "customer_ticket_received": { "label": "Request received", "title": "We received your request {ref}" },
+      "customer_reply": { "label": "Reply to my request", "title": "{actor} replied to your request {ref}" },
+      "customer_resolved": { "label": "Request resolved", "title": "Your request {ref} was resolved" }
+    },
+    "sla": {
+      "first_response": "First response due",
+      "resolution": "Resolution due"
+    },
+    "prefs": {
+      "title": "Notifications",
+      "subtitle": "Choose how you hear about each kind of update.",
+      "type": "Update",
+      "inApp": "In the app",
+      "email": "Email",
+      "browser": "Browser pop-up",
+      "emailForced": "Replies to your requests are always emailed.",
+      "save": "Save notification settings",
+      "saved": "Notification settings saved",
+      "browserTitle": "Browser notifications",
+      "browserHint": "Pop-ups appear while a tab of this help desk is open in the background. Nothing arrives when every tab is closed.",
+      "enable": "Allow browser notifications",
+      "granted": "Browser notifications are allowed in this browser.",
+      "denied": "Browser notifications are blocked. Allow them in this site's browser settings, then reload.",
+      "unsupported": "This browser cannot show notifications.",
+      "sound": "Play a sound with each pop-up (this browser only)"
+    },
+    "validation": {
+      "permission": "Allow browser notifications first"
+    }
+  }
+}
