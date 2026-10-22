@@ -117,12 +117,14 @@ test.describe('table columns', () => {
     await table.locator('[data-resize-col="name"]').focus()
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('ArrowRight')
-    await expect.poll(async () => Math.round((await name.boundingBox())!.width - before)).toBe(32)
+    // Two 16 px steps; the first resize rounds the measured width, so ±1 px.
+    const grown = async () => Math.abs((await name.boundingBox())!.width - before - 32) <= 1
+    await expect.poll(grown).toBe(true)
     expect(await table.locator('table').evaluate((e) => getComputedStyle(e).tableLayout)).toBe('fixed')
 
     await page.reload()
     await expect.poll(head).toEqual(['role', 'name', ...initial.slice(2)])
-    await expect.poll(async () => Math.round((await name.boundingBox())!.width - before)).toBe(32)
+    await expect.poll(grown).toBe(true)
     await page.getByTestId('columns-menu').click()
     await page.getByTestId('columns-reset').click()
     await expect.poll(head).toEqual(initial)
