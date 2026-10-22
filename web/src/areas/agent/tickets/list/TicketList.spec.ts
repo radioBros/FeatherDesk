@@ -2,6 +2,7 @@
 
 import TicketListPage from '../TicketListPage.vue'
 import { mountAgent, fx, json } from '../../testing'
+import { scrollTableToEnd } from '@/test/mount'
 import type { AgentHarness, MountAgentOptions } from '../../testing'
 
 afterEach(() => {
@@ -95,7 +96,7 @@ describe('TicketListPage (FE-021)', () => {
       ...base(),
       'GET /agent/tickets': () => json(n++ === 0 ? fx.page([fx.summary()], 'c2') : fx.page([fx.summary({ id: 't-9', number: 9 })])),
     })
-    await h.wrapper.find('[data-testid="load-more"]').trigger('click')
+    scrollTableToEnd(h.wrapper.element)
     await h.flush()
     expect(ticketCalls(h)[1]!.url.searchParams.get('cursor')).toBe('c2')
     expect(rows(h)).toHaveLength(2)

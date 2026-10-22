@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
 /** /agent/customers (FE-026): search, cursor list, create dialog. */
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { mdiMagnify, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
@@ -12,18 +12,21 @@ import { useTableColumns } from '@/composables/useTableColumns'
 import CustomerForm from './CustomerForm.vue'
 import { api, unwrap } from '@/api/client'
 import { useCursorList } from '../shared/useCursorList'
-import type { components } from '@/api/schema'
+import type { components, operations } from '@/api/schema'
 import UserAvatar from '@/components/UserAvatar.vue'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const router = useRouter()
 const q = ref('')
+const sort = ref<NonNullable<CustomersQuery['sort']> | null>(null)
 const dialog = ref(false)
 const orgs = ref<S['Organization'][]>([])
+type CustomersQuery = NonNullable<operations['listCustomers']['parameters']['query']>
 const list = useCursorList((cursor) =>
-  unwrap(api.GET('/agent/customers', { params: { query: { q: q.value.trim() || undefined, cursor: cursor ?? undefined, limit: 50 } } })),
+  unwrap(api.GET('/agent/customers', { params: { query: { q: q.value.trim() || undefined, sort: sort.value ?? undefined, cursor: cursor ?? undefined, limit: 50 } } })),
 )
+watch(sort, () => void list.reload())
 let timer: ReturnType<typeof setTimeout> | undefined
 function onSearch() {
   clearTimeout(timer)
@@ -47,8 +50,8 @@ function onSaved(c: S['User']) {
 }
 const { t } = useI18n()
 const cols = useTableColumns('agent-customers', () => [
-  { key: 'name', label: t('agent.common.name'), locked: true },
-  { key: 'email', label: t('agent.common.email') },
+  { key: 'name', label: t('agent.common.name'), locked: true, sort: { asc: 'name', desc: '-name' } },
+  { key: 'email', label: t('agent.common.email'), sort: { asc: 'email', desc: '-email' } },
   { key: 'organization', label: t('agent.customers.organization'), lowPriority: true },
   { key: 'role', label: t('agent.customers.role'), lowPriority: true },
   { key: 'status', label: t('agent.common.status'), lowPriority: true },
@@ -80,39 +83,33 @@ const cols = useTableColumns('agent-customers', () => [
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.customers.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="customer-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-              <th data-col="email" v-if="cols.show('email')">{{ $t('agent.common.email') }}</th>
-              <th data-col="organization" v-if="cols.show('organization')">{{ $t('agent.customers.organization') }}</th>
-              <th data-col="role" v-if="cols.show('role')">{{ $t('agent.customers.role') }}</th>
-              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in list.items.value" :key="c.id" class="fd-row" data-testid="customer-row" @click="router.push(`/agent/customers/${c.id}`)">
-            <ColumnCells :cols="cols">
-              <td data-col="name" v-if="cols.show('name')">
-                <div class="d-flex align-center ga-2">
-                  <UserAvatar :name="c.name" :size="28" />
-                  <router-link :to="`/agent/customers/${c.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ c.name }}</router-link>
-                </div>
-              </td>
-              <td data-col="email" v-if="cols.show('email')">{{ c.email }}</td>
-              <td data-col="organization" v-if="cols.show('organization')">{{ orgName(c.organization_id) || '—' }}</td>
-              <td data-col="role" v-if="cols.show('role')">{{ $t(`agent.customers.roles.${c.role === 'org_manager' ? 'org_manager' : 'requester'}`) }}</td>
-              <td data-col="status" v-if="cols.show('status')"><v-chip size="small" label :color="c.status === 'active' ? 'success' : undefined">{{ $t(`agent.customers.statuses.${c.status}`) }}</v-chip></td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable
+        :cols="cols"
+        :items="list.items.value"
+        :loading="list.loading.value"
+        server-sort
+        :sort="sort"
+        :has-more="!!list.next.value"
+        density="comfortable"
+        hover
+        :row-props="{ 'data-testid': 'customer-row' }"
+        data-testid="customer-table"
+        @update:sort="(v: string | null) => (sort = v as typeof sort)"
+        @load-more="list.loadMore()"
+        @click:row="(_e: unknown, { item }: { item: S['User'] }) => router.push(`/agent/customers/${item.id}`)"
+      >
+        <template #[`item.name`]="{ item }">
+          <div class="d-flex align-center ga-2">
+            <UserAvatar :name="item.name" :size="28" />
+            <router-link :to="`/agent/customers/${item.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ item.name }}</router-link>
+          </div>
+        </template>
+        <template #[`item.email`]="{ item }">{{ item.email }}</template>
+        <template #[`item.organization`]="{ item }">{{ orgName(item.organization_id) || '—' }}</template>
+        <template #[`item.role`]="{ item }">{{ $t(`agent.customers.roles.${item.role === 'org_manager' ? 'org_manager' : 'requester'}`) }}</template>
+        <template #[`item.status`]="{ item }"><v-chip size="small" label :color="item.status === 'active' ? 'success' : undefined">{{ $t(`agent.customers.statuses.${item.status}`) }}</v-chip></template>
+      </DataTable>
       </template>
-      <div v-if="list.next.value" class="pa-2 text-center">
-        <v-btn variant="text" :loading="list.loading.value" data-testid="load-more" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
     </v-card>
     <v-dialog v-model="dialog" max-width="560">
       <v-card :title="$t('agent.customers.new')">
@@ -124,6 +121,3 @@ const cols = useTableColumns('agent-customers', () => [
   </v-container>
 </template>
 
-<style scoped>
-.fd-row { cursor: pointer; }
-</style>

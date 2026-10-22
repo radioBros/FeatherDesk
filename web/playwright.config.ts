@@ -36,6 +36,8 @@ const smtp: Record<string, string> = process.env.E2E_MAILPIT_URL?.trim()
 
 /** Specs that change instance-wide settings and so must not run beside others. */
 const ISOLATED = /portal-toggle\.spec\.ts$/
+/** Specs that need a quiet instance and a browser that is not starved of frames (virtual-table scrolling). */
+const QUIET = /sort-scroll\.spec\.ts$/
 
 const E2E_ADMIN = {
   email: process.env.E2E_ADMIN_EMAIL ?? 'admin@e2e.test',
@@ -57,11 +59,13 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', testIgnore: ISOLATED, use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', testIgnore: ISOLATED, use: { ...devices['Pixel 7'] } },
+    { name: 'chromium', testIgnore: [ISOLATED, QUIET], use: { ...devices['Desktop Chrome'] } },
+    { name: 'mobile', testIgnore: [ISOLATED, QUIET], use: { ...devices['Pixel 7'] } },
     // Flips an instance-wide setting (support.portal_enabled): runs alone, after the other projects,
     // so no spec running in parallel sees the customer portal switched off.
     { name: 'portal-toggle', testMatch: ISOLATED, dependencies: ['chromium', 'mobile'], use: { ...devices['Desktop Chrome'] } },
+    // Runs after the parallel projects too, on a quiet instance.
+    { name: 'quiet', testMatch: QUIET, dependencies: ['chromium', 'mobile'], use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: external
     ? undefined

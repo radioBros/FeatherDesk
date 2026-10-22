@@ -14,7 +14,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useCursorList } from '../../shared/useCursorList'
 import { useAction } from '../../shared/useAction'
 import type { components } from '@/api/schema'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -59,44 +59,33 @@ const cols = useTableColumns('admin-tokens', () => [
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.tokens.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="all-token-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="owner" v-if="cols.show('owner')">{{ $t('agent.allTokens.owner') }}</th>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-              <th data-col="prefix" v-if="cols.show('prefix')">{{ $t('agent.tokens.prefix') }}</th>
-              <th data-col="scopes" v-if="cols.show('scopes')">{{ $t('agent.tokens.scopes') }}</th>
-              <th data-col="lastUsed" v-if="cols.show('lastUsed')">{{ $t('agent.common.lastUsed') }}</th>
-              <th data-col="expires" v-if="cols.show('expires')">{{ $t('agent.common.expires') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="tok in list.items.value" :key="tok.id" :class="{ 'text-disabled': tok.revoked_at }" data-testid="all-token-row">
-            <ColumnCells :cols="cols">
-              <td data-col="owner" v-if="cols.show('owner')">
-                <a v-if="tok.user" href="#" @click.prevent="filterBy(tok.user.id)">{{ tok.user.name }}</a>
-                <span v-else>—</span>
-              </td>
-              <td data-col="name" v-if="cols.show('name')">{{ tok.name }}</td>
-              <td data-col="prefix" v-if="cols.show('prefix')"><code>{{ tok.prefix }}…</code></td>
-              <td data-col="scopes" v-if="cols.show('scopes')"><v-chip v-for="s in tok.scopes" :key="s" size="x-small" label class="mr-1">{{ s }}</v-chip></td>
-              <td data-col="lastUsed" v-if="cols.show('lastUsed')"><RelativeTime v-if="tok.last_used_at" :value="tok.last_used_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-              <td data-col="expires" v-if="cols.show('expires')"><RelativeTime v-if="tok.expires_at" :value="tok.expires_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-              <td class="text-right">
-                <v-chip v-if="tok.revoked_at" size="small" label data-testid="token-revoked">{{ $t('agent.tokens.revokedLabel') }}</v-chip>
-                <v-btn v-else :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.tokens.revoke')" data-testid="all-token-revoke" @click="revoke(tok)" />
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable
+        :cols="cols"
+        :items="list.items.value"
+        :loading="list.loading.value"
+        server-sort
+        :has-more="!!list.next.value"
+        actions
+        density="comfortable"
+        :row-props="({ item }: { item: S['ApiToken'] }) => ({ class: { 'text-disabled': !!item.revoked_at }, 'data-testid': 'all-token-row' })"
+        data-testid="all-token-table"
+        @load-more="list.loadMore()"
+      >
+        <template #[`item.owner`]="{ item }">
+          <a v-if="item.user" href="#" @click.prevent="filterBy(item.user.id)">{{ item.user.name }}</a>
+          <span v-else>—</span>
+        </template>
+        <template #[`item.name`]="{ item }">{{ item.name }}</template>
+        <template #[`item.prefix`]="{ item }"><code>{{ item.prefix }}…</code></template>
+        <template #[`item.scopes`]="{ item }"><v-chip v-for="s in item.scopes" :key="s" size="x-small" label class="mr-1">{{ s }}</v-chip></template>
+        <template #[`item.lastUsed`]="{ item }"><RelativeTime v-if="item.last_used_at" :value="item.last_used_at" /><span v-else>{{ $t('agent.common.never') }}</span></template>
+        <template #[`item.expires`]="{ item }"><RelativeTime v-if="item.expires_at" :value="item.expires_at" /><span v-else>{{ $t('agent.common.never') }}</span></template>
+        <template #[`item.actions`]="{ item }">
+          <v-chip v-if="item.revoked_at" size="small" label data-testid="token-revoked">{{ $t('agent.tokens.revokedLabel') }}</v-chip>
+          <v-btn v-else :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.tokens.revoke')" data-testid="all-token-revoke" @click="revoke(item)" />
+        </template>
+      </DataTable>
       </template>
-      <div v-if="list.next.value" class="pa-2 text-center">
-        <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
     </v-card>
   </v-container>
 </template>

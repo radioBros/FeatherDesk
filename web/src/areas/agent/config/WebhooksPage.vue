@@ -22,7 +22,7 @@ import { useAction } from '../shared/useAction'
 import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import type { components } from '@/api/schema'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -94,10 +94,10 @@ async function remove(w: S['Webhook']) {
 }
 const cols = useTableColumns('config-webhooks', () => [
   { key: 'url', label: t('agent.webhooks.url'), locked: true },
-  { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
-  { key: 'events', label: t('agent.webhooks.events'), lowPriority: true },
-  { key: 'status', label: t('agent.common.status') },
-  { key: 'failures', label: t('agent.webhooks.failures'), lowPriority: true },
+  { key: 'projects', label: t('projects.config.projects'), lowPriority: true, sortValue: false },
+  { key: 'events', label: t('agent.webhooks.events'), lowPriority: true, sortValue: (w: S['Webhook']) => w.events.length },
+  { key: 'status', label: t('agent.common.status'), sortValue: (w: S['Webhook']) => (w.active ? t('agent.common.active') : t('agent.common.disabled')) },
+  { key: 'failures', label: t('agent.webhooks.failures'), lowPriority: true, sortValue: (w: S['Webhook']) => w.consecutive_failures ?? 0 },
 ])
 </script>
 
@@ -114,49 +114,35 @@ const cols = useTableColumns('config-webhooks', () => [
       <EmptyState v-if="!loading && !items.length" :title="$t('agent.webhooks.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="webhook-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="url" v-if="cols.show('url')">{{ $t('agent.webhooks.url') }}</th>
-              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
-              <th data-col="events" v-if="cols.show('events')">{{ $t('agent.webhooks.events') }}</th>
-              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-              <th data-col="failures" v-if="cols.show('failures')">{{ $t('agent.webhooks.failures') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="w in items" :key="w.id" data-testid="webhook-row">
-            <ColumnCells :cols="cols">
-              <td data-col="url" v-if="cols.show('url')" class="text-truncate" style="max-width: 320px">
-                {{ w.url }}
-                <v-chip v-if="w.include_internal" size="x-small" label color="warning" class="ml-1">{{ $t('agent.webhooks.internalChip') }}</v-chip>
-              </td>
-              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="w.project_ids ?? []" /></td>
-              <td data-col="events" v-if="cols.show('events')">{{ $t('agent.webhooks.eventCount', { n: w.events.length }) }}</td>
-              <td data-col="status" v-if="cols.show('status')">
-                <v-chip v-if="w.active" size="small" label color="success">{{ $t('agent.common.active') }}</v-chip>
-                <template v-else>
-                  <v-chip size="small" label color="error">{{ $t('agent.common.disabled') }}</v-chip>
-                  <div v-if="w.disabled_reason" class="text-caption text-medium-emphasis" data-testid="webhook-disabled-reason">{{ w.disabled_reason }}</div>
-                </template>
-              </td>
-              <td data-col="failures" v-if="cols.show('failures')">{{ w.consecutive_failures ?? 0 }}</td>
-              <td class="text-right text-no-wrap">
-                <v-btn v-if="!w.active" size="small" variant="tonal" color="primary" class="mr-1" data-testid="webhook-reenable" @click="reenable(w)">
-                  {{ $t('agent.webhooks.reenable') }}
-                </v-btn>
-                <v-btn :icon="mdiHistory" variant="text" size="small" :aria-label="$t('agent.webhooks.deliveries')" data-testid="webhook-deliveries-btn" @click="deliveriesFor = w" />
-                <v-btn :icon="mdiKeyChange" variant="text" size="small" :aria-label="$t('agent.webhooks.rotate')" data-testid="webhook-rotate" @click="rotate(w)" />
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="webhook-edit" @click="openForm(w)" />
-                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="webhook-delete" @click="remove(w)" />
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable :cols="cols" :items="items" :loading="loading" actions density="comfortable" :row-props="{ 'data-testid': 'webhook-row' }" data-testid="webhook-table">
+        <template #[`item.url`]="{ item }">
+          <div class="text-truncate" style="max-width: 320px">
+            {{ item.url }}
+            <v-chip v-if="item.include_internal" size="x-small" label color="warning" class="ml-1">{{ $t('agent.webhooks.internalChip') }}</v-chip>
+          </div>
+        </template>
+        <template #[`item.projects`]="{ item }"><ProjectCell :ids="item.project_ids ?? []" /></template>
+        <template #[`item.events`]="{ item }">{{ $t('agent.webhooks.eventCount', { n: item.events.length }) }}</template>
+        <template #[`item.status`]="{ item }">
+          <v-chip v-if="item.active" size="small" label color="success">{{ $t('agent.common.active') }}</v-chip>
+          <template v-else>
+            <v-chip size="small" label color="error">{{ $t('agent.common.disabled') }}</v-chip>
+            <div v-if="item.disabled_reason" class="text-caption text-medium-emphasis" data-testid="webhook-disabled-reason">{{ item.disabled_reason }}</div>
+          </template>
+        </template>
+        <template #[`item.failures`]="{ item }">{{ item.consecutive_failures ?? 0 }}</template>
+        <template #[`item.actions`]="{ item }">
+          <span class="text-no-wrap">
+            <v-btn v-if="!item.active" size="small" variant="tonal" color="primary" class="mr-1" data-testid="webhook-reenable" @click="reenable(item)">
+              {{ $t('agent.webhooks.reenable') }}
+            </v-btn>
+            <v-btn :icon="mdiHistory" variant="text" size="small" :aria-label="$t('agent.webhooks.deliveries')" data-testid="webhook-deliveries-btn" @click="deliveriesFor = item" />
+            <v-btn :icon="mdiKeyChange" variant="text" size="small" :aria-label="$t('agent.webhooks.rotate')" data-testid="webhook-rotate" @click="rotate(item)" />
+            <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="webhook-edit" @click="openForm(item)" />
+            <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="webhook-delete" @click="remove(item)" />
+          </span>
+        </template>
+      </DataTable>
       </template>
     </v-card>
 

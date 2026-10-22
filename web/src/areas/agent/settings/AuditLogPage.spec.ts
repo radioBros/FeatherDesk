@@ -3,6 +3,7 @@
 import AuditLogPage from './AuditLogPage.vue'
 import AuditFilterForm from './AuditFilterForm.vue'
 import { mountAgent, fx, json, byTestId, typeInto, click } from '../testing'
+import { scrollTableToEnd } from '@/test/mount'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -29,7 +30,7 @@ describe('AuditLogPage (FE-042)', () => {
     await h.flush()
     expect(h.wrapper.findAll('[data-testid="audit-row"]')).toHaveLength(1)
     expect(h.wrapper.text()).toContain('Root Admin')
-    await click(byTestId('load-more'))
+    scrollTableToEnd(h.wrapper.element)
     await h.flush()
     expect(h.calls(/cursor=c2/)).toHaveLength(1)
     expect(h.wrapper.findAll('[data-testid="audit-row"]')).toHaveLength(2)

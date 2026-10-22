@@ -8,7 +8,7 @@ import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
  * Live over the `tickets` topic: known rows are patched in place, anything
  * else triggers one debounced refetch.
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { mdiBookmarkPlusOutline, mdiDeleteOutline, mdiFilterRemoveOutline, mdiLinkVariant, mdiPlus, mdiRefresh, mdiShareVariantOutline } from '@mdi/js'
@@ -35,9 +35,8 @@ import BulkActionForm from './list/BulkActionForm.vue'
 import type { BulkResult } from './list/bulk'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { COLUMNS_PREFIX, useTableColumns, type ColumnDef } from '@/composables/useTableColumns'
-import { DEFAULT_COLUMN_WIDTH, syncTableLayout } from '@/composables/columnLayout'
-import ColumnResizer from '@/components/ColumnResizer.vue'
-import { SORTS, cfFromString, cfToString, filtersFromQuery, toApiParams, toRouteQuery, type ListFilters } from './list/query'
+import DataTable from '@/components/DataTable.vue'
+import { DEFAULT_SORT, SORTS, cfFromString, cfToString, filtersFromQuery, toApiParams, toRouteQuery, type ListFilters } from './list/query'
 import type { components } from '@/api/schema'
 import type { ServerEvent } from '@/realtime/client'
 import UserAvatar from '@/components/UserAvatar.vue'
@@ -78,20 +77,21 @@ const activeView = computed(() => viewsStore.views.find((v) => v.id === filters.
 const activeDefs = computed(() => lookups.customFields.filter((d) => d.active))
 const defByKey = (k: string) => lookups.customFields.find((d) => d.key === k)
 
-// Column visibility per user (useTableColumns). Custom-field columns are optional (hidden by default).
+// Column visibility, order and widths per user (useTableColumns). Custom-field columns are optional
+// (hidden by default). Header sorting is the API's `sort` (only the columns it can order by).
 const colDefs = computed<ColumnDef[]>(() => [
-  { key: 'number', label: t('projects.ticket.ref'), locked: true },
+  { key: 'number', label: t('projects.ticket.ref'), locked: true, width: 110, sort: { asc: 'number', desc: '-number' } },
   { key: 'project', label: t('projects.ticket.project'), lowPriority: true },
   { key: 'subject', label: t('agent.list.columns.subject'), locked: true },
   { key: 'requester', label: t('agent.list.columns.requester') },
   { key: 'status', label: t('agent.list.columns.status') },
-  { key: 'priority', label: t('agent.list.columns.priority'), lowPriority: true },
+  { key: 'priority', label: t('agent.list.columns.priority'), lowPriority: true, sort: { asc: 'priority', desc: '-priority' } },
   { key: 'tier', label: t('agent.list.columns.tier'), lowPriority: true },
   { key: 'team', label: t('agent.list.columns.team'), lowPriority: true },
   { key: 'assignee', label: t('agent.list.columns.assignee'), lowPriority: true },
   ...activeDefs.value.map((d) => ({ key: `cf.${d.key}`, label: localized(d.label, locale.value) || d.key, defaultHidden: true })),
-  { key: 'updated_at', label: t('agent.list.columns.updated'), lowPriority: true },
-  { key: 'due', label: t('agent.list.columns.due'), lowPriority: true },
+  { key: 'updated_at', label: t('agent.list.columns.updated'), lowPriority: true, sort: { asc: 'updated_at', desc: '-updated_at' } },
+  { key: 'due', label: t('agent.list.columns.due'), lowPriority: true, sort: { asc: 'due', desc: '-due' } },
 ])
 // The old custom-field column picker stored its keys under one global key: carry them over once.
 try {
@@ -112,41 +112,7 @@ try {
 const cols = useTableColumns('agent-tickets', colDefs)
 const cfColumns = computed(() => activeDefs.value.map((d) => d.key).filter((k) => cols.show(`cf.${k}`)))
 
-const ALL_HEADERS = computed(() => [
-  { title: t('projects.ticket.ref'), key: 'number', sortable: false, width: 110 },
-  { title: t('projects.ticket.project'), key: 'project', sortable: false },
-  { title: t('agent.list.columns.subject'), key: 'subject', sortable: false },
-  { title: t('agent.list.columns.requester'), key: 'requester', sortable: false },
-  { title: t('agent.list.columns.status'), key: 'status', sortable: false },
-  { title: t('agent.list.columns.priority'), key: 'priority', sortable: false },
-  { title: t('agent.list.columns.tier'), key: 'tier', sortable: false },
-  { title: t('agent.list.columns.team'), key: 'team', sortable: false },
-  { title: t('agent.list.columns.assignee'), key: 'assignee', sortable: false },
-  ...activeDefs.value.map((d) => ({ title: localized(d.label, locale.value) || d.key, key: `cf.${d.key}`, sortable: false })),
-  { title: t('agent.list.columns.updated'), key: 'updated_at', sortable: false },
-  { title: t('agent.list.columns.due'), key: 'due', sortable: false },
-])
-// User order and widths (useTableColumns); the selection column stays first and sticky.
-const headers = computed(() => {
-  const byKey = new Map(ALL_HEADERS.value.map((h) => [h.key, h]))
-  const sized = cols.sized.value
-  const px = (key: string, fallback?: number) => {
-    const w = sized ? (cols.width(key) ?? DEFAULT_COLUMN_WIDTH) : fallback
-    return w === undefined ? {} : { width: w, minWidth: w, maxWidth: w }
-  }
-  return [
-    { key: 'data-table-select', fixed: true, ...px(':0') },
-    ...cols.visibleKeys.value.flatMap((k) => {
-      const h = byKey.get(k)
-      return h ? [{ ...h, ...px(k, h.width) }] : []
-    }),
-  ]
-})
-const tableEl = ref<{ $el: HTMLElement }>()
-watchEffect(() => {
-  const total = cols.sized.value ? headers.value.reduce((s, h) => s + (h.width ?? DEFAULT_COLUMN_WIDTH), 0) : 0
-  syncTableLayout(tableEl.value?.$el.querySelector('table'), total)
-})
+const table = ref<{ scrollToIndex: (index: number) => void }>()
 
 const title = computed(() => {
   if (activeView.value) return activeView.value.name
@@ -157,12 +123,12 @@ const title = computed(() => {
 
 // ---- loading -------------------------------------------------------------
 
-async function fetchPage(cursor: string | null) {
+async function fetchPage(cursor: string | null, limit?: number) {
   const mine = ++seq
   loading.value = true
   failed.value = false
   try {
-    const page = await apiFetch<S['TicketPage']>('/agent/tickets?' + toApiParams(apiFilters.value, cursor).toString())
+    const page = await apiFetch<S['TicketPage']>('/agent/tickets?' + toApiParams(apiFilters.value, cursor, limit).toString())
     if (mine !== seq) return
     items.value = cursor ? [...items.value, ...(page.items ?? [])] : page.items ?? []
     next.value = page.next_cursor ?? null
@@ -177,6 +143,8 @@ async function fetchPage(cursor: string | null) {
   }
 }
 const reload = () => fetchPage(null)
+/** A live refetch keeps the rows already scrolled in (up to the API's 200), so the list does not jump back to its first page. */
+const refresh = () => fetchPage(null, Math.min(200, Math.max(50, items.value.length)))
 const loadMore = () => (next.value ? fetchPage(next.value) : undefined)
 
 // A saved view in the URL (`?view_id=` alone) is expanded into its filter once.
@@ -244,7 +212,7 @@ function scheduleRefetch() {
   if (refetchTimer) return
   refetchTimer = setTimeout(() => {
     refetchTimer = null
-    void reload()
+    void refresh()
   }, 1000)
 }
 onBeforeUnmount(() => {
@@ -271,7 +239,7 @@ const liveTopics = computed(() => {
   const p = f ? projects.projects.find((x) => x.id === f || x.key === f) : undefined
   return p ? [`project:${p.id}`] : ['tickets']
 })
-useRealtime(liveTopics, { onEvent, onResync: () => void reload() })
+useRealtime(liveTopics, { onEvent, onResync: () => void refresh() })
 
 // ---- rows, selection, shortcuts ---------------------------------------------
 
@@ -284,6 +252,8 @@ function toggleSelect(row: Row) {
 function move(d: number) {
   if (!items.value.length) return
   focused.value = Math.max(0, Math.min(items.value.length - 1, focused.value + d))
+  // Rows out of view are not rendered: bring the focused one in.
+  table.value?.scrollToIndex(focused.value)
 }
 useShortcuts({
   j: () => move(1),
@@ -502,27 +472,24 @@ const currentFilter = computed(() => {
     <v-alert v-if="failed" type="error" variant="tonal" class="mb-3" data-testid="list-error">{{ $t('agent.common.loadFailed') }}</v-alert>
 
     <v-card border flat>
-      <v-data-table-server
-        ref="tableEl"
+      <DataTable
+        ref="table"
         v-model="selected"
-        :headers="headers"
+        :cols="cols"
         :items="items"
-        :items-length="items.length"
         :loading="loading"
-        :items-per-page="-1"
-        item-value="id"
-        show-select
-        hide-default-footer
+        server-sort
+        :sort="filters.sort"
+        :has-more="!!next"
+        selectable
         density="comfortable"
         hover
         :row-props="rowProps"
         data-testid="ticket-table"
+        @update:sort="(s: string | null) => setFilters({ sort: s ?? DEFAULT_SORT })"
+        @load-more="loadMore"
         @click:row="(_e: unknown, { item }: { item: Row }) => open(item)"
       >
-        <template v-for="h in headers.slice(1)" :key="h.key" #[`header.${h.key}`]="{ column }">
-          <span>{{ column.title }}</span>
-          <ColumnResizer :cols="cols" :col="h.key" :label="column.title" />
-        </template>
         <template #[`item.number`]="{ item }">
           <TicketNumber :number="item.number" :reftext="item.ref" />
         </template>
@@ -556,10 +523,7 @@ const currentFilter = computed(() => {
         <template #no-data>
           <EmptyState :title="$t('agent.list.empty')" body="" />
         </template>
-      </v-data-table-server>
-      <div v-if="next" class="d-flex justify-center pa-3">
-        <v-btn variant="tonal" :loading="loading" data-testid="load-more" @click="loadMore">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
+      </DataTable>
     </v-card>
 
     <v-dialog v-model="saveDialog" max-width="460">
@@ -576,5 +540,4 @@ const currentFilter = computed(() => {
 .fd-filters > * { flex: 1 1 160px; max-width: 240px; }
 .fd-cf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; align-items: start; }
 :deep(.fd-row--focused) { outline: 2px solid rgb(var(--v-theme-primary)); outline-offset: -2px; }
-:deep(tbody tr) { cursor: pointer; }
 </style>

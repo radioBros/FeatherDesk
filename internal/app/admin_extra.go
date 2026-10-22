@@ -44,9 +44,13 @@ func nullIfEmpty(s string) *string {
 	return &s
 }
 
-// auditLog pages audit_log newest first (ids are UUIDv7, so id order is time
-// order); cursor = base64(id). Filters: action (exact, or a prefix ending in
-// "."), actor_id, since.
+// auditLog pages audit_log by (created_at, id): newest first by default,
+// oldest first with sort=created_at. The order is the time column, not the id:
+// UUIDv7 ids follow the wall clock while created_at follows store.Now, which
+// the demo seeder back-dates, so the two can disagree. Cursor = base64(id) of
+// the last row ("a." + base64(id) when ascending, so a cursor only works in the
+// direction that issued it); the row's created_at is read back from the table.
+// Filters: action (exact, or a prefix ending in "."), actor_id, since.
 func (m *coreModule) auditLog(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	var fe []problems.FieldError
@@ -57,6 +61,14 @@ func (m *coreModule) auditLog(w http.ResponseWriter, r *http.Request) {
 			fe = append(fe, problems.Field("limit", "range", "1..200"))
 		}
 		limit = n
+	}
+	desc := true
+	switch q.Get("sort") {
+	case "", "-created_at":
+	case "created_at":
+		desc = false
+	default:
+		fe = append(fe, problems.Field("sort", "enum", "created_at, -created_at"))
 	}
 	where, args := "1=1", []any{}
 	if a := strings.TrimSpace(q.Get("action")); a != "" {
@@ -81,22 +93,40 @@ func (m *coreModule) auditLog(w http.ResponseWriter, r *http.Request) {
 			args = append(args, ts.UTC())
 		}
 	}
+	cursorID := ""
 	if c := q.Get("cursor"); c != "" {
-		id, err := base64.RawURLEncoding.DecodeString(c)
-		if err != nil || len(id) == 0 {
+		id, ok := decodeLogCursor(c, desc)
+		if !ok {
 			fe = append(fe, problems.Field("cursor", "invalid", ""))
 		} else {
-			where += " AND a.id < ?"
-			args = append(args, string(id))
+			cursorID = id
 		}
 	}
 	if len(fe) > 0 {
 		problems.Write(w, r, problems.Validation(fe...))
 		return
 	}
+	cmp, dir := ">", "ASC"
+	if desc {
+		cmp, dir = "<", "DESC"
+	}
+	if cursorID != "" {
+		// The cursor row must still exist: a vanished one (pruned) would turn
+		// the keyset into NULL and silently end the listing.
+		var one int
+		if err := m.d.DB.Read().QueryRowContext(r.Context(), `SELECT 1 FROM audit_log WHERE id = ?`, cursorID).Scan(&one); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				err = problems.Validation(problems.Field("cursor", "invalid", ""))
+			}
+			problems.Write(w, r, err)
+			return
+		}
+		where += " AND (a.created_at, a.id) " + cmp + " (SELECT c.created_at, c.id FROM audit_log c WHERE c.id = ?)"
+		args = append(args, cursorID)
+	}
 	args = append(args, limit+1)
 	rows, err := m.d.DB.Read().QueryContext(r.Context(), `SELECT a.id, a.actor_id, u.name, u.kind, a.action, a.target_type, a.target_id, a.data, a.ip, a.created_at
-		FROM audit_log a LEFT JOIN users u ON u.id = a.actor_id WHERE `+where+` ORDER BY a.id DESC LIMIT ?`, args...)
+		FROM audit_log a LEFT JOIN users u ON u.id = a.actor_id WHERE `+where+` ORDER BY a.created_at `+dir+`, a.id `+dir+` LIMIT ?`, args...)
 	if err != nil {
 		problems.Write(w, r, err)
 		return
@@ -130,9 +160,37 @@ func (m *coreModule) auditLog(w http.ResponseWriter, r *http.Request) {
 	var next any
 	if len(items) > limit {
 		items = items[:limit]
-		next = base64.RawURLEncoding.EncodeToString([]byte(items[limit-1].ID))
+		next = encodeLogCursor(items[limit-1].ID, desc)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items, "next_cursor": next})
+}
+
+// ascCursorPrefix marks a cursor issued by an oldest-first listing. "." is
+// outside the base64url alphabet, so the default (newest-first) decoder
+// rejects such a cursor, and the ascending decoder rejects one without it.
+const ascCursorPrefix = "a."
+
+func encodeLogCursor(id string, desc bool) string {
+	c := base64.RawURLEncoding.EncodeToString([]byte(id))
+	if !desc {
+		c = ascCursorPrefix + c
+	}
+	return c
+}
+
+func decodeLogCursor(c string, desc bool) (string, bool) {
+	if !desc {
+		rest, ok := strings.CutPrefix(c, ascCursorPrefix)
+		if !ok {
+			return "", false
+		}
+		c = rest
+	}
+	b, err := base64.RawURLEncoding.DecodeString(c)
+	if err != nil || len(b) == 0 {
+		return "", false
+	}
+	return string(b), true
 }
 
 // ---- GET /admin/storage (getStorageStatus) ----

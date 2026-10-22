@@ -5,6 +5,7 @@ package mailin
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -568,6 +569,13 @@ func scanMessage(row interface{ Scan(...any) error }) (messageDTO, error) {
 	return d, nil
 }
 
+// handleListMessages pages the inbound log by (received_at, id): newest first
+// by default, oldest first with sort=received_at. The order is the time column,
+// not the id: Record takes received_at before storing the raw mail and the id
+// after it, and the demo seeder back-dates rows, so the two can disagree.
+// Cursor = base64url(id) of the last row ("a." + base64url(id) when ascending,
+// so a cursor only works in the direction that issued it); the row's
+// received_at is read back from the table.
 func (m *Module) handleListMessages(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit := 50
@@ -578,6 +586,19 @@ func (m *Module) handleListMessages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		limit = n
+	}
+	desc := true
+	switch q.Get("sort") {
+	case "", "-received_at":
+	case "received_at":
+		desc = false
+	default:
+		problems.Write(w, r, problems.Validation(problems.Field("sort", "enum", "received_at, -received_at")))
+		return
+	}
+	cmp, dir := ">", "ASC"
+	if desc {
+		cmp, dir = "<", "DESC"
 	}
 	where, args := "1=1", []any{}
 	if s := q.Get("status"); s != "" {
@@ -593,16 +614,28 @@ func (m *Module) handleListMessages(w http.ResponseWriter, r *http.Request) {
 		args = append(args, mb)
 	}
 	if c := q.Get("cursor"); c != "" {
-		id, err := base64.RawURLEncoding.DecodeString(c)
-		if err != nil {
+		id, ok := decodeLogCursor(c, desc)
+		var one int
+		if ok {
+			// The cursor row must still exist (retention prunes rows): a
+			// vanished one would turn the keyset into NULL and silently end
+			// the listing.
+			err := m.d.DB.Read().QueryRowContext(r.Context(), `SELECT 1 FROM inbound_messages WHERE id = ?`, id).Scan(&one)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				problems.Write(w, r, err)
+				return
+			}
+			ok = err == nil
+		}
+		if !ok {
 			problems.Write(w, r, problems.Validation(problems.Field("cursor", "invalid", "")))
 			return
 		}
-		where += " AND id < ?"
-		args = append(args, string(id))
+		where += " AND (received_at, id) " + cmp + " (SELECT c.received_at, c.id FROM inbound_messages c WHERE c.id = ?)"
+		args = append(args, id)
 	}
 	args = append(args, limit+1)
-	rows, err := m.d.DB.Read().QueryContext(r.Context(), `SELECT `+messageCols+` FROM inbound_messages WHERE `+where+` ORDER BY id DESC LIMIT ?`, args...)
+	rows, err := m.d.DB.Read().QueryContext(r.Context(), `SELECT `+messageCols+` FROM inbound_messages WHERE `+where+` ORDER BY received_at `+dir+`, id `+dir+` LIMIT ?`, args...)
 	if err != nil {
 		problems.Write(w, r, err)
 		return
@@ -620,10 +653,38 @@ func (m *Module) handleListMessages(w http.ResponseWriter, r *http.Request) {
 	var next *string
 	if len(items) > limit {
 		items = items[:limit]
-		c := base64.RawURLEncoding.EncodeToString([]byte(items[limit-1].ID))
+		c := encodeLogCursor(items[limit-1].ID, desc)
 		next = &c
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items, "next_cursor": next})
+}
+
+// ascCursorPrefix marks a cursor issued by an oldest-first listing. "." is
+// outside the base64url alphabet, so the default (newest-first) decoder
+// rejects such a cursor, and the ascending decoder rejects one without it.
+const ascCursorPrefix = "a."
+
+func encodeLogCursor(id string, desc bool) string {
+	c := base64.RawURLEncoding.EncodeToString([]byte(id))
+	if !desc {
+		c = ascCursorPrefix + c
+	}
+	return c
+}
+
+func decodeLogCursor(c string, desc bool) (string, bool) {
+	if !desc {
+		rest, ok := strings.CutPrefix(c, ascCursorPrefix)
+		if !ok {
+			return "", false
+		}
+		c = rest
+	}
+	b, err := base64.RawURLEncoding.DecodeString(c)
+	if err != nil || len(b) == 0 {
+		return "", false
+	}
+	return string(b), true
 }
 
 func (m *Module) handleRetryMessage(w http.ResponseWriter, r *http.Request) {

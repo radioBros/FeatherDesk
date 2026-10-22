@@ -44,7 +44,7 @@ var agentListParams = map[string]bool{"cursor": true, "limit": true, "status": t
 	"tier": true, "category_id": true, "organization_id": true, "requester_id": true, "tag": true, "updated_since": true, "q": true,
 	"sort": true, "breached": true, "project": true}
 
-var portalListParams = map[string]bool{"cursor": true, "limit": true, "status": true, "q": true, "mine_only": true, "project": true}
+var portalListParams = map[string]bool{"cursor": true, "limit": true, "status": true, "q": true, "mine_only": true, "project": true, "sort": true}
 
 func parseLimit(v string) (int, error) {
 	if v == "" {
@@ -133,6 +133,7 @@ func ParseAgentListQuery(v url.Values) (ListQuery, error) {
 
 // ParsePortalListQuery accepts only the customer parameters; staff filters
 // such as assignee or tier are a 422, never silently honoured (TKT-004).
+// sort takes the TicketSort orders of the agent list (default -updated_at).
 func ParsePortalListQuery(v url.Values) (ListQuery, error) {
 	q := ListQuery{Sort: "-updated_at"}
 	var errs []problems.FieldError
@@ -158,6 +159,12 @@ func ParsePortalListQuery(v url.Values) (ListQuery, error) {
 		errs = append(errs, problems.Field("q", "max_length", "at most 200 characters"))
 	}
 	q.Project = v.Get("project")
+	if s := v.Get("sort"); s != "" {
+		if _, ok := sorts[s]; !ok {
+			errs = append(errs, problems.Field("sort", "enum", "unknown sort"))
+		}
+		q.Sort = s
+	}
 	if m := v.Get("mine_only"); m != "" {
 		b, err := strconv.ParseBool(m)
 		if err != nil {
@@ -198,10 +205,18 @@ type sortKey struct {
 	val  func(t *ticketRow) any
 }
 
-// farFuture stands in for "no due date" so due-date ordering is total.
-var farFuture = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
+// farFuture stands in for "no due date" so due-date ordering is total; farPast
+// does the same for the latest-due-first order, so tickets without a due date
+// come last both ways.
+var (
+	farFuture = time.Date(9999, 12, 31, 0, 0, 0, 0, time.UTC)
+	farPast   = time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+)
 
-const farFutureSQL = `'9999-12-31 00:00:00+00:00'`
+const (
+	farFutureSQL = `'9999-12-31 00:00:00+00:00'`
+	farPastSQL   = `'0001-01-01 00:00:00+00:00'`
+)
 
 func attentionRank(t *ticketRow) int {
 	if !t.LastStaffActivityAt.Valid || t.LastCustomerActivityAt.After(t.LastStaffActivityAt.Time) {
@@ -239,6 +254,13 @@ func dueOf(t *ticketRow) time.Time {
 	return farFuture
 }
 
+func dueOrPast(t *ticketRow) time.Time {
+	if d := dueOf(t); d != farFuture {
+		return d
+	}
+	return farPast
+}
+
 var (
 	keyID      = sortKey{"t.id", false, kStr, func(t *ticketRow) any { return t.ID }}
 	keyIDDesc  = sortKey{"t.id", true, kStr, func(t *ticketRow) any { return t.ID }}
@@ -262,6 +284,7 @@ var sorts = map[string][]sortKey{
 	"priority":    {keyPrioAsc, keyID},
 	"-priority":   {{priorityRankSQL, true, kInt, func(t *ticketRow) any { return priorityRank(t.Priority) }}, keyIDDesc},
 	"due":         {keyDue, keyID},
+	"-due":        {{"COALESCE(t.first_response_due_at, t.resolution_due_at, " + farPastSQL + ")", true, kTime, func(t *ticketRow) any { return dueOrPast(t) }}, keyIDDesc},
 	"number":      {{"t.number", false, kInt, func(t *ticketRow) any { return t.Number }}, keyID},
 	"-number":     {{"t.number", true, kInt, func(t *ticketRow) any { return t.Number }}, keyIDDesc},
 }

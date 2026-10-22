@@ -23,7 +23,8 @@ import MarkdownView from '@/components/MarkdownView.vue'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { CUSTOMER_STATUSES, type CustomerStatus, type CustomerTicketSummary, type PortalProject } from '../types'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
+import type { components } from '@/api/schema'
 
 /**
  * "My tickets" (FE-015): status filter in customer labels, search, cursor
@@ -41,13 +42,13 @@ const projects = ref<PortalProject[]>([])
 const seenProjects = computed(() => new Set(items.value.map((i) => i.project_id)))
 const showProject = computed(() => projects.value.length > 1 || seenProjects.value.size > 1)
 const cols = useTableColumns('portal-tickets', () => [
-  { key: 'number', label: t('portal.projects.ref'), locked: true },
+  { key: 'number', label: t('portal.projects.ref'), locked: true, sort: { asc: 'number', desc: '-number' } },
   ...(showProject.value ? [{ key: 'project', label: t('portal.projects.project'), lowPriority: true }] : []),
   { key: 'subject', label: t('portal.tickets.subject'), locked: true },
   ...(session.isOrgManager ? [{ key: 'requester', label: t('portal.tickets.requester'), lowPriority: true }] : []),
   { key: 'status', label: t('portal.tickets.status') },
-  { key: 'priority', label: t('portal.tickets.priority'), lowPriority: true },
-  { key: 'updated', label: t('portal.tickets.updated'), lowPriority: true },
+  { key: 'priority', label: t('portal.tickets.priority'), lowPriority: true, sort: { asc: 'priority', desc: '-priority' } },
+  { key: 'updated', label: t('portal.tickets.updated'), lowPriority: true, sort: { asc: 'updated_at', desc: '-updated_at' } },
 ])
 const config = useConfigStore()
 
@@ -56,6 +57,9 @@ const project = ref<string | null>(typeof route.query.project === 'string' ? rou
 const status = ref<CustomerStatus | null>((CUSTOMER_STATUSES as readonly string[]).includes(q(route.query.status)) ? (q(route.query.status) as CustomerStatus) : null)
 const search = ref(q(route.query.q))
 const scope = ref<'mine' | 'org'>(route.query.scope === 'mine' ? 'mine' : 'org')
+// Header sorting is the API's `sort`; the list opens most recently updated first.
+const DEFAULT_SORT = '-updated_at'
+const sort = ref<components['schemas']['TicketSort']>(DEFAULT_SORT)
 const nextCursor = ref<string | null>(null)
 const loading = ref(false)
 const loadingMore = ref(false)
@@ -77,6 +81,7 @@ function query(cursor?: string | null) {
     project: project.value ?? undefined,
     q: search.value.trim() || undefined,
     mine_only: session.isOrgManager ? scope.value === 'mine' : undefined,
+    sort: sort.value,
     cursor: cursor ?? undefined,
     limit: 25,
   }
@@ -136,6 +141,7 @@ watch([status, scope, project], () => {
   syncUrl()
   void load()
 })
+watch(sort, () => void load())
 onBeforeUnmount(() => debounce && clearTimeout(debounce))
 
 /** Patches or inserts a row from a realtime summary instead of refetching. */
@@ -147,7 +153,7 @@ function onEvent(ev: ServerEvent) {
   if (i >= 0) {
     if (matches) items.value[i] = { ...items.value[i]!, ...tk }
     else items.value.splice(i, 1)
-  } else if (matches && !search.value.trim() && ev.event === 'ticket.created') {
+  } else if (matches && !search.value.trim() && ev.event === 'ticket.created' && sort.value === DEFAULT_SORT) {
     items.value.unshift(tk)
   }
 }
@@ -242,34 +248,30 @@ void loadProjects()
 
     <template v-else-if="items.length">
       <ColumnsMenu v-if="mdAndUp" :cols="cols" />
-      <v-table v-if="mdAndUp" data-testid="ticket-table" hover>
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="number" v-if="cols.show('number')" scope="col">{{ $t('portal.projects.ref') }}</th>
-              <th data-col="project" v-if="showProject && cols.show('project')" scope="col">{{ $t('portal.projects.project') }}</th>
-              <th data-col="subject" v-if="cols.show('subject')" scope="col">{{ $t('portal.tickets.subject') }}</th>
-              <th data-col="requester" v-if="session.isOrgManager && cols.show('requester')" scope="col">{{ $t('portal.tickets.requester') }}</th>
-              <th data-col="status" v-if="cols.show('status')" scope="col">{{ $t('portal.tickets.status') }}</th>
-              <th data-col="priority" v-if="cols.show('priority')" scope="col">{{ $t('portal.tickets.priority') }}</th>
-              <th data-col="updated" v-if="cols.show('updated')" scope="col">{{ $t('portal.tickets.updated') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="tk in items" :key="tk.id" data-testid="ticket-row" class="fd-row" @click="router.push(`/tickets/${tk.ref || tk.id}`)">
-            <ColumnCells :cols="cols">
-              <td data-col="number" v-if="cols.show('number')"><TicketNumber :number="tk.number" :reftext="tk.ref" /></td>
-              <td data-col="project" v-if="showProject && cols.show('project')"><ProjectChip :project="tk.project" /></td>
-              <td data-col="subject" v-if="cols.show('subject')"><router-link :to="`/tickets/${tk.ref || tk.id}`" class="text-high-emphasis" @click.stop>{{ tk.subject }}</router-link></td>
-              <td data-col="requester" v-if="session.isOrgManager && cols.show('requester')">{{ tk.requester.name }}</td>
-              <td data-col="status" v-if="cols.show('status')"><StatusChip :status="tk.status" area="portal" /></td>
-              <td data-col="priority" v-if="cols.show('priority')"><PriorityChip :priority="tk.priority" /></td>
-              <td data-col="updated" v-if="cols.show('updated')"><RelativeTime :value="tk.updated_at" /></td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable
+        v-if="mdAndUp"
+        :cols="cols"
+        :items="items"
+        :loading="loading || loadingMore"
+        server-sort
+        :sort="sort"
+        :has-more="!!nextCursor"
+        must-sort
+        hover
+        :row-props="{ 'data-testid': 'ticket-row' }"
+        data-testid="ticket-table"
+        @update:sort="(v: string | null) => (sort = (v ?? DEFAULT_SORT) as typeof sort)"
+        @load-more="loadMore"
+        @click:row="(_e: unknown, { item }: { item: CustomerTicketSummary }) => router.push(`/tickets/${item.ref || item.id}`)"
+      >
+        <template #[`item.number`]="{ item }"><TicketNumber :number="item.number" :reftext="item.ref" /></template>
+        <template #[`item.project`]="{ item }"><ProjectChip :project="item.project" /></template>
+        <template #[`item.subject`]="{ item }"><router-link :to="`/tickets/${item.ref || item.id}`" class="text-high-emphasis" @click.stop>{{ item.subject }}</router-link></template>
+        <template #[`item.requester`]="{ item }">{{ item.requester.name }}</template>
+        <template #[`item.status`]="{ item }"><StatusChip :status="item.status" area="portal" /></template>
+        <template #[`item.priority`]="{ item }"><PriorityChip :priority="item.priority" /></template>
+        <template #[`item.updated`]="{ item }"><RelativeTime :value="item.updated_at" /></template>
+      </DataTable>
       <div v-else class="d-flex flex-column ga-2" data-testid="ticket-cards">
         <v-card v-for="tk in items" :key="tk.id" :to="`/tickets/${tk.ref || tk.id}`" border flat data-testid="ticket-row">
           <v-card-item>
@@ -283,13 +285,9 @@ void loadProjects()
           </v-card-text>
         </v-card>
       </div>
-      <div v-if="nextCursor" class="text-center mt-4">
+      <div v-if="!mdAndUp && nextCursor" class="text-center mt-4">
         <v-btn variant="outlined" :loading="loadingMore" data-testid="load-more" @click="loadMore">{{ $t('portal.tickets.loadMore') }}</v-btn>
       </div>
     </template>
   </v-container>
 </template>
-
-<style scoped>
-.fd-row { cursor: pointer; }
-</style>

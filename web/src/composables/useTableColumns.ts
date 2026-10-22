@@ -7,7 +7,7 @@
  * the ID/ref column) are always shown and cannot be switched off. The selection
  * checkbox column of a data table is not a column here: it is never offered.
  * Every column (locked ones too) can be moved in the Columns menu and resized
- * by its header edge (ColumnCells, ColumnResizer).
+ * by its header edge (DataTable, ColumnResizer).
  *
  * The choices are stored on top of the defaults, in localStorage (there is no
  * preferences endpoint): visibility under `fd.v1.cols.<user>.<table>`, order
@@ -29,6 +29,20 @@ export interface ColumnDef {
   lowPriority?: boolean
   /** Hidden by default everywhere (e.g. optional custom-field columns). */
   defaultHidden?: boolean
+  /**
+   * DataTable: the API `sort` values that order the list by this column. A
+   * server-sorted table (cursor lists) offers header sorting only on columns
+   * that have them.
+   */
+  sort?: { asc: string; desc: string }
+  /**
+   * DataTable, client-sorted tables (every row loaded): what the column sorts
+   * by — the item field named like the key by default; `false` = not sortable.
+   */
+  sortValue?: ((item: never) => unknown) | false
+  align?: 'start' | 'center' | 'end'
+  /** Width in px before the user resizes anything. */
+  width?: number
 }
 
 type Overrides = Record<string, boolean>

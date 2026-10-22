@@ -535,6 +535,11 @@ func (m *Module) handleEditorList(w http.ResponseWriter, r *http.Request) {
 		}
 		statuses = []string{s}
 	}
+	sort := q.Get("sort")
+	if sort != "" && !editorSorts[sort] {
+		problems.Write(w, r, fieldErr("sort", "enum", "title, -title, updated_at or -updated_at"))
+		return
+	}
 	limit, err := parseLimit(q.Get("limit"))
 	if err != nil {
 		problems.Write(w, r, err)
@@ -547,7 +552,7 @@ func (m *Module) handleEditorList(w http.ResponseWriter, r *http.Request) {
 	}
 	page, err := m.list(r.Context(), listQuery{
 		Aud: audStaff, Statuses: statuses, Q: q.Get("q"), Category: q.Get("category_id"), Project: project,
-		Locale: q.Get("locale"), Limit: limit, Offset: decodeCursor(q.Get("cursor")), Order: "updated",
+		Locale: q.Get("locale"), Limit: limit, Offset: decodeCursor(q.Get("cursor")), Order: "updated", Sort: sort,
 	})
 	if err != nil {
 		problems.Write(w, r, err)

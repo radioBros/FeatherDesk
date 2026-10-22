@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import KbListPage from './KbListPage.vue'
-import { mountAgent, fx, byTestId, click } from '../testing'
+import { mountAgent, fx, byTestId } from '../testing'
+import { scrollTableToEnd } from '@/test/mount'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -49,7 +50,7 @@ describe('KbListPage (FE-052)', () => {
         'GET /kb/categories': [],
       },
     })
-    await click(byTestId('kb-more'))
+    scrollTableToEnd(h.wrapper.element)
     await h.flush()
     expect(h.calls(/GET \/agent\/kb\/articles\?.*cursor=c2/)).toHaveLength(1)
     expect(h.wrapper.findAll('[data-testid="kb-row"]')).toHaveLength(2)

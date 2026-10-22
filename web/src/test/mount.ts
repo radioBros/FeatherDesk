@@ -33,6 +33,21 @@ export function mountApp<T extends Component>(
   return { wrapper, pinia, router }
 }
 
+/**
+ * DataTable asks for the next page when its body is scrolled to the end. jsdom
+ * has no layout: give the body a size for one scroll event, then take it away
+ * (a body that stays "at the end" would page through a mock forever).
+ */
+export function scrollTableToEnd(root: Element) {
+  const body = root.querySelector<HTMLElement>('.v-table__wrapper')
+  if (!body) throw new Error('no DataTable body')
+  Object.defineProperty(body, 'clientHeight', { configurable: true, value: 400 })
+  Object.defineProperty(body, 'scrollHeight', { configurable: true, value: 400 })
+  body.dispatchEvent(new Event('scroll'))
+  delete (body as { clientHeight?: number }).clientHeight
+  delete (body as { scrollHeight?: number }).scrollHeight
+}
+
 export function flush() {
   return new Promise((r) => setTimeout(r, 0))
 }

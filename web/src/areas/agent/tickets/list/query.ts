@@ -36,8 +36,11 @@ export const SORTS = [
   { value: '-created_at', key: 'createdDesc' },
   { value: 'created_at', key: 'createdAsc' },
   { value: '-priority', key: 'priorityDesc' },
+  { value: 'priority', key: 'priorityAsc' },
   { value: 'due', key: 'due' },
+  { value: '-due', key: 'dueDesc' },
   { value: '-number', key: 'numberDesc' },
+  { value: 'number', key: 'numberAsc' },
 ] as const
 
 const VIEWS: QueueView[] = ['mine', 'unassigned', 'triage', 'tier', 'all']

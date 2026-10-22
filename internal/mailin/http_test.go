@@ -5,10 +5,12 @@ package mailin
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -321,6 +323,110 @@ func TestInboundMessagesPaging(t *testing.T) {
 		if r, _ := e.do("GET", "/api/v1/admin/inbound/messages?status=bogus", "staff:admin", nil); r.StatusCode != 422 && r.StatusCode != 400 {
 			t.Fatalf("bad status filter %d", r.StatusCode)
 		}
+	})
+}
+
+// TestInboundMessagesSort: sort=received_at pages the inbound log oldest
+// first and the default (or -received_at) newest first, both by
+// (received_at, id) and with the status and mailbox filters applied. Seven
+// rows: two pairs share a timestamp (one pair straddles a limit-2 page
+// boundary each way) and the 4th has the newest id but a middle time. The
+// default cursor stays base64url(id); a cursor only works in the direction
+// that issued it, and one whose row is gone is rejected.
+func TestInboundMessagesSort(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		e := newEnv(t, db, nil)
+		mbID, _ := e.webhookMailbox("", "")
+		ctx := context.Background()
+		insert := func(id, status string, at time.Time) {
+			if err := db.Tx(ctx, func(tx *store.Tx) error {
+				_, err := tx.ExecContext(ctx, `INSERT INTO inbound_messages (id, mailbox_id, message_id, from_addr, subject, status, received_at, created_at) VALUES (?, ?, ?, 'a@client.example.org', 's', ?, ?, ?)`,
+					id, mbID, "<"+id+"@x>", status, at, at)
+				return err
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		ids := make([]string, 7)
+		for i := range ids {
+			ids[i] = store.NewID()
+		}
+		slices.Sort(ids)
+		want := []string{ids[0], ids[1], ids[2], ids[6], ids[3], ids[4], ids[5]}
+		base := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+		for i, m := range []int{0, 1, 1, 2, 3, 3, 4} {
+			insert(want[i], statusProcessed, base.Add(time.Duration(m)*time.Minute))
+		}
+		insert(store.NewID(), statusFailed, base.Add(90*time.Second)) // filtered out
+		rev := slices.Clone(want)
+		slices.Reverse(rev)
+
+		path := "/api/v1/admin/inbound/messages?limit=2&status=processed&mailbox_id=" + mbID
+		get := func(url string, code int) (items []string, next string, body []byte) {
+			t.Helper()
+			r, body := e.do("GET", url, "staff:admin", nil)
+			if r.StatusCode != code {
+				t.Fatalf("GET %s: %d %s", url, r.StatusCode, body)
+			}
+			var p struct {
+				Items []messageDTO `json:"items"`
+				Next  *string      `json:"next_cursor"`
+			}
+			_ = json.Unmarshal(body, &p)
+			for _, d := range p.Items {
+				items = append(items, d.ID)
+			}
+			if p.Next != nil {
+				next = *p.Next
+			}
+			return items, next, body
+		}
+		pageAll := func(query string) (got, cursors []string) {
+			t.Helper()
+			cursor := ""
+			for range 10 {
+				items, next, _ := get(path+query+cursor, 200)
+				got = append(got, items...)
+				if next == "" {
+					return got, cursors
+				}
+				cursors = append(cursors, next)
+				cursor = "&cursor=" + next
+			}
+			t.Fatalf("%s: no last page", query)
+			return nil, nil
+		}
+
+		asc, ascCursors := pageAll("&sort=received_at")
+		if !slices.Equal(asc, want) {
+			t.Fatalf("ascending\n got %v\nwant %v", asc, want)
+		}
+		desc, descCursors := pageAll("")
+		if !slices.Equal(desc, rev) {
+			t.Fatalf("default\n got %v\nwant %v", desc, rev)
+		}
+		for i, c := range descCursors {
+			if c != base64.RawURLEncoding.EncodeToString([]byte(desc[2*i+1])) {
+				t.Fatalf("default cursor %d = %q, want base64url(id)", i, c)
+			}
+		}
+		if explicit, _ := pageAll("&sort=-received_at"); !slices.Equal(explicit, rev) {
+			t.Fatalf("-received_at\n got %v\nwant %v", explicit, rev)
+		}
+
+		if _, _, body := get(path+"&sort=created_at", 422); !strings.Contains(string(body), `"sort"`) {
+			t.Fatalf("bad sort: %s", body)
+		}
+		get(path+"&cursor="+ascCursors[0], 422)
+		get(path+"&sort=-received_at&cursor="+ascCursors[0], 422)
+		get(path+"&sort=received_at&cursor="+descCursors[0], 422)
+		if err := db.Tx(ctx, func(tx *store.Tx) error {
+			_, err := tx.ExecContext(ctx, `DELETE FROM inbound_messages WHERE id = ?`, desc[1])
+			return err
+		}); err != nil {
+			t.Fatal(err)
+		}
+		get(path+"&cursor="+descCursors[0], 422) // its row was pruned
 	})
 }
 

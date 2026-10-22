@@ -55,6 +55,8 @@ test.describe('privacy (GDPR)', () => {
     const list = async () => {
       await admin.goto('/agent/tickets')
       await admin.getByTestId('filter-q').locator('input').fill(id)
+      // Applied on Enter; the virtual table only renders the rows in view.
+      await admin.getByTestId('filter-q').locator('input').press('Enter')
       return admin.getByTestId('ticket-row').filter({ hasText: `Privacy erase ${id}` })
     }
     await expect(async () => {

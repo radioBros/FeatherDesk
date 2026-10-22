@@ -75,20 +75,86 @@ func dirLimit(r *http.Request) (int, error) {
 	return n, nil
 }
 
-func dirCursor(r *http.Request) (string, error) {
-	c := r.URL.Query().Get("cursor")
-	if c == "" {
-		return "", nil
-	}
-	b, err := base64.RawURLEncoding.DecodeString(c)
-	if err != nil {
-		return "", problems.Validation(problems.Field("cursor", "invalid", "invalid cursor"))
-	}
-	return string(b), nil
+// dirOrder is the keyset order of a list. Without ?sort= it is the id
+// (creation order, UUIDv7) and the cursor is base64 of the last id. With
+// ?sort=field or -field it is lower(column) then id, both in the same
+// direction, and the cursor is base64 JSON [sort, value, id]: it only
+// continues the order it was issued for.
+type dirOrder struct {
+	sort  string // the ?sort= value ("" = by id)
+	field string // sort without "-"
+	col   string // SQL column of field
+	idCol string
+	desc  bool
 }
 
-func dirNextCursor(lastID string) *string {
-	c := base64.RawURLEncoding.EncodeToString([]byte(lastID))
+// dirSort reads ?sort=; cols maps each sortable field to its SQL column.
+func dirSort(r *http.Request, idCol string, cols map[string]string) (dirOrder, error) {
+	v := r.URL.Query().Get("sort")
+	o := dirOrder{sort: v, field: strings.TrimPrefix(v, "-"), idCol: idCol}
+	if v == "" {
+		return o, nil
+	}
+	col, ok := cols[o.field]
+	if !ok {
+		return o, problems.Validation(problems.Field("sort", "invalid", "unknown sort"))
+	}
+	o.col, o.desc = col, o.field != v
+	return o, nil
+}
+
+// after ANDs to where the condition selecting the rows after ?cursor=.
+func (o dirOrder) after(r *http.Request, where string, args []any) (string, []any, error) {
+	c := r.URL.Query().Get("cursor")
+	if c == "" {
+		return where, args, nil
+	}
+	bad := problems.Validation(problems.Field("cursor", "invalid", "invalid cursor"))
+	b, err := base64.RawURLEncoding.DecodeString(c)
+	if err != nil {
+		return "", nil, bad
+	}
+	if o.sort == "" {
+		if !dirValidID(string(b)) {
+			return "", nil, bad
+		}
+		return where + " AND " + o.idCol + " > ?", append(args, string(b)), nil
+	}
+	var v []string
+	if json.Unmarshal(b, &v) != nil || len(v) != 3 || v[0] != o.sort || !dirValidID(v[2]) {
+		return "", nil, bad
+	}
+	op := ">"
+	if o.desc {
+		op = "<"
+	}
+	// lower(col) >= x AND (lower(col) > x OR id > y): the first term is an
+	// index range on both engines (a row-value comparison is not, on SQLite).
+	// The raw value is lowered by the engine like the column (SQLite's lower()
+	// is ASCII-only, Postgres' is not).
+	key := "lower(" + o.col + ")"
+	where += " AND " + key + " " + op + "= lower(?) AND (" + key + " " + op + " lower(?) OR " + o.idCol + " " + op + " ?)"
+	return where, append(args, v[1], v[1], v[2]), nil
+}
+
+func (o dirOrder) orderBy() string {
+	if o.sort == "" {
+		return o.idCol
+	}
+	dir := ""
+	if o.desc {
+		dir = " DESC"
+	}
+	return "lower(" + o.col + ")" + dir + ", " + o.idCol + dir
+}
+
+// next is the cursor after the row id; vals holds its sortable fields.
+func (o dirOrder) next(id string, vals map[string]string) *string {
+	b := []byte(id)
+	if o.sort != "" {
+		b, _ = json.Marshal([]string{o.sort, vals[o.field], id})
+	}
+	c := base64.RawURLEncoding.EncodeToString(b)
 	return &c
 }
 

@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/radioBros/FeatherDesk/internal/apispec"
 	"github.com/radioBros/FeatherDesk/internal/domain"
@@ -230,6 +231,130 @@ func TestKBRead_PaginationAndCategoryFilter(t *testing.T) {
 			if len(page.Items) != 1 || page.Items[0].Slug != "beta-a" {
 				t.Fatalf("category filter %s: %+v", f, page.Items)
 			}
+		}
+	})
+}
+
+// TestKBEditorList_Sort pins the editor list `sort` (title and updated_at,
+// both directions) across offset pages, with and without q: an explicit sort
+// wins over rank while q still filters. Without sort the order is unchanged.
+func TestKBEditorList_Sort(t *testing.T) {
+	engines(t, func(t *testing.T, e *env) {
+		cat := e.category("fruit", VisPublic, "")
+		type art struct {
+			id, title string
+			match     bool
+		}
+		var arts []art
+		add := func(slug, title, body string, match bool) {
+			arts = append(arts, art{e.article(cat, slug, VisPublic, "published", title, body), title, match})
+		}
+		add("apricot", "Apricot", "A long story about orchards, harvests, seasons and one widget.", true)
+		add("apple", "apple", "Nothing to see.", false)
+		add("banana-1", "Banana", "A widget for fruit.", true)
+		add("banana-2", "banana", "Fruit only.", false)
+		add("cherry", "cherry", "Red.", false)
+		add("zucchini", "Zucchini widget", "widget widget widget", true)
+		// updated_at in an order unrelated to titles; distinct values.
+		base := store.Now().Add(-time.Hour)
+		upd := map[string]time.Time{}
+		for i, k := range []int{3, 0, 5, 1, 4, 2} {
+			a := arts[i]
+			upd[a.id] = base.Add(time.Duration(k) * time.Minute)
+			if err := e.db.Tx(context.Background(), func(tx *store.Tx) error {
+				_, err := tx.ExecContext(context.Background(), `UPDATE kb_articles SET updated_at = ? WHERE id = ?`, upd[a.id], a.id)
+				return err
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		all := func(base string) []string {
+			t.Helper()
+			var ids []string
+			cursor := ""
+			for pages := 0; pages < 20; pages++ {
+				var page pageDTO
+				u := base
+				if cursor != "" {
+					u += "&cursor=" + cursor
+				}
+				r := e.do("GET", u, "agent", nil)
+				e.want(r, 200)
+				r.json(t, &page)
+				for _, it := range page.Items {
+					ids = append(ids, it.ID)
+				}
+				if page.NextCursor == nil {
+					return ids
+				}
+				cursor = *page.NextCursor
+			}
+			t.Fatalf("%s: pagination did not end", base)
+			return nil
+		}
+		want := func(sortKey string, onlyMatch bool) []string {
+			var xs []art
+			for _, a := range arts {
+				if !onlyMatch || a.match {
+					xs = append(xs, a)
+				}
+			}
+			key, desc := strings.CutPrefix(sortKey, "-")
+			slices.SortFunc(xs, func(a, b art) int {
+				c := 0
+				if key == "title" {
+					c = strings.Compare(strings.ToLower(a.title), strings.ToLower(b.title))
+				} else {
+					c = upd[a.id].Compare(upd[b.id])
+				}
+				if c == 0 {
+					c = strings.Compare(a.id, b.id)
+				}
+				if desc {
+					c = -c
+				}
+				return c
+			})
+			out := make([]string, len(xs))
+			for i, a := range xs {
+				out[i] = a.id
+			}
+			return out
+		}
+		for _, srt := range []string{"title", "-title", "updated_at", "-updated_at"} {
+			if got, w := all("/api/v1/agent/kb/articles?limit=2&sort="+srt), want(srt, false); !slices.Equal(got, w) {
+				t.Errorf("sort=%s\n got %v\nwant %v", srt, got, w)
+			}
+			if got, w := all("/api/v1/agent/kb/articles?limit=2&q=widget&sort="+srt), want(srt, true); !slices.Equal(got, w) {
+				t.Errorf("q + sort=%s\n got %v\nwant %v", srt, got, w)
+			}
+		}
+		// Default: most recently updated first; with q, rank order (the
+		// zucchini article matches best, the others once each).
+		if got, w := all("/api/v1/agent/kb/articles?limit=2"), want("-updated_at", false); !slices.Equal(got, w) {
+			t.Errorf("default\n got %v\nwant %v", got, w)
+		}
+		got := all("/api/v1/agent/kb/articles?limit=2&q=widget")
+		if len(got) != 3 || got[0] != arts[5].id {
+			t.Errorf("default q order %v, want zucchini (%s) first of 3", got, arts[5].id)
+		}
+		// The title follows the requested locale, as the list shows it.
+		e.translate(arts[5].id, "it", "Aaa zucchina", "widget")
+		var page pageDTO
+		e.do("GET", "/api/v1/agent/kb/articles?sort=title&locale=it", "agent", nil).json(t, &page)
+		if len(page.Items) == 0 || page.Items[0].ID != arts[5].id || page.Items[0].Title != "Aaa zucchina" {
+			t.Errorf("locale=it title order: first %+v", page.Items)
+		}
+		r := e.do("GET", "/api/v1/agent/kb/articles?sort=views", "agent", nil)
+		e.want(r, 422)
+		var p struct {
+			Errors []struct {
+				Field string `json:"field"`
+			} `json:"errors"`
+		}
+		r.json(t, &p)
+		if len(p.Errors) != 1 || p.Errors[0].Field != "sort" {
+			t.Errorf("invalid sort problem %s", r.Body.String())
 		}
 	})
 }

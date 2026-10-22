@@ -22,7 +22,8 @@ import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
-import ColumnCells from '@/components/ColumnCells.vue'
+import { useProjectsStore } from '@/stores/projects'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const props = defineProps<{ shared?: boolean }>()
@@ -30,6 +31,7 @@ const { t } = useI18n()
 const { confirm } = useConfirm()
 const lookups = useLookupsStore()
 const cp = useConfigProjects()
+const projects = useProjectsStore()
 /** Shared macros: the projects the user administers; personal ones: any project they work in. */
 const projectChoices = computed(() => (props.shared ? cp.options.value : cp.all.value))
 const { run } = useAction()
@@ -90,12 +92,15 @@ function effects(m: S['Macro']): string {
   else if (m.assignee) out.push(`${t('automation.macros.assignee')}: ${lookups.staff.find((s) => s.id === m.assignee)?.name ?? '—'}`)
   return out.join(' · ')
 }
+const scopeLabel = (m: S['Macro']) => (m.shared ? t('automation.macros.shared') : t('automation.macros.personal'))
+/** What the project column shows (ProjectCell): the project key, or "all projects". */
+const projectKey = (id?: string | null) => (id ? (projects.byId(id)?.key ?? '?') : t('projects.config.all'))
 const cols = useTableColumns('automation-macros', () => [
   { key: 'name', label: t('automation.macros.name'), locked: true },
-  { key: 'does', label: t('automation.macros.does') },
-  { key: 'project', label: t('projects.config.project'), lowPriority: true },
-  { key: 'scope', label: t('automation.macros.scope'), lowPriority: true },
-  { key: 'updatedAt', label: t('agent.common.updatedAt'), lowPriority: true },
+  { key: 'does', label: t('automation.macros.does'), sortValue: false },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true, sortValue: (m: S['Macro']) => projectKey(m.project_id) },
+  { key: 'scope', label: t('automation.macros.scope'), lowPriority: true, sortValue: scopeLabel },
+  { key: 'updatedAt', label: t('agent.common.updatedAt'), lowPriority: true, sortValue: (m: S['Macro']) => m.updated_at },
 ])
 </script>
 
@@ -115,39 +120,19 @@ const cols = useTableColumns('automation-macros', () => [
       <EmptyState v-if="!loading && !sorted.length" :title="$t('automation.macros.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="macros-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('automation.macros.name') }}</th>
-              <th data-col="does" v-if="cols.show('does')">{{ $t('automation.macros.does') }}</th>
-              <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-              <th data-col="scope" v-if="cols.show('scope')">{{ $t('automation.macros.scope') }}</th>
-              <th data-col="updatedAt" v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in sorted" :key="m.id" data-testid="macro-row">
-            <ColumnCells :cols="cols">
-              <td data-col="name" v-if="cols.show('name')">{{ m.name }}</td>
-              <td data-col="does" v-if="cols.show('does')" class="text-medium-emphasis">{{ effects(m) }}</td>
-              <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
-              <td data-col="scope" v-if="cols.show('scope')">
-                <v-chip size="small" label>{{ m.shared ? $t('automation.macros.shared') : $t('automation.macros.personal') }}</v-chip>
-              </td>
-              <td data-col="updatedAt" v-if="cols.show('updatedAt')"><RelativeTime :value="m.updated_at" /></td>
-              <td class="text-right text-no-wrap">
-                <template v-if="editable(m)">
-                  <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="macro-edit" @click="openForm(m)" />
-                  <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="macro-delete" @click="remove(m)" />
-                </template>
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable :cols="cols" :items="sorted" :loading="loading" actions density="comfortable" :row-props="{ 'data-testid': 'macro-row' }" data-testid="macros-table">
+        <template #[`item.name`]="{ item }">{{ item.name }}</template>
+        <template #[`item.does`]="{ item }"><span class="text-medium-emphasis">{{ effects(item) }}</span></template>
+        <template #[`item.project`]="{ item }"><ProjectCell :id="item.project_id" /></template>
+        <template #[`item.scope`]="{ item }"><v-chip size="small" label>{{ scopeLabel(item) }}</v-chip></template>
+        <template #[`item.updatedAt`]="{ item }"><RelativeTime :value="item.updated_at" /></template>
+        <template #[`item.actions`]="{ item }">
+          <span v-if="editable(item)" class="text-no-wrap">
+            <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="macro-edit" @click="openForm(item)" />
+            <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="macro-delete" @click="remove(item)" />
+          </span>
+        </template>
+      </DataTable>
       </template>
     </v-card>
 

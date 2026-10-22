@@ -59,6 +59,9 @@ type listQuery struct {
 	Limit    int
 	Offset   int
 	Order    string // "published" (public) or "updated" (editor)
+	// Sort is an explicit editor order (editorSorts); "" keeps Order, or
+	// rank order when Q is set.
+	Sort string
 	// TitleFirst (suggest) ranks title matches first and falls back to the
 	// full-text query when they do not fill the page.
 	TitleFirst bool
@@ -79,6 +82,13 @@ func (m *Module) ids(ctx context.Context, lq listQuery) ([]string, bool, error) 
 	}
 	if len(store.SearchTerms(lq.Q)) == 0 {
 		return nil, false, nil // no searchable terms
+	}
+	if lq.Sort != "" {
+		// An explicit order is not rank order, so a rank-ordered window
+		// cannot stand in for it: order every match.
+		sub, sargs, _ := store.KBMatch(m.d.DB.Dialect, lq.Q)
+		out, more, _, err := m.runSearch(ctx, lq, sub, sargs, 0)
+		return out, more, err
 	}
 	window := max(250, need*10)
 	if lq.TitleFirst {
@@ -122,7 +132,13 @@ func (m *Module) runSearch(ctx context.Context, lq listQuery, sub string, sargs 
 	}
 	// Fetch from the start so the caller can tell whether the window held
 	// enough articles; the offset is applied below.
-	sb.WriteString(` GROUP BY a.id ORDER BY r, a.id LIMIT ?`)
+	order := "r, a.id"
+	if lq.Sort != "" {
+		var oargs []any
+		order, oargs = m.sortOrder(ctx, lq)
+		args = append(args, oargs...)
+	}
+	sb.WriteString(` GROUP BY a.id ORDER BY ` + order + ` LIMIT ?`)
 	args = append(args, lq.Offset+lq.Limit+1)
 	all, err := m.scanIDs(ctx, sb.String(), args)
 	if err != nil {
@@ -156,7 +172,13 @@ func (m *Module) runIDs(ctx context.Context, lq listQuery, _ int) ([]string, boo
 		sb.WriteString(` AND (c.project_id IS NULL OR c.project_id = ?)`)
 		args = append(args, lq.Project)
 	}
-	sb.WriteString(` ORDER BY ` + col + ` DESC, a.id DESC LIMIT ? OFFSET ?`)
+	order := col + ` DESC, a.id DESC`
+	if lq.Sort != "" {
+		var oargs []any
+		order, oargs = m.sortOrder(ctx, lq)
+		args = append(args, oargs...)
+	}
+	sb.WriteString(` ORDER BY ` + order + ` LIMIT ? OFFSET ?`)
 	args = append(args, lq.Limit+1, lq.Offset)
 	out, err := m.scanIDs(ctx, sb.String(), args)
 	if err != nil {
@@ -167,6 +189,36 @@ func (m *Module) runIDs(ctx context.Context, lq listQuery, _ int) ([]string, boo
 		out = out[:lq.Limit]
 	}
 	return out, more, nil
+}
+
+// editorSorts are the explicit orders of the editor list (`-` = descending).
+var editorSorts = map[string]bool{"title": true, "-title": true, "updated_at": true, "-updated_at": true}
+
+// titleKeySQL is the lower-cased title the list shows (summaries/pickLocale:
+// requested locale, default locale, then Locales order, else the slug). It
+// binds the requested and the default locale.
+var titleKeySQL = func() string {
+	var ranks strings.Builder
+	for i, l := range Locales {
+		fmt.Fprintf(&ranks, " WHEN t.locale = %s THEN %d", inList([]string{l}), i+2)
+	}
+	return `COALESCE((SELECT lower(t.title) FROM kb_article_translations t WHERE t.article_id = a.id AND (t.locale IN (?, ?) OR t.locale IN (` +
+		inList(Locales) + `)) ORDER BY CASE WHEN t.locale = ? THEN 0 WHEN t.locale = ? THEN 1` + ranks.String() + ` END LIMIT 1), lower(a.slug))`
+}()
+
+// sortOrder is the ORDER BY for lq.Sort (ties by id in the same direction)
+// and its bound arguments.
+func (m *Module) sortOrder(ctx context.Context, lq listQuery) (string, []any) {
+	key, desc := strings.CutPrefix(lq.Sort, "-")
+	dir := ""
+	if desc {
+		dir = " DESC"
+	}
+	if key == "title" {
+		def := m.defaultLocale(ctx)
+		return titleKeySQL + dir + ", a.id" + dir, []any{lq.Locale, def, lq.Locale, def}
+	}
+	return "a.updated_at" + dir + ", a.id" + dir, nil
 }
 
 func (m *Module) scanIDs(ctx context.Context, q string, args []any) ([]string, error) {

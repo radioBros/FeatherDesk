@@ -4,10 +4,13 @@ package app_test
 
 import (
 	"bytes"
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -85,6 +88,100 @@ func TestAdmin_AuditLogStorageAndDocs(t *testing.T) {
 			strings.Contains(string(body), "<script") || !strings.Contains(rec.Header().Get("Content-Security-Policy"), "default-src 'none'") {
 			t.Fatalf("/api/docs: %d %q %s", rec.Code, rec.Header(), tail(string(body), 300))
 		}
+	})
+}
+
+// sortRows writes 7 rows through insert and returns their ids oldest first.
+// Two pairs share a timestamp (one pair straddles a limit-2 page boundary
+// ascending, the other descending), and the 4th row has the newest id but a
+// middle time, so only a (time, id) order lists them as returned.
+func sortRows(t *testing.T, insert func(id string, at time.Time)) []string {
+	t.Helper()
+	ids := make([]string, 7)
+	for i := range ids {
+		ids[i] = store.NewID()
+	}
+	slices.Sort(ids)
+	order := []string{ids[0], ids[1], ids[2], ids[6], ids[3], ids[4], ids[5]}
+	base := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+	for i, m := range []int{0, 1, 1, 2, 3, 3, 4} {
+		insert(order[i], base.Add(time.Duration(m)*time.Minute))
+	}
+	return order
+}
+
+// TestAdmin_AuditLogSort: sort=created_at pages the audit log oldest first and
+// the default (or -created_at) newest first, both by (created_at, id) and with
+// the filters applied; the default cursor stays base64url(id), and a cursor
+// only works in the direction that issued it.
+func TestAdmin_AuditLogSort(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		sink := newSink(t)
+		s := buildStack(t, sink, e2eEnv(t, db, sink, t.TempDir()))
+		admin, _ := s.staff(domain.RoleAdmin, 3)
+		ctx := context.Background()
+		insert := func(id, action string, at time.Time) {
+			if err := s.db.Tx(ctx, func(tx *store.Tx) error {
+				_, err := tx.ExecContext(ctx, `INSERT INTO audit_log (id, actor_id, action, target_type, target_id, data, ip, created_at) VALUES (?, NULL, ?, 'test', '', '{}', '', ?)`, id, action, at)
+				return err
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		want := sortRows(t, func(id string, at time.Time) { insert(id, "sorttest.row", at) })
+		base := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+		insert(store.NewID(), "sorttest.other", base.Add(90*time.Second)) // filtered out
+		rev := slices.Clone(want)
+		slices.Reverse(rev)
+
+		const path = "/api/v1/admin/audit-log?limit=2&action=sorttest.row"
+		pageAll := func(query string) (got, cursors []string) {
+			t.Helper()
+			cursor := ""
+			for range 10 {
+				p := admin.must(200, "GET", path+query+cursor, nil)
+				for _, it := range p["items"].([]any) {
+					got = append(got, it.(map[string]any)["id"].(string))
+				}
+				next, _ := p["next_cursor"].(string)
+				if next == "" {
+					return got, cursors
+				}
+				cursors = append(cursors, next)
+				cursor = "&cursor=" + next
+			}
+			t.Fatalf("%s: no last page", query)
+			return nil, nil
+		}
+
+		asc, ascCursors := pageAll("&sort=created_at")
+		if !slices.Equal(asc, want) {
+			t.Fatalf("ascending\n got %v\nwant %v", asc, want)
+		}
+		desc, descCursors := pageAll("")
+		if !slices.Equal(desc, rev) {
+			t.Fatalf("default\n got %v\nwant %v", desc, rev)
+		}
+		for i, c := range descCursors {
+			if c != base64.RawURLEncoding.EncodeToString([]byte(desc[2*i+1])) {
+				t.Fatalf("default cursor %d = %q, want base64url(id)", i, c)
+			}
+		}
+		if explicit, _ := pageAll("&sort=-created_at"); !slices.Equal(explicit, rev) {
+			t.Fatalf("-created_at\n got %v\nwant %v", explicit, rev)
+		}
+		if since, _ := pageAll("&sort=created_at&since=" + base.Add(2*time.Minute).Format(time.RFC3339)); !slices.Equal(since, want[3:]) {
+			t.Fatalf("since ascending\n got %v\nwant %v", since, want[3:])
+		}
+
+		code, body := admin.do("GET", path+"&sort=id", nil)
+		if code != 422 || !strings.Contains(string(body), `"sort"`) {
+			t.Fatalf("bad sort: %d %s", code, body)
+		}
+		admin.must(422, "GET", path+"&cursor="+ascCursors[0], nil)
+		admin.must(422, "GET", path+"&sort=-created_at&cursor="+ascCursors[0], nil)
+		admin.must(422, "GET", path+"&sort=created_at&cursor="+descCursors[0], nil)
+		admin.must(422, "GET", path+"&cursor="+base64.RawURLEncoding.EncodeToString([]byte(store.NewID())), nil)
 	})
 }
 

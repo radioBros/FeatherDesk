@@ -401,7 +401,13 @@ type deliveryDTO struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
-// deliveries pages the delivery log newest first; cursor = base64url(id).
+// deliveries pages the delivery log by (created_at, id): newest first by
+// default, oldest first with sort=created_at. The order is the time column,
+// not the id: recordErr takes created_at before its transaction and the id
+// inside it, and the demo seeder back-dates rows, so the two can disagree.
+// Cursor = base64url(id) of the last row ("a." + base64url(id) when ascending,
+// so a cursor only works in the direction that issued it); the row's
+// created_at is read back from the table.
 func (m *Module) deliveries(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	id := chi.URLParam(r, "id")
@@ -419,18 +425,44 @@ func (m *Module) deliveries(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
-	where, args := "webhook_id = ?", []any{id}
+	desc := true
+	switch q.Get("sort") {
+	case "", "-created_at":
+	case "created_at":
+		desc = false
+	default:
+		problems.Write(w, r, problems.Validation(problems.Field("sort", "enum", "created_at, -created_at")))
+		return
+	}
+	cmp, dir := ">", "ASC"
+	if desc {
+		cmp, dir = "<", "DESC"
+	}
+	where, args := "d.webhook_id = ?", []any{id}
 	if c := q.Get("cursor"); c != "" {
-		cid, err := base64.RawURLEncoding.DecodeString(c)
-		if err != nil {
+		cid, ok := decodeLogCursor(c, desc)
+		var one int
+		if ok {
+			// The cursor row must still exist (the success ring and the
+			// pruner replace rows): a vanished one would turn the keyset
+			// into NULL and silently end the listing.
+			err := m.db.Read().QueryRowContext(ctx, `SELECT 1 FROM webhook_deliveries WHERE id = ? AND webhook_id = ?`, cid, id).Scan(&one)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				problems.Write(w, r, err)
+				return
+			}
+			ok = err == nil
+		}
+		if !ok {
 			problems.Write(w, r, problems.Validation(problems.Field("cursor", "invalid", "")))
 			return
 		}
-		where += " AND id < ?"
-		args = append(args, string(cid))
+		where += " AND (d.created_at, d.id) " + cmp + " (SELECT c.created_at, c.id FROM webhook_deliveries c WHERE c.id = ?)"
+		args = append(args, cid)
 	}
 	args = append(args, limit+1)
-	rows, err := m.db.Read().QueryContext(ctx, `SELECT id, webhook_id, event_id, event_type, success, status_code, response_ms, error, attempt, created_at FROM webhook_deliveries WHERE `+where+` ORDER BY id DESC LIMIT ?`, args...)
+	rows, err := m.db.Read().QueryContext(ctx, `SELECT d.id, d.webhook_id, d.event_id, d.event_type, d.success, d.status_code, d.response_ms, d.error, d.attempt, d.created_at
+		FROM webhook_deliveries d WHERE `+where+` ORDER BY d.created_at `+dir+`, d.id `+dir+` LIMIT ?`, args...)
 	if err != nil {
 		problems.Write(w, r, err)
 		return
@@ -466,7 +498,35 @@ func (m *Module) deliveries(w http.ResponseWriter, r *http.Request) {
 	var next any
 	if len(items) > limit {
 		items = items[:limit]
-		next = base64.RawURLEncoding.EncodeToString([]byte(items[limit-1].ID))
+		next = encodeLogCursor(items[limit-1].ID, desc)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"items": items, "next_cursor": next})
+}
+
+// ascCursorPrefix marks a cursor issued by an oldest-first listing. "." is
+// outside the base64url alphabet, so the default (newest-first) decoder
+// rejects such a cursor, and the ascending decoder rejects one without it.
+const ascCursorPrefix = "a."
+
+func encodeLogCursor(id string, desc bool) string {
+	c := base64.RawURLEncoding.EncodeToString([]byte(id))
+	if !desc {
+		c = ascCursorPrefix + c
+	}
+	return c
+}
+
+func decodeLogCursor(c string, desc bool) (string, bool) {
+	if !desc {
+		rest, ok := strings.CutPrefix(c, ascCursorPrefix)
+		if !ok {
+			return "", false
+		}
+		c = rest
+	}
+	b, err := base64.RawURLEncoding.DecodeString(c)
+	if err != nil || len(b) == 0 {
+		return "", false
+	}
+	return string(b), true
 }

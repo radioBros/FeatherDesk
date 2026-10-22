@@ -4,6 +4,7 @@ import CustomersPage from './CustomersPage.vue'
 import CustomerDetailPage from './CustomerDetailPage.vue'
 import CustomerForm from './CustomerForm.vue'
 import { mountAgent, fx, json, byTestId, typeInto, click } from '../testing'
+import { scrollTableToEnd } from '@/test/mount'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -24,7 +25,10 @@ describe('CustomersPage (FE-026)', () => {
     const rows = h.wrapper.findAll('[data-testid="customer-row"]')
     expect(rows).toHaveLength(2)
     expect(rows[0]!.text()).toContain('Acme')
-    expect(h.wrapper.find('[data-testid="load-more"]').exists()).toBe(true)
+    // More pages load when the table body is scrolled to its end.
+    scrollTableToEnd(h.wrapper.element)
+    await h.flush()
+    expect(h.calls(/GET \/agent\/customers\?.*cursor=next-1/)).toHaveLength(1)
     vi.useFakeTimers()
     await h.wrapper.find('[data-testid="customer-search"] input').setValue('ada')
     vi.advanceTimersByTime(350)

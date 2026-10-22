@@ -23,13 +23,15 @@ import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
-import ColumnCells from '@/components/ColumnCells.vue'
+import { useProjectsStore } from '@/stores/projects'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
 const { confirm } = useConfirm()
 const lookups = useLookupsStore()
 const cp = useConfigProjects()
+const projects = useProjectsStore()
 const { run, busy } = useAction()
 const rules = ref<S['AutomationRule'][]>([])
 const loading = ref(true)
@@ -101,12 +103,17 @@ async function remove(r: S['AutomationRule']) {
   }, t('agent.common.deleted'))
   if (ok) void load()
 }
+/** Execution index of a rule; the table may be sorted by another column. */
+const at = (r: S['AutomationRule']) => rules.value.findIndex((x) => x.id === r.id)
+const eventLabel = (r: S['AutomationRule']) => t(`automation.events.${r.event.replace('.', '_')}`)
+/** What the project column shows (ProjectCell): the project key, or "all projects". */
+const projectKey = (id?: string | null) => (id ? (projects.byId(id)?.key ?? '?') : t('projects.config.all'))
 const cols = useTableColumns('automation-rules', () => [
-  { key: 'position', label: '#', locked: true },
+  { key: 'position', label: '#', locked: true, sortValue: at },
   { key: 'name', label: t('automation.rules.name'), locked: true },
-  { key: 'project', label: t('projects.config.project'), lowPriority: true },
-  { key: 'event', label: t('automation.rules.event') },
-  { key: 'summary', label: t('automation.rules.summary'), lowPriority: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true, sortValue: (r: S['AutomationRule']) => projectKey(r.project_id) },
+  { key: 'event', label: t('automation.rules.event'), sortValue: eventLabel },
+  { key: 'summary', label: t('automation.rules.summary'), lowPriority: true, sortValue: false },
   { key: 'enabled', label: t('automation.rules.enabled') },
 ])
 </script>
@@ -124,64 +131,47 @@ const cols = useTableColumns('automation-rules', () => [
       <EmptyState v-if="!loading && !rules.length" :title="$t('automation.rules.empty')" :body="$t('automation.rules.emptyBody')" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="rules-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="position" v-if="cols.show('position')">#</th>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('automation.rules.name') }}</th>
-              <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-              <th data-col="event" v-if="cols.show('event')">{{ $t('automation.rules.event') }}</th>
-              <th data-col="summary" v-if="cols.show('summary')">{{ $t('automation.rules.summary') }}</th>
-              <th data-col="enabled" v-if="cols.show('enabled')">{{ $t('automation.rules.enabled') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(r, i) in rules" :key="r.id" data-testid="rule-row">
-            <ColumnCells :cols="cols">
-              <td data-col="position" v-if="cols.show('position')">{{ i + 1 }}</td>
-              <td data-col="name" v-if="cols.show('name')">
-                <SectionIcon section="automation" :icon="mdiLightningBolt" :size="26" class="mr-2 align-middle" />{{ r.name }}
-                <v-icon v-if="r.stop_processing" :icon="mdiStopCircleOutline" size="small" class="ml-1" :title="$t('automation.rules.stopProcessing')" data-testid="rule-stop-icon" />
-              </td>
-              <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="r.project_id" /></td>
-              <td data-col="event" v-if="cols.show('event')">{{ $t(`automation.events.${r.event.replace('.', '_')}`) }}</td>
-              <td data-col="summary" v-if="cols.show('summary')" class="text-medium-emphasis">
-                {{ $t('automation.rules.counts', { conditions: r.conditions.length, actions: r.actions.length }) }}
-              </td>
-              <td data-col="enabled" v-if="cols.show('enabled')">
-                <v-switch
-                  :model-value="r.enabled"
-                  color="primary"
-                  density="compact"
-                  hide-details
-                  :disabled="busy"
-                  :aria-label="$t('automation.rules.enabled')"
-                  data-testid="rule-toggle"
-                  @update:model-value="(v) => toggle(r, !!v)"
-                />
-              </td>
-              <td class="text-right text-no-wrap">
-                <v-btn :icon="mdiArrowUp" variant="text" size="small" :disabled="i === 0 || busy" :aria-label="$t('automation.rules.moveUp')" data-testid="rule-up" @click="move(i, -1)" />
-                <v-btn
-                  :icon="mdiArrowDown"
-                  variant="text"
-                  size="small"
-                  :disabled="i === rules.length - 1 || busy"
-                  :aria-label="$t('automation.rules.moveDown')"
-                  data-testid="rule-down"
-                  @click="move(i, 1)"
-                />
-                <v-btn :icon="mdiFlaskOutline" variant="text" size="small" :aria-label="$t('automation.dryRun.title')" data-testid="rule-test" @click="testing = r" />
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="rule-edit" @click="openForm(r)" />
-                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="rule-delete" @click="remove(r)" />
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable :cols="cols" :items="rules" :loading="loading" actions density="comfortable" :row-props="{ 'data-testid': 'rule-row' }" data-testid="rules-table">
+        <template #[`item.position`]="{ item }">{{ at(item) + 1 }}</template>
+        <template #[`item.name`]="{ item }">
+          <SectionIcon section="automation" :icon="mdiLightningBolt" :size="26" class="mr-2 align-middle" />{{ item.name }}
+          <v-icon v-if="item.stop_processing" :icon="mdiStopCircleOutline" size="small" class="ml-1" :title="$t('automation.rules.stopProcessing')" data-testid="rule-stop-icon" />
+        </template>
+        <template #[`item.project`]="{ item }"><ProjectCell :id="item.project_id" /></template>
+        <template #[`item.event`]="{ item }">{{ eventLabel(item) }}</template>
+        <template #[`item.summary`]="{ item }">
+          <span class="text-medium-emphasis">{{ $t('automation.rules.counts', { conditions: item.conditions.length, actions: item.actions.length }) }}</span>
+        </template>
+        <template #[`item.enabled`]="{ item }">
+          <v-switch
+            :model-value="item.enabled"
+            color="primary"
+            density="compact"
+            hide-details
+            :disabled="busy"
+            :aria-label="$t('automation.rules.enabled')"
+            data-testid="rule-toggle"
+            @update:model-value="(v) => toggle(item, !!v)"
+          />
+        </template>
+        <template #[`item.actions`]="{ item }">
+          <span class="text-no-wrap">
+            <v-btn :icon="mdiArrowUp" variant="text" size="small" :disabled="at(item) === 0 || busy" :aria-label="$t('automation.rules.moveUp')" data-testid="rule-up" @click="move(at(item), -1)" />
+            <v-btn
+              :icon="mdiArrowDown"
+              variant="text"
+              size="small"
+              :disabled="at(item) === rules.length - 1 || busy"
+              :aria-label="$t('automation.rules.moveDown')"
+              data-testid="rule-down"
+              @click="move(at(item), 1)"
+            />
+            <v-btn :icon="mdiFlaskOutline" variant="text" size="small" :aria-label="$t('automation.dryRun.title')" data-testid="rule-test" @click="testing = item" />
+            <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="rule-edit" @click="openForm(item)" />
+            <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="rule-delete" @click="remove(item)" />
+          </span>
+        </template>
+      </DataTable>
       </template>
     </v-card>
 

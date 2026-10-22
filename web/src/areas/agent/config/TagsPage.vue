@@ -13,7 +13,7 @@ import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const items = ref<S['Tag'][]>([])
@@ -48,7 +48,7 @@ onBeforeUnmount(() => timer && clearTimeout(timer))
 const { t } = useI18n()
 const cols = useTableColumns('config-tags', () => [
   { key: 'name', label: t('agent.common.name'), locked: true },
-  { key: 'usage', label: t('agent.tags.usage') },
+  { key: 'usage', label: t('agent.tags.usage'), align: 'end', sortValue: (tag: S['Tag']) => tag.usage_count ?? 0 },
 ])
 </script>
 
@@ -63,24 +63,10 @@ const cols = useTableColumns('config-tags', () => [
       <EmptyState v-if="!loading && !sorted.length" :title="$t('agent.tags.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="tags-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-              <th data-col="usage" v-if="cols.show('usage')" class="text-right">{{ $t('agent.tags.usage') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="tag in sorted" :key="tag.id" data-testid="tag-row">
-            <ColumnCells :cols="cols">
-              <td data-col="name" v-if="cols.show('name')"><v-chip size="small" label>{{ tag.name }}</v-chip></td>
-              <td data-col="usage" v-if="cols.show('usage')" class="text-right">{{ tag.usage_count ?? 0 }}</td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable :cols="cols" :items="sorted" :loading="loading" density="comfortable" :row-props="{ 'data-testid': 'tag-row' }" data-testid="tags-table">
+        <template #[`item.name`]="{ item }"><v-chip size="small" label>{{ item.name }}</v-chip></template>
+        <template #[`item.usage`]="{ item }">{{ item.usage_count ?? 0 }}</template>
+      </DataTable>
       </template>
     </v-card>
   </v-container>

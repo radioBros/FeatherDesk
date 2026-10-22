@@ -605,8 +605,11 @@
         "createdDesc": "Più recenti",
         "createdAsc": "Meno recenti",
         "priorityDesc": "Priorità più alta",
+        "priorityAsc": "Priorità più bassa",
         "due": "Scadenza più vicina",
-        "numberDesc": "Numero più alto"
+        "dueDesc": "Scadenza più lontana",
+        "numberDesc": "Numero più alto",
+        "numberAsc": "Numero più basso"
       }
     },
     "views": {

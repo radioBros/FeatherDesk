@@ -4,7 +4,7 @@
  * Agent E2E helpers: seed staff, teams and tickets through the admin API
  * (cookie session + CSRF), each person in their own browser context.
  */
-import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions, Page } from '@playwright/test'
+import type { APIRequestContext, Browser, BrowserContext, BrowserContextOptions, Locator, Page } from '@playwright/test'
 import { expect, loginAs, clientIp, ADMIN, type Credentials } from '../fixtures'
 
 export const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -86,4 +86,21 @@ export async function customerAccount(page: Page): Promise<Credentials | null> {
   if (!token) return null
   const v = await page.request.post('/api/v1/auth/verify-email', { data: { token } })
   return v.ok() ? { email, password } : null
+}
+
+/**
+ * The row of a DataTable that contains `text`. The table is virtual (only the rows in view are
+ * rendered), so its body is scrolled, top to bottom and round again, until the row is rendered.
+ */
+export async function tableRow(table: Locator, rowTestId: string, text: string): Promise<Locator> {
+  const row = table.getByTestId(rowTestId).filter({ hasText: text })
+  const body = table.locator('.v-table__wrapper')
+  await expect.poll(async () => {
+    if (await row.count()) return true
+    await body.evaluate((el) => {
+      el.scrollTop = el.scrollTop + el.clientHeight >= el.scrollHeight - 1 ? 0 : el.scrollTop + el.clientHeight / 2
+    })
+    return false
+  }, { message: `row "${text}"` }).toBe(true)
+  return row.first()
 }

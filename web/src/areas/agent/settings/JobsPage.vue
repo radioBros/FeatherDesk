@@ -18,7 +18,7 @@ import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type Job = components['schemas']['DeferredJob'] & { payload?: unknown }
 type Status = components['schemas']['DeferredJobStatus']
@@ -72,57 +72,52 @@ const cols = useTableColumns('jobs', () => [
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.jobs.empty')" body="" />
       <template v-else>
         <ColumnsMenu :cols="cols" />
-        <v-table density="comfortable" data-testid="jobs-table">
-          <thead>
+        <!-- server-sort without a sortable column: the API has no sort, rows keep its order. -->
+        <DataTable
+          :cols="cols"
+          :items="list.items.value"
+          :loading="list.loading.value"
+          server-sort
+          :has-more="!!list.next.value"
+          actions
+          :expanded="open ? [open] : []"
+          density="comfortable"
+          :row-props="{ 'data-testid': 'job-row' }"
+          data-testid="jobs-table"
+          @update:expanded="(v: string[]) => (open = v.at(-1) ?? null)"
+          @load-more="list.loadMore()"
+        >
+          <template #[`item.kind`]="{ item }"><code>{{ item.kind }}</code></template>
+          <template #[`item.status`]="{ item }">
+            <v-chip :color="item.status === 'dead' ? 'error' : 'warning'" size="small" label data-testid="job-status">
+              {{ $t(`agent.jobs.${item.status}`) }}
+            </v-chip>
+          </template>
+          <template #[`item.attempts`]="{ item }">{{ item.attempts }}</template>
+          <template #[`item.createdAt`]="{ item }"><span class="text-no-wrap">{{ when(item.created_at) }}</span></template>
+          <template #[`item.nextRun`]="{ item }"><span class="text-no-wrap">{{ when(item.next_run_at) }}</span></template>
+          <template #[`item.actions`]="{ item }">
+            <div class="text-no-wrap">
+              <v-btn variant="text" size="small" data-testid="job-details" @click="open = open === item.id ? null : item.id">{{ $t('agent.common.details') }}</v-btn>
+              <v-btn variant="tonal" size="small" color="primary" :prepend-icon="mdiReplay" :disabled="busy" data-testid="job-retry" @click="retry(item)">
+                {{ $t('agent.jobs.retry') }}
+              </v-btn>
+            </div>
+          </template>
+          <template #expanded-row="{ item, columns }">
             <tr>
-              <ColumnCells :cols="cols" head>
-                <th data-col="kind" v-if="cols.show('kind')">{{ $t('agent.jobs.kind') }}</th>
-                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-                <th data-col="attempts" v-if="cols.show('attempts')">{{ $t('agent.jobs.attempts') }}</th>
-                <th data-col="createdAt" v-if="cols.show('createdAt')">{{ $t('agent.common.createdAt') }}</th>
-                <th data-col="nextRun" v-if="cols.show('nextRun')">{{ $t('agent.jobs.nextRun') }}</th>
-                <th class="text-right">{{ $t('agent.common.actions') }}</th>
-              </ColumnCells>
+              <td :colspan="columns.length">
+                <div class="text-caption text-medium-emphasis mt-2">{{ $t('agent.jobs.lastError') }}</div>
+                <pre class="fd-pre" data-testid="job-error">{{ item.last_error || '—' }}</pre>
+                <template v-if="item.payload !== undefined">
+                  <div class="text-caption text-medium-emphasis">{{ $t('agent.jobs.payload') }}</div>
+                  <pre class="fd-pre" data-testid="job-payload">{{ JSON.stringify(item.payload, null, 2) }}</pre>
+                </template>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <template v-for="j in list.items.value" :key="j.id">
-              <tr data-testid="job-row">
-                <ColumnCells :cols="cols">
-                  <td data-col="kind" v-if="cols.show('kind')"><code>{{ j.kind }}</code></td>
-                  <td data-col="status" v-if="cols.show('status')">
-                    <v-chip :color="j.status === 'dead' ? 'error' : 'warning'" size="small" label data-testid="job-status">
-                      {{ $t(`agent.jobs.${j.status}`) }}
-                    </v-chip>
-                  </td>
-                  <td data-col="attempts" v-if="cols.show('attempts')">{{ j.attempts }}</td>
-                  <td data-col="createdAt" class="text-no-wrap" v-if="cols.show('createdAt')">{{ when(j.created_at) }}</td>
-                  <td data-col="nextRun" class="text-no-wrap" v-if="cols.show('nextRun')">{{ when(j.next_run_at) }}</td>
-                  <td class="text-right text-no-wrap">
-                    <v-btn variant="text" size="small" data-testid="job-details" @click="open = open === j.id ? null : j.id">{{ $t('agent.common.details') }}</v-btn>
-                    <v-btn variant="tonal" size="small" color="primary" :prepend-icon="mdiReplay" :disabled="busy" data-testid="job-retry" @click="retry(j)">
-                      {{ $t('agent.jobs.retry') }}
-                    </v-btn>
-                  </td>
-                </ColumnCells>
-              </tr>
-              <tr v-if="open === j.id">
-                <td :colspan="cols.count.value + 1">
-                  <div class="text-caption text-medium-emphasis mt-2">{{ $t('agent.jobs.lastError') }}</div>
-                  <pre class="fd-pre" data-testid="job-error">{{ j.last_error || '—' }}</pre>
-                  <template v-if="j.payload !== undefined">
-                    <div class="text-caption text-medium-emphasis">{{ $t('agent.jobs.payload') }}</div>
-                    <pre class="fd-pre" data-testid="job-payload">{{ JSON.stringify(j.payload, null, 2) }}</pre>
-                  </template>
-                </td>
-              </tr>
-            </template>
-          </tbody>
-        </v-table>
+          </template>
+        </DataTable>
       </template>
-      <div v-if="list.next.value" class="pa-3 text-center">
-        <v-btn variant="tonal" :loading="list.loading.value" @click="list.loadMore">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
     </v-card>
   </v-container>
 </template>
