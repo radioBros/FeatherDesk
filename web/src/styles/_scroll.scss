@@ -1,0 +1,73 @@
+@supports selector(::-webkit-scrollbar) {
+  html, body, .nicescroll, .v-data-table__wrapper, .v-dialog--fullscreen, .v-dialog__content > .v-dialog,  [class*="__scroll-area"] {
+    *::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgb(var(--v-theme-primary));
+    }
+    *::-webkit-scrollbar-track {
+      background: rgba(var(--v-theme-primary), 0.2);
+    }
+    *::-webkit-scrollbar-thumb {
+      background-color: rgba(var(--v-theme-primary), 0.2);
+      border-radius: 10px;
+      border: 2px solid var(--border);
+    }
+  }
+
+  .thinscroll, .html-box {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--v-theme-primary));
+    &::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: rgb(var(--v-theme-primary));
+      border-radius: 6px;
+      border: 1px solid transparent;
+    }
+  }
+}
+
+* {
+  scrollbar-color: rgb(var(--v-theme-primary)) var(--border);
+}
+html {
+  overflow: auto;
+  overflow-x: hidden;
+}
+.thinscroll, .html-box {  
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 125, 255, 0.4) transparent;
+}
+
+
+.scroll-shadow-btm {
+  &:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 8px;
+    right: 14px;
+    height: 30px;
+    background: linear-gradient(to top, rgba(107,107,107,0.1) 0%, rgba(107,107,107,0.0) 100%);
+  }
+}
+.scroll-shadow-top {
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 8px;
+    right: 14px;
+    height: 30px;
+    background: linear-gradient(to bottom, rgba(107,107,107,0.1) 0%, rgba(107,107,107,0.0) 100%);
+  }
+}

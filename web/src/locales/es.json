@@ -28,7 +28,10 @@
       "button": "Columnas",
       "title": "Elegir columnas",
       "locked": "Siempre visible",
-      "reset": "Restablecer valores predeterminados"
+      "reset": "Restablecer valores predeterminados",
+      "hint": "Arrastra ⋮ para reordenar",
+      "move": "Mover la columna {column} (↑/↓)",
+      "resize": "Cambiar el ancho de la columna {column} (←/→)"
     },
     "moreCount": "+{n} más"
   },

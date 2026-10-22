@@ -10,6 +10,13 @@
 // - Target Vuetify components by class (.v-btn, .v-field, .v-data-table, …).
 // - Component-specific styles still belong in that component's <style scoped>.
 
+
+@use './scroll';
+
+:root {
+    --border: #ababab;
+}
+
 .v-tabs {
     & + * {
         margin-top: 12px;
@@ -35,4 +42,20 @@
     width: auto !important;
     padding: 6px !important;
     margin: 4px;
+}
+
+.v-input__details {
+    padding-top: 0 !important;
+    padding-bottom: 6px;
+}
+
+.v-dialog>.v-overlay__content>.v-card, 
+.v-dialog>.v-overlay__content>.v-sheet, 
+.v-dialog>.v-overlay__content>form>.v-card, 
+.v-dialog>.v-overlay__content>form>.v-sheet {
+    box-shadow: 10px 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+html .v-select__content {
+    box-shadow: 3px 3px 17px rgba(0, 0, 0, 0.15);
 }

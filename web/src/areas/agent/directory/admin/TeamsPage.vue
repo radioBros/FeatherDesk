@@ -18,6 +18,7 @@ import { useAction } from '../../shared/useAction'
 import { useLookupsStore } from '../../shared/lookups'
 import type { components } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -114,37 +115,41 @@ const cols = useTableColumns('admin-teams', () => [
       <v-table density="comfortable" data-testid="team-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
-            <th v-if="cols.show('members')">{{ $t('agent.teams.members') }}</th>
-            <th v-if="cols.show('notifyMode')">{{ $t('agent.teams.notifyMode') }}</th>
-            <th v-if="cols.show('calendar')">{{ $t('agent.teams.calendar') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
+              <th data-col="members" v-if="cols.show('members')">{{ $t('agent.teams.members') }}</th>
+              <th data-col="notifyMode" v-if="cols.show('notifyMode')">{{ $t('agent.teams.notifyMode') }}</th>
+              <th data-col="calendar" v-if="cols.show('calendar')">{{ $t('agent.teams.calendar') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="team in teams" :key="team.id" data-testid="team-row">
-            <td v-if="cols.show('name')">
-              <div class="d-flex align-center ga-2">
-                <SectionIcon section="teams" :icon="mdiAccountGroupOutline" :size="30" />
-                <div>
-                  <div>{{ team.name }}</div>
-                  <div v-if="team.description" class="text-caption text-medium-emphasis">{{ team.description }}</div>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')">
+                <div class="d-flex align-center ga-2">
+                  <SectionIcon section="teams" :icon="mdiAccountGroupOutline" :size="30" />
+                  <div>
+                    <div>{{ team.name }}</div>
+                    <div v-if="team.description" class="text-caption text-medium-emphasis">{{ team.description }}</div>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td v-if="cols.show('projects')"><ProjectCell :ids="team.project_ids ?? []" /></td>
-            <td v-if="cols.show('members')">{{ team.member_count ?? '—' }}</td>
-            <td v-if="cols.show('notifyMode')">
-              {{ $t(`agent.teams.modes.${team.notify_mode}`) }}
-              <div v-if="team.notification_email" class="text-caption text-medium-emphasis">{{ team.notification_email }}</div>
-            </td>
-            <td v-if="cols.show('calendar')">{{ calendarName(team.calendar_id) }}</td>
-            <td class="text-right text-no-wrap">
-              <v-btn :icon="mdiAccountGroup" variant="text" size="small" :aria-label="$t('agent.teams.members')" data-testid="team-members-open" @click="openMembers(team)" />
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="team-edit" @click="openForm(team)" />
-              <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="team-delete" @click="remove(team)" />
-            </td>
+              </td>
+              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="team.project_ids ?? []" /></td>
+              <td data-col="members" v-if="cols.show('members')">{{ team.member_count ?? '—' }}</td>
+              <td data-col="notifyMode" v-if="cols.show('notifyMode')">
+                {{ $t(`agent.teams.modes.${team.notify_mode}`) }}
+                <div v-if="team.notification_email" class="text-caption text-medium-emphasis">{{ team.notification_email }}</div>
+              </td>
+              <td data-col="calendar" v-if="cols.show('calendar')">{{ calendarName(team.calendar_id) }}</td>
+              <td class="text-right text-no-wrap">
+                <v-btn :icon="mdiAccountGroup" variant="text" size="small" :aria-label="$t('agent.teams.members')" data-testid="team-members-open" @click="openMembers(team)" />
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="team-edit" @click="openForm(team)" />
+                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="team-delete" @click="remove(team)" />
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

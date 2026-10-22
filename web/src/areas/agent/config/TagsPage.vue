@@ -13,6 +13,7 @@ import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const items = ref<S['Tag'][]>([])
@@ -65,14 +66,18 @@ const cols = useTableColumns('config-tags', () => [
       <v-table density="comfortable" data-testid="tags-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('usage')" class="text-right">{{ $t('agent.tags.usage') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="usage" v-if="cols.show('usage')" class="text-right">{{ $t('agent.tags.usage') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="tag in sorted" :key="tag.id" data-testid="tag-row">
-            <td v-if="cols.show('name')"><v-chip size="small" label>{{ tag.name }}</v-chip></td>
-            <td v-if="cols.show('usage')" class="text-right">{{ tag.usage_count ?? 0 }}</td>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')"><v-chip size="small" label>{{ tag.name }}</v-chip></td>
+              <td data-col="usage" v-if="cols.show('usage')" class="text-right">{{ tag.usage_count ?? 0 }}</td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

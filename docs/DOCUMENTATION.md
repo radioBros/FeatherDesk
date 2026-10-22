@@ -1589,8 +1589,12 @@ Sign in at `/agent/login`, usually with **Continue with single sign-on**.
 
 **Columns and density**
 - Columns: reference (`WEB-123`), project, subject (with tags and parent/child chips), requester, status, priority, tier, team, assignee, updated, and due (with a *Breached* chip).
-- The **Columns** button above the table switches each column on or off. The reference and the subject are always shown. Custom-field columns are off until you switch them on. On a phone, project, priority, tier, team, assignee, updated and due start hidden. *Reset to default* restores the defaults.
-- The choice is remembered per user and per table in this browser (`localStorage`, key `fd.v1.cols.<user>.<table>`); there is no server-side setting. Every other table of the app (customers, organizations, staff, teams, calendars, categories, tags, canned responses, custom fields, rules, macros, KB articles and categories, inbound mailboxes and their log, webhooks and deliveries, tokens, reports, audit log, queue, failed jobs, privacy requests, projects and the portal's ticket list) has the same **Columns** button.
+- The **Columns** button above the table switches each column on or off. The reference and the subject are always shown. Custom-field columns are off until you switch them on. On a phone, project, priority, tier, team, assignee, updated and due start hidden.
+- **Order:** in the same menu, drag a column by the handle on its left (mouse or touch), or focus the handle and press ↑ / ↓.
+- **Width:** drag the right edge of a column header, or focus that edge and press ← / →. The first resize fixes every column at its current width; a column can then be narrower than its content (long words wrap) and the table scrolls sideways when it is wider than the page.
+- The selection checkbox column of the ticket list stays pinned on the left while the table scrolls sideways.
+- *Reset to default* restores visibility, order and widths.
+- The choices are remembered per user and per table in this browser (`localStorage`, keys `fd.v1.cols.<user>.<table>`, `fd.v1.colorder.<user>.<table>` and `fd.v1.colwidth.<user>.<table>`); there is no server-side setting. Every other table of the app (customers, organizations, staff, teams, calendars, categories, tags, canned responses, custom fields, rules, macros, KB articles and categories, inbound mailboxes and their log, webhooks and deliveries, tokens, reports, audit log, queue, failed jobs, privacy requests, projects and the portal's ticket list) has the same **Columns** button.
 - **Density** is fixed and the same everywhere: every text field, select, date and number field is the compact 40 px outlined field, and the ticket table uses comfortable rows. There is no density switch.
 
 **Saved views and bulk actions**

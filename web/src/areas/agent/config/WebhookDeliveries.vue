@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { useCursorList } from '../shared/useCursorList'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 const props = defineProps<{ webhookId: string }>()
 const list = useCursorList((cursor) =>
@@ -41,24 +42,28 @@ const cols = useTableColumns('webhook-deliveries', () => [
     <v-table density="compact">
       <thead>
         <tr>
-          <th v-if="cols.show('when')">{{ $t('agent.webhooks.when') }}</th>
-          <th v-if="cols.show('event')">{{ $t('agent.webhooks.event') }}</th>
-          <th v-if="cols.show('statusCode')">{{ $t('agent.webhooks.statusCode') }}</th>
-          <th v-if="cols.show('latency')">{{ $t('agent.webhooks.latency') }}</th>
-          <th v-if="cols.show('attempt')">{{ $t('agent.webhooks.attempt') }}</th>
-          <th v-if="cols.show('error')">{{ $t('agent.webhooks.error') }}</th>
+          <ColumnCells :cols="cols" head>
+            <th data-col="when" v-if="cols.show('when')">{{ $t('agent.webhooks.when') }}</th>
+            <th data-col="event" v-if="cols.show('event')">{{ $t('agent.webhooks.event') }}</th>
+            <th data-col="statusCode" v-if="cols.show('statusCode')">{{ $t('agent.webhooks.statusCode') }}</th>
+            <th data-col="latency" v-if="cols.show('latency')">{{ $t('agent.webhooks.latency') }}</th>
+            <th data-col="attempt" v-if="cols.show('attempt')">{{ $t('agent.webhooks.attempt') }}</th>
+            <th data-col="error" v-if="cols.show('error')">{{ $t('agent.webhooks.error') }}</th>
+          </ColumnCells>
         </tr>
       </thead>
       <tbody>
         <tr v-for="d in list.items.value" :key="d.id" data-testid="delivery-row">
-          <td v-if="cols.show('when')"><RelativeTime :value="d.created_at" /></td>
-          <td v-if="cols.show('event')" class="text-caption">{{ d.event_type ?? '—' }}</td>
-          <td v-if="cols.show('statusCode')">
-            <v-chip size="x-small" label :color="ok(d.status_code) ? 'success' : 'error'">{{ d.status_code ?? '—' }}</v-chip>
-          </td>
-          <td v-if="cols.show('latency')">{{ d.response_ms != null ? `${d.response_ms} ms` : '—' }}</td>
-          <td v-if="cols.show('attempt')">{{ d.attempt }}</td>
-          <td v-if="cols.show('error')" class="text-caption">{{ d.error ?? '' }}</td>
+          <ColumnCells :cols="cols">
+            <td data-col="when" v-if="cols.show('when')"><RelativeTime :value="d.created_at" /></td>
+            <td data-col="event" v-if="cols.show('event')" class="text-caption">{{ d.event_type ?? '—' }}</td>
+            <td data-col="statusCode" v-if="cols.show('statusCode')">
+              <v-chip size="x-small" label :color="ok(d.status_code) ? 'success' : 'error'">{{ d.status_code ?? '—' }}</v-chip>
+            </td>
+            <td data-col="latency" v-if="cols.show('latency')">{{ d.response_ms != null ? `${d.response_ms} ms` : '—' }}</td>
+            <td data-col="attempt" v-if="cols.show('attempt')">{{ d.attempt }}</td>
+            <td data-col="error" v-if="cols.show('error')" class="text-caption">{{ d.error ?? '' }}</td>
+          </ColumnCells>
         </tr>
       </tbody>
     </v-table>

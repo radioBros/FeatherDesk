@@ -16,6 +16,7 @@ import { api, unwrap } from '@/api/client'
 import { useCursorList } from '../shared/useCursorList'
 import type { components } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const router = useRouter()
@@ -74,29 +75,33 @@ const cols = useTableColumns('agent-organizations', () => [
       <v-table density="comfortable" data-testid="org-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('domains')">{{ $t('agent.organizations.domains') }}</th>
-            <th v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
-            <th v-if="cols.show('members')">{{ $t('agent.organizations.members') }}</th>
-            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="domains" v-if="cols.show('domains')">{{ $t('agent.organizations.domains') }}</th>
+              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
+              <th data-col="members" v-if="cols.show('members')">{{ $t('agent.organizations.members') }}</th>
+              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="o in list.items.value" :key="o.id" class="fd-row" data-testid="org-row" @click="router.push(`/agent/organizations/${o.id}`)">
-            <td v-if="cols.show('name')">
-              <div class="d-flex align-center ga-2">
-                <SectionIcon section="customers" :icon="mdiDomain" :size="28" />
-                <router-link :to="`/agent/organizations/${o.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ o.name }}</router-link>
-              </div>
-            </td>
-            <td v-if="cols.show('domains')">{{ (o.email_domains ?? []).join(', ') || '—' }}</td>
-            <td v-if="cols.show('projects')"><ProjectCell :ids="o.project_ids ?? []" /></td>
-            <td v-if="cols.show('members')">{{ o.member_count ?? '—' }}</td>
-            <td v-if="cols.show('status')">
-              <v-chip size="small" label :color="o.status === 'active' ? 'success' : undefined">
-                {{ o.status === 'active' ? $t('agent.common.active') : $t('agent.organizations.archived') }}
-              </v-chip>
-            </td>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')">
+                <div class="d-flex align-center ga-2">
+                  <SectionIcon section="customers" :icon="mdiDomain" :size="28" />
+                  <router-link :to="`/agent/organizations/${o.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ o.name }}</router-link>
+                </div>
+              </td>
+              <td data-col="domains" v-if="cols.show('domains')">{{ (o.email_domains ?? []).join(', ') || '—' }}</td>
+              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="o.project_ids ?? []" /></td>
+              <td data-col="members" v-if="cols.show('members')">{{ o.member_count ?? '—' }}</td>
+              <td data-col="status" v-if="cols.show('status')">
+                <v-chip size="small" label :color="o.status === 'active' ? 'success' : undefined">
+                  {{ o.status === 'active' ? $t('agent.common.active') : $t('agent.organizations.archived') }}
+                </v-chip>
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

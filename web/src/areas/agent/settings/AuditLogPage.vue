@@ -13,6 +13,7 @@ import { useCursorList } from '../shared/useCursorList'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type Entry = components['schemas']['AuditEntry']
 const { t, locale } = useI18n()
@@ -62,27 +63,31 @@ const cols = useTableColumns('audit-log', () => [
         <v-table density="compact" data-testid="audit-table">
           <thead>
             <tr>
-              <th v-if="cols.show('when')">{{ $t('agent.audit.when') }}</th>
-              <th v-if="cols.show('actor')">{{ $t('agent.audit.actor') }}</th>
-              <th v-if="cols.show('action')">{{ $t('agent.audit.action') }}</th>
-              <th v-if="cols.show('target')">{{ $t('agent.audit.target') }}</th>
-              <th v-if="cols.show('ip')">{{ $t('agent.audit.ip') }}</th>
-              <th />
+              <ColumnCells :cols="cols" head>
+                <th data-col="when" v-if="cols.show('when')">{{ $t('agent.audit.when') }}</th>
+                <th data-col="actor" v-if="cols.show('actor')">{{ $t('agent.audit.actor') }}</th>
+                <th data-col="action" v-if="cols.show('action')">{{ $t('agent.audit.action') }}</th>
+                <th data-col="target" v-if="cols.show('target')">{{ $t('agent.audit.target') }}</th>
+                <th data-col="ip" v-if="cols.show('ip')">{{ $t('agent.audit.ip') }}</th>
+                <th />
+              </ColumnCells>
             </tr>
           </thead>
           <tbody>
             <template v-for="e in list.items.value" :key="e.id">
               <tr data-testid="audit-row">
-                <td class="text-no-wrap" v-if="cols.show('when')">{{ when(e.created_at) }}</td>
-                <td v-if="cols.show('actor')">{{ e.actor?.name ?? $t('agent.audit.system') }}</td>
-                <td v-if="cols.show('action')"><code>{{ e.action }}</code></td>
-                <td class="text-truncate" style="max-width: 280px" v-if="cols.show('target')">{{ target(e) }}</td>
-                <td v-if="cols.show('ip')">{{ e.ip ?? '—' }}</td>
-                <td class="text-right">
-                  <v-btn v-if="e.data && Object.keys(e.data).length" variant="text" size="small" @click="open = open === e.id ? null : e.id">
-                    {{ $t('agent.common.details') }}
-                  </v-btn>
-                </td>
+                <ColumnCells :cols="cols">
+                  <td data-col="when" class="text-no-wrap" v-if="cols.show('when')">{{ when(e.created_at) }}</td>
+                  <td data-col="actor" v-if="cols.show('actor')">{{ e.actor?.name ?? $t('agent.audit.system') }}</td>
+                  <td data-col="action" v-if="cols.show('action')"><code>{{ e.action }}</code></td>
+                  <td data-col="target" class="text-truncate" style="max-width: 280px" v-if="cols.show('target')">{{ target(e) }}</td>
+                  <td data-col="ip" v-if="cols.show('ip')">{{ e.ip ?? '—' }}</td>
+                  <td class="text-right">
+                    <v-btn v-if="e.data && Object.keys(e.data).length" variant="text" size="small" @click="open = open === e.id ? null : e.id">
+                      {{ $t('agent.common.details') }}
+                    </v-btn>
+                  </td>
+                </ColumnCells>
               </tr>
               <tr v-if="open === e.id">
                 <td :colspan="cols.count.value + 1"><pre class="fd-pre" data-testid="audit-data">{{ JSON.stringify(e.data, null, 2) }}</pre></td>

@@ -28,7 +28,10 @@
       "button": "Columns",
       "title": "Choose columns",
       "locked": "Always shown",
-      "reset": "Reset to default"
+      "reset": "Reset to default",
+      "hint": "Drag ⋮ to reorder",
+      "move": "Move column {column} (↑/↓)",
+      "resize": "Resize column {column} (←/→)"
     },
     "moreCount": "+{n} more"
   },

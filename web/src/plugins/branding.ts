@@ -38,6 +38,9 @@ export function buildThemes(b: Branding, area: Area = 'portal'): Record<string, 
         'on-secondary': onColor(c.secondary),
         'internal-note': '#fff4d6',
         'on-internal-note': '#4a3500',
+        // Staff messages in a thread: a cool grey next to the customers' neutral surface-light.
+        'message-staff': '#e6ecf5',
+        'on-message-staff': '#1d2430',
         // Tier chips (outlined text): ≥ 4.5:1 on the light surface.
         'tier-1': '#455a64',
         'tier-2': '#3949ab',
@@ -56,6 +59,8 @@ export function buildThemes(b: Branding, area: Area = 'portal'): Record<string, 
         'on-secondary': onColor(forDark(c.secondary)),
         'internal-note': '#3d3010',
         'on-internal-note': '#ffe8a8',
+        'message-staff': '#3a4250',
+        'on-message-staff': '#e8edf5',
         // Tier chips (outlined text): ≥ 4.5:1 on the dark surface.
         'tier-1': '#b0bec5',
         'tier-2': '#9fa8da',

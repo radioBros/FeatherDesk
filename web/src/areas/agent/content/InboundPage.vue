@@ -22,6 +22,7 @@ import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type Mailbox = components['schemas']['InboundMailbox']
 const { t } = useI18n()
@@ -102,39 +103,43 @@ const cols = useTableColumns('inbound', () => [
         <v-table density="comfortable" data-testid="inbound-table">
           <thead>
             <tr>
-              <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-              <th v-if="cols.show('kind')">{{ $t('agent.inbound.kindLabel') }}</th>
-              <th v-if="cols.show('address')">{{ $t('agent.inbound.address') }}</th>
-              <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-              <th v-if="cols.show('team')">{{ $t('agent.common.team') }}</th>
-              <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-              <th v-if="cols.show('lastOk')">{{ $t('agent.inbound.lastOk') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              <ColumnCells :cols="cols" head>
+                <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+                <th data-col="kind" v-if="cols.show('kind')">{{ $t('agent.inbound.kindLabel') }}</th>
+                <th data-col="address" v-if="cols.show('address')">{{ $t('agent.inbound.address') }}</th>
+                <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+                <th data-col="team" v-if="cols.show('team')">{{ $t('agent.common.team') }}</th>
+                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+                <th data-col="lastOk" v-if="cols.show('lastOk')">{{ $t('agent.inbound.lastOk') }}</th>
+                <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              </ColumnCells>
             </tr>
           </thead>
           <tbody>
             <tr v-for="m in items" :key="m.id" data-testid="inbound-row">
-              <td v-if="cols.show('name')">{{ m.name }}</td>
-              <td v-if="cols.show('kind')">{{ $t(`agent.inbound.kind.${m.kind}`) }}</td>
-              <td v-if="cols.show('address')">{{ m.address }}</td>
-              <td v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
-              <td v-if="cols.show('team')">{{ lookups.teamName(m.team_id) || $t('agent.inbound.triage') }}</td>
-              <td v-if="cols.show('status')">
-                <v-chip size="small" label variant="tonal" :color="m.last_error ? 'error' : m.active ? 'success' : undefined">
-                  {{ m.last_error ? $t('agent.inbound.error') : m.active ? $t('agent.common.active') : $t('agent.common.inactive') }}
-                </v-chip>
-                <div v-if="m.last_error" class="text-caption text-error mt-1" data-testid="inbound-last-error">{{ m.last_error }}</div>
-              </td>
-              <td v-if="cols.show('lastOk')"><RelativeTime v-if="m.last_ok_at" :value="m.last_ok_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-              <td class="text-right text-no-wrap">
-                <v-tooltip v-if="m.kind === 'webhook'" :text="$t('agent.inbound.regenerateHint')" location="top">
-                  <template #activator="{ props: tip }">
-                    <span v-bind="tip"><v-btn :icon="mdiRefresh" variant="text" size="small" disabled :aria-label="$t('agent.inbound.regenerate')" data-testid="inbound-regenerate" /></span>
-                  </template>
-                </v-tooltip>
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="inbound-edit" @click="openForm(m)" />
-                <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="inbound-delete" @click="remove(m)" />
-              </td>
+              <ColumnCells :cols="cols">
+                <td data-col="name" v-if="cols.show('name')">{{ m.name }}</td>
+                <td data-col="kind" v-if="cols.show('kind')">{{ $t(`agent.inbound.kind.${m.kind}`) }}</td>
+                <td data-col="address" v-if="cols.show('address')">{{ m.address }}</td>
+                <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
+                <td data-col="team" v-if="cols.show('team')">{{ lookups.teamName(m.team_id) || $t('agent.inbound.triage') }}</td>
+                <td data-col="status" v-if="cols.show('status')">
+                  <v-chip size="small" label variant="tonal" :color="m.last_error ? 'error' : m.active ? 'success' : undefined">
+                    {{ m.last_error ? $t('agent.inbound.error') : m.active ? $t('agent.common.active') : $t('agent.common.inactive') }}
+                  </v-chip>
+                  <div v-if="m.last_error" class="text-caption text-error mt-1" data-testid="inbound-last-error">{{ m.last_error }}</div>
+                </td>
+                <td data-col="lastOk" v-if="cols.show('lastOk')"><RelativeTime v-if="m.last_ok_at" :value="m.last_ok_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+                <td class="text-right text-no-wrap">
+                  <v-tooltip v-if="m.kind === 'webhook'" :text="$t('agent.inbound.regenerateHint')" location="top">
+                    <template #activator="{ props: tip }">
+                      <span v-bind="tip"><v-btn :icon="mdiRefresh" variant="text" size="small" disabled :aria-label="$t('agent.inbound.regenerate')" data-testid="inbound-regenerate" /></span>
+                    </template>
+                  </v-tooltip>
+                  <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="inbound-edit" @click="openForm(m)" />
+                  <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="inbound-delete" @click="remove(m)" />
+                </td>
+              </ColumnCells>
             </tr>
           </tbody>
         </v-table>

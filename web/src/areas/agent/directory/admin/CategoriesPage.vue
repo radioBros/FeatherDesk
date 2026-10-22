@@ -20,6 +20,7 @@ import { api, unwrap } from '@/api/client'
 import { useLookupsStore } from '../../shared/lookups'
 import { useAction } from '../../shared/useAction'
 import type { components } from '@/api/schema'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -127,13 +128,15 @@ const cols = useTableColumns('admin-categories', () => [
       <v-table density="comfortable" data-testid="category-table">
         <thead>
           <tr>
-            <th class="fd-handle" />
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-            <th v-if="cols.show('team')">{{ $t('agent.categories.defaultTeam') }}</th>
-            <th v-if="cols.show('priority')">{{ $t('agent.categories.defaultPriority') }}</th>
-            <th v-if="cols.show('active')">{{ $t('agent.common.active') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th class="fd-handle" />
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+              <th data-col="team" v-if="cols.show('team')">{{ $t('agent.categories.defaultTeam') }}</th>
+              <th data-col="priority" v-if="cols.show('priority')">{{ $t('agent.categories.defaultPriority') }}</th>
+              <th data-col="active" v-if="cols.show('active')">{{ $t('agent.common.active') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
@@ -146,15 +149,17 @@ const cols = useTableColumns('admin-categories', () => [
             @dragover.prevent
             @drop.prevent="drop(i)"
           >
-            <td class="fd-handle"><v-icon :icon="mdiDragVertical" :aria-label="$t('agent.categories.dragToSort')" /></td>
-            <td v-if="cols.show('name')">{{ c.name }}</td>
-            <td v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
-            <td v-if="cols.show('team')">{{ lookups.teamName(c.default_team_id) || '—' }}</td>
-            <td v-if="cols.show('priority')"><PriorityChip v-if="c.default_priority" :priority="c.default_priority" /><span v-else>—</span></td>
-            <td v-if="cols.show('active')"><v-switch :model-value="c.active" hide-details density="compact" color="primary" inset :aria-label="$t('agent.common.active')" @update:model-value="toggle(c)" /></td>
-            <td class="text-right">
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
-            </td>
+            <ColumnCells :cols="cols">
+              <td class="fd-handle"><v-icon :icon="mdiDragVertical" :aria-label="$t('agent.categories.dragToSort')" /></td>
+              <td data-col="name" v-if="cols.show('name')">{{ c.name }}</td>
+              <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
+              <td data-col="team" v-if="cols.show('team')">{{ lookups.teamName(c.default_team_id) || '—' }}</td>
+              <td data-col="priority" v-if="cols.show('priority')"><PriorityChip v-if="c.default_priority" :priority="c.default_priority" /><span v-else>—</span></td>
+              <td data-col="active" v-if="cols.show('active')"><v-switch :model-value="c.active" hide-details density="compact" color="primary" inset :aria-label="$t('agent.common.active')" @update:model-value="toggle(c)" /></td>
+              <td class="text-right">
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

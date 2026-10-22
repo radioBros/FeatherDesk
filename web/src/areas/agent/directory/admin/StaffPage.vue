@@ -21,6 +21,7 @@ import { useCursorList } from '../../shared/useCursorList'
 import { useLookupsStore } from '../../shared/lookups'
 import type { components } from '@/api/schema'
 import UserAvatar from '@/components/UserAvatar.vue'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const lookups = useLookupsStore()
@@ -106,44 +107,48 @@ const cols = useTableColumns('admin-staff', () => [
       <v-table density="comfortable" data-testid="staff-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('role')">{{ $t('agent.staff.role') }}</th>
-            <th v-if="cols.show('tier')">{{ $t('tier.label') }}</th>
-            <th v-if="cols.show('projects')">{{ $t('projects.config.staffColumn') }}</th>
-            <th v-if="cols.show('teams')">{{ $t('agent.staff.teams') }}</th>
-            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-            <th v-if="cols.show('lastLogin')">{{ $t('agent.staff.lastLogin') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="role" v-if="cols.show('role')">{{ $t('agent.staff.role') }}</th>
+              <th data-col="tier" v-if="cols.show('tier')">{{ $t('tier.label') }}</th>
+              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.staffColumn') }}</th>
+              <th data-col="teams" v-if="cols.show('teams')">{{ $t('agent.staff.teams') }}</th>
+              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+              <th data-col="lastLogin" v-if="cols.show('lastLogin')">{{ $t('agent.staff.lastLogin') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in list.items.value" :key="u.id" data-testid="staff-row">
-            <td v-if="cols.show('name')">
-              <div class="d-flex align-center ga-2">
-                <UserAvatar :name="u.name" :size="32" />
-                <div>
-                  <div>{{ u.name }}</div>
-                  <div class="text-caption text-medium-emphasis">{{ u.email }}</div>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')">
+                <div class="d-flex align-center ga-2">
+                  <UserAvatar :name="u.name" :size="32" />
+                  <div>
+                    <div>{{ u.name }}</div>
+                    <div class="text-caption text-medium-emphasis">{{ u.email }}</div>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td v-if="cols.show('role')">{{ $t(`agent.staff.roles.${u.role}`) }}</td>
-            <td v-if="cols.show('tier')"><TierChip v-if="u.tier" :tier="u.tier" /></td>
-            <td v-if="cols.show('projects')"><ProjectCell :ids="(u.projects ?? []).map((m) => m.project_id)" /></td>
-            <td v-if="cols.show('teams')">{{ teamNames(u.team_ids) || '—' }}</td>
-            <td v-if="cols.show('status')">
-              <v-chip size="small" label :color="u.status === 'active' ? 'success' : 'error'">
-                {{ u.status === 'active' ? $t('agent.common.active') : $t('agent.common.disabled') }}
-              </v-chip>
-              <v-chip size="small" label variant="outlined" class="ml-1" data-testid="staff-source">
-                {{ u.idp_managed ? $t('agent.staff.sso') : $t('agent.staff.local') }}
-              </v-chip>
-              <v-chip v-if="u.break_glass" size="small" label color="warning" class="ml-1">{{ $t('agent.staff.breakGlassShort') }}</v-chip>
-            </td>
-            <td v-if="cols.show('lastLogin')"><RelativeTime v-if="u.last_login_at" :value="u.last_login_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-            <td class="text-right">
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="staff-edit" @click="openForm(u)" />
-            </td>
+              </td>
+              <td data-col="role" v-if="cols.show('role')">{{ $t(`agent.staff.roles.${u.role}`) }}</td>
+              <td data-col="tier" v-if="cols.show('tier')"><TierChip v-if="u.tier" :tier="u.tier" /></td>
+              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="(u.projects ?? []).map((m) => m.project_id)" /></td>
+              <td data-col="teams" v-if="cols.show('teams')">{{ teamNames(u.team_ids) || '—' }}</td>
+              <td data-col="status" v-if="cols.show('status')">
+                <v-chip size="small" label :color="u.status === 'active' ? 'success' : 'error'">
+                  {{ u.status === 'active' ? $t('agent.common.active') : $t('agent.common.disabled') }}
+                </v-chip>
+                <v-chip size="small" label variant="outlined" class="ml-1" data-testid="staff-source">
+                  {{ u.idp_managed ? $t('agent.staff.sso') : $t('agent.staff.local') }}
+                </v-chip>
+                <v-chip v-if="u.break_glass" size="small" label color="warning" class="ml-1">{{ $t('agent.staff.breakGlassShort') }}</v-chip>
+              </td>
+              <td data-col="lastLogin" v-if="cols.show('lastLogin')"><RelativeTime v-if="u.last_login_at" :value="u.last_login_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
+              <td class="text-right">
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="staff-edit" @click="openForm(u)" />
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

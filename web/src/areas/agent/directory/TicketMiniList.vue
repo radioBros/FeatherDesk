@@ -13,6 +13,7 @@ import { useI18n } from 'vue-i18n'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { useCursorList } from '../shared/useCursorList'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 const props = defineProps<{ requesterId?: string; organizationId?: string }>()
 const list = useCursorList((cursor) =>
@@ -53,12 +54,14 @@ const cols = useTableColumns('ticket-mini', () => [
     <v-table density="compact">
       <tbody>
         <tr v-for="tk in list.items.value" :key="tk.id" data-testid="mini-ticket-row">
-          <td v-if="cols.show('number')"><router-link :to="`/agent/tickets/${tk.ref ?? tk.number}`" class="text-decoration-none"><TicketNumber :number="tk.number" :reftext="tk.ref" /></router-link></td>
-          <td v-if="cols.show('project')"><ProjectChip :project="tk.project" /></td>
-          <td v-if="cols.show('subject')"><router-link :to="`/agent/tickets/${tk.ref ?? tk.number}`" class="text-decoration-none text-high-emphasis">{{ tk.subject }}</router-link></td>
-          <td v-if="cols.show('status')"><StatusChip :status="tk.status" /></td>
-          <td v-if="cols.show('priority')"><PriorityChip :priority="tk.priority" /></td>
-          <td v-if="cols.show('updated')" class="text-medium-emphasis"><RelativeTime :value="tk.updated_at" /></td>
+          <ColumnCells :cols="cols">
+            <td data-col="number" v-if="cols.show('number')"><router-link :to="`/agent/tickets/${tk.ref ?? tk.number}`" class="text-decoration-none"><TicketNumber :number="tk.number" :reftext="tk.ref" /></router-link></td>
+            <td data-col="project" v-if="cols.show('project')"><ProjectChip :project="tk.project" /></td>
+            <td data-col="subject" v-if="cols.show('subject')"><router-link :to="`/agent/tickets/${tk.ref ?? tk.number}`" class="text-decoration-none text-high-emphasis">{{ tk.subject }}</router-link></td>
+            <td data-col="status" v-if="cols.show('status')"><StatusChip :status="tk.status" /></td>
+            <td data-col="priority" v-if="cols.show('priority')"><PriorityChip :priority="tk.priority" /></td>
+            <td data-col="updated" v-if="cols.show('updated')" class="text-medium-emphasis"><RelativeTime :value="tk.updated_at" /></td>
+          </ColumnCells>
         </tr>
       </tbody>
     </v-table>

@@ -8,7 +8,7 @@ import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
  * Live over the `tickets` topic: known rows are patched in place, anything
  * else triggers one debounced refetch.
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { mdiBookmarkPlusOutline, mdiDeleteOutline, mdiFilterRemoveOutline, mdiLinkVariant, mdiPlus, mdiRefresh, mdiShareVariantOutline } from '@mdi/js'
@@ -35,6 +35,8 @@ import BulkActionForm from './list/BulkActionForm.vue'
 import type { BulkResult } from './list/bulk'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { COLUMNS_PREFIX, useTableColumns, type ColumnDef } from '@/composables/useTableColumns'
+import { DEFAULT_COLUMN_WIDTH, syncTableLayout } from '@/composables/columnLayout'
+import ColumnResizer from '@/components/ColumnResizer.vue'
 import { SORTS, cfFromString, cfToString, filtersFromQuery, toApiParams, toRouteQuery, type ListFilters } from './list/query'
 import type { components } from '@/api/schema'
 import type { ServerEvent } from '@/realtime/client'
@@ -124,7 +126,27 @@ const ALL_HEADERS = computed(() => [
   { title: t('agent.list.columns.updated'), key: 'updated_at', sortable: false },
   { title: t('agent.list.columns.due'), key: 'due', sortable: false },
 ])
-const headers = computed(() => ALL_HEADERS.value.filter((h) => cols.show(h.key)))
+// User order and widths (useTableColumns); the selection column stays first and sticky.
+const headers = computed(() => {
+  const byKey = new Map(ALL_HEADERS.value.map((h) => [h.key, h]))
+  const sized = cols.sized.value
+  const px = (key: string, fallback?: number) => {
+    const w = sized ? (cols.width(key) ?? DEFAULT_COLUMN_WIDTH) : fallback
+    return w === undefined ? {} : { width: w, minWidth: w, maxWidth: w }
+  }
+  return [
+    { key: 'data-table-select', fixed: true, ...px(':0') },
+    ...cols.visibleKeys.value.flatMap((k) => {
+      const h = byKey.get(k)
+      return h ? [{ ...h, ...px(k, h.width) }] : []
+    }),
+  ]
+})
+const tableEl = ref<{ $el: HTMLElement }>()
+watchEffect(() => {
+  const total = cols.sized.value ? headers.value.reduce((s, h) => s + (h.width ?? DEFAULT_COLUMN_WIDTH), 0) : 0
+  syncTableLayout(tableEl.value?.$el.querySelector('table'), total)
+})
 
 const title = computed(() => {
   if (activeView.value) return activeView.value.name
@@ -481,6 +503,7 @@ const currentFilter = computed(() => {
 
     <v-card border flat>
       <v-data-table-server
+        ref="tableEl"
         v-model="selected"
         :headers="headers"
         :items="items"
@@ -496,6 +519,10 @@ const currentFilter = computed(() => {
         data-testid="ticket-table"
         @click:row="(_e: unknown, { item }: { item: Row }) => open(item)"
       >
+        <template v-for="h in headers.slice(1)" :key="h.key" #[`header.${h.key}`]="{ column }">
+          <span>{{ column.title }}</span>
+          <ColumnResizer :cols="cols" :col="h.key" :label="column.title" />
+        </template>
         <template #[`item.number`]="{ item }">
           <TicketNumber :number="item.number" :reftext="item.ref" />
         </template>

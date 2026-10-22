@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { useTableColumns, type ColumnDef } from './useTableColumns'
+import { applyOrder, useTableColumns, type ColumnDef } from './useTableColumns'
 
 const defs: ColumnDef[] = [
   { key: 'id', label: 'ID', locked: true },
@@ -87,5 +87,35 @@ describe('useTableColumns', () => {
     } finally {
       Storage.prototype.setItem = orig
     }
+  })
+
+  it('moves columns, keeps the order across reloads and drops it when back to the declared order', () => {
+    const c = make()
+    c.move('email', 0)
+    expect(c.all.value.map((d) => d.key)).toEqual(['email', 'id', 'name', 'created', 'cf.plan'])
+    expect(c.visibleKeys.value).toEqual(['email', 'id', 'name', 'created'])
+    expect(make().visibleKeys.value[0]).toBe('email')
+    c.move('email', 2)
+    expect(localStorage.getItem('fd.v1.colorder.u1.t1')).toBeNull()
+    expect(c.isDefault.value).toBe(true)
+  })
+
+  it('places a column the stored order does not know after its declared neighbour', () => {
+    expect(applyOrder(['a', 'b', 'c', 'd'], ['c', 'a'])).toEqual(['c', 'd', 'a', 'b'])
+    expect(applyOrder(['a', 'b'], ['gone', 'b', 'b'])).toEqual(['a', 'b'])
+  })
+
+  it('stores widths with a minimum, saves only when asked and resets them', () => {
+    const c = make()
+    c.setWidths({ email: 10, ':0': 52.4 }, false)
+    expect(c.width('email')).toBe(48)
+    expect(c.width(':0')).toBe(52)
+    expect(c.sized.value).toBe(true)
+    expect(localStorage.getItem('fd.v1.colwidth.u1.t1')).toBeNull()
+    c.saveWidths()
+    expect(make().width('email')).toBe(48)
+    c.reset()
+    expect(c.sized.value).toBe(false)
+    expect(localStorage.getItem('fd.v1.colwidth.u1.t1')).toBeNull()
   })
 })

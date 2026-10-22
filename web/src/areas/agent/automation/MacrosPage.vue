@@ -22,6 +22,7 @@ import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const props = defineProps<{ shared?: boolean }>()
@@ -117,29 +118,33 @@ const cols = useTableColumns('automation-macros', () => [
       <v-table density="comfortable" data-testid="macros-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('automation.macros.name') }}</th>
-            <th v-if="cols.show('does')">{{ $t('automation.macros.does') }}</th>
-            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-            <th v-if="cols.show('scope')">{{ $t('automation.macros.scope') }}</th>
-            <th v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('automation.macros.name') }}</th>
+              <th data-col="does" v-if="cols.show('does')">{{ $t('automation.macros.does') }}</th>
+              <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+              <th data-col="scope" v-if="cols.show('scope')">{{ $t('automation.macros.scope') }}</th>
+              <th data-col="updatedAt" v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="m in sorted" :key="m.id" data-testid="macro-row">
-            <td v-if="cols.show('name')">{{ m.name }}</td>
-            <td v-if="cols.show('does')" class="text-medium-emphasis">{{ effects(m) }}</td>
-            <td v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
-            <td v-if="cols.show('scope')">
-              <v-chip size="small" label>{{ m.shared ? $t('automation.macros.shared') : $t('automation.macros.personal') }}</v-chip>
-            </td>
-            <td v-if="cols.show('updatedAt')"><RelativeTime :value="m.updated_at" /></td>
-            <td class="text-right text-no-wrap">
-              <template v-if="editable(m)">
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="macro-edit" @click="openForm(m)" />
-                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="macro-delete" @click="remove(m)" />
-              </template>
-            </td>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')">{{ m.name }}</td>
+              <td data-col="does" v-if="cols.show('does')" class="text-medium-emphasis">{{ effects(m) }}</td>
+              <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
+              <td data-col="scope" v-if="cols.show('scope')">
+                <v-chip size="small" label>{{ m.shared ? $t('automation.macros.shared') : $t('automation.macros.personal') }}</v-chip>
+              </td>
+              <td data-col="updatedAt" v-if="cols.show('updatedAt')"><RelativeTime :value="m.updated_at" /></td>
+              <td class="text-right text-no-wrap">
+                <template v-if="editable(m)">
+                  <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="macro-edit" @click="openForm(m)" />
+                  <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="macro-delete" @click="remove(m)" />
+                </template>
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

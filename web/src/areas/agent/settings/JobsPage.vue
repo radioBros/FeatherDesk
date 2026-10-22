@@ -18,6 +18,7 @@ import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type Job = components['schemas']['DeferredJob'] & { payload?: unknown }
 type Status = components['schemas']['DeferredJobStatus']
@@ -74,32 +75,36 @@ const cols = useTableColumns('jobs', () => [
         <v-table density="comfortable" data-testid="jobs-table">
           <thead>
             <tr>
-              <th v-if="cols.show('kind')">{{ $t('agent.jobs.kind') }}</th>
-              <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-              <th v-if="cols.show('attempts')">{{ $t('agent.jobs.attempts') }}</th>
-              <th v-if="cols.show('createdAt')">{{ $t('agent.common.createdAt') }}</th>
-              <th v-if="cols.show('nextRun')">{{ $t('agent.jobs.nextRun') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              <ColumnCells :cols="cols" head>
+                <th data-col="kind" v-if="cols.show('kind')">{{ $t('agent.jobs.kind') }}</th>
+                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+                <th data-col="attempts" v-if="cols.show('attempts')">{{ $t('agent.jobs.attempts') }}</th>
+                <th data-col="createdAt" v-if="cols.show('createdAt')">{{ $t('agent.common.createdAt') }}</th>
+                <th data-col="nextRun" v-if="cols.show('nextRun')">{{ $t('agent.jobs.nextRun') }}</th>
+                <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              </ColumnCells>
             </tr>
           </thead>
           <tbody>
             <template v-for="j in list.items.value" :key="j.id">
               <tr data-testid="job-row">
-                <td v-if="cols.show('kind')"><code>{{ j.kind }}</code></td>
-                <td v-if="cols.show('status')">
-                  <v-chip :color="j.status === 'dead' ? 'error' : 'warning'" size="small" label data-testid="job-status">
-                    {{ $t(`agent.jobs.${j.status}`) }}
-                  </v-chip>
-                </td>
-                <td v-if="cols.show('attempts')">{{ j.attempts }}</td>
-                <td class="text-no-wrap" v-if="cols.show('createdAt')">{{ when(j.created_at) }}</td>
-                <td class="text-no-wrap" v-if="cols.show('nextRun')">{{ when(j.next_run_at) }}</td>
-                <td class="text-right text-no-wrap">
-                  <v-btn variant="text" size="small" data-testid="job-details" @click="open = open === j.id ? null : j.id">{{ $t('agent.common.details') }}</v-btn>
-                  <v-btn variant="tonal" size="small" color="primary" :prepend-icon="mdiReplay" :disabled="busy" data-testid="job-retry" @click="retry(j)">
-                    {{ $t('agent.jobs.retry') }}
-                  </v-btn>
-                </td>
+                <ColumnCells :cols="cols">
+                  <td data-col="kind" v-if="cols.show('kind')"><code>{{ j.kind }}</code></td>
+                  <td data-col="status" v-if="cols.show('status')">
+                    <v-chip :color="j.status === 'dead' ? 'error' : 'warning'" size="small" label data-testid="job-status">
+                      {{ $t(`agent.jobs.${j.status}`) }}
+                    </v-chip>
+                  </td>
+                  <td data-col="attempts" v-if="cols.show('attempts')">{{ j.attempts }}</td>
+                  <td data-col="createdAt" class="text-no-wrap" v-if="cols.show('createdAt')">{{ when(j.created_at) }}</td>
+                  <td data-col="nextRun" class="text-no-wrap" v-if="cols.show('nextRun')">{{ when(j.next_run_at) }}</td>
+                  <td class="text-right text-no-wrap">
+                    <v-btn variant="text" size="small" data-testid="job-details" @click="open = open === j.id ? null : j.id">{{ $t('agent.common.details') }}</v-btn>
+                    <v-btn variant="tonal" size="small" color="primary" :prepend-icon="mdiReplay" :disabled="busy" data-testid="job-retry" @click="retry(j)">
+                      {{ $t('agent.jobs.retry') }}
+                    </v-btn>
+                  </td>
+                </ColumnCells>
               </tr>
               <tr v-if="open === j.id">
                 <td :colspan="cols.count.value + 1">

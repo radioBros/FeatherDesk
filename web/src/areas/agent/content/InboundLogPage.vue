@@ -18,6 +18,7 @@ import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -90,29 +91,33 @@ const cols = useTableColumns('inbound-log', () => [
         <v-table density="comfortable" data-testid="inlog-table">
           <thead>
             <tr>
-              <th v-if="cols.show('received')">{{ $t('agent.inboundLog.received') }}</th>
-              <th v-if="cols.show('sender')">{{ $t('agent.inboundLog.sender') }}</th>
-              <th v-if="cols.show('subject')">{{ $t('agent.inboundLog.subject') }}</th>
-              <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-              <th v-if="cols.show('reason')">{{ $t('agent.inboundLog.reason') }}</th>
-              <th v-if="cols.show('ticket')">{{ $t('agent.inboundLog.ticket') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              <ColumnCells :cols="cols" head>
+                <th data-col="received" v-if="cols.show('received')">{{ $t('agent.inboundLog.received') }}</th>
+                <th data-col="sender" v-if="cols.show('sender')">{{ $t('agent.inboundLog.sender') }}</th>
+                <th data-col="subject" v-if="cols.show('subject')">{{ $t('agent.inboundLog.subject') }}</th>
+                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+                <th data-col="reason" v-if="cols.show('reason')">{{ $t('agent.inboundLog.reason') }}</th>
+                <th data-col="ticket" v-if="cols.show('ticket')">{{ $t('agent.inboundLog.ticket') }}</th>
+                <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              </ColumnCells>
             </tr>
           </thead>
           <tbody>
             <tr v-for="m in list.items.value" :key="m.id" data-testid="inlog-row">
-              <td class="text-no-wrap" v-if="cols.show('received')"><RelativeTime :value="m.received_at" /></td>
-              <td v-if="cols.show('sender')">{{ m.from_addr }}<div v-if="mailboxName(m.mailbox_id)" class="text-caption text-medium-emphasis">{{ mailboxName(m.mailbox_id) }}</div></td>
-              <td v-if="cols.show('subject')">{{ m.subject || '—' }}</td>
-              <td v-if="cols.show('status')"><v-chip size="small" label variant="tonal" :color="COLORS[m.status]" data-testid="inlog-status-chip">{{ $t(`agent.inboundLog.status.${m.status}`) }}</v-chip></td>
-              <td class="text-caption" v-if="cols.show('reason')">{{ m.reason || '—' }}</td>
-              <td v-if="cols.show('ticket')">
-                <router-link v-if="m.ticket_id" :to="{ path: '/agent/tickets', query: { q: m.ticket_id } }" data-testid="inlog-ticket">{{ $t('agent.inboundLog.openTicket') }}</router-link>
-                <span v-else>—</span>
-              </td>
-              <td class="text-right">
-                <v-btn v-if="retryable(m)" variant="text" size="small" :prepend-icon="mdiReplay" data-testid="inlog-retry" @click="retry(m)">{{ $t('agent.inboundLog.retry') }}</v-btn>
-              </td>
+              <ColumnCells :cols="cols">
+                <td data-col="received" class="text-no-wrap" v-if="cols.show('received')"><RelativeTime :value="m.received_at" /></td>
+                <td data-col="sender" v-if="cols.show('sender')">{{ m.from_addr }}<div v-if="mailboxName(m.mailbox_id)" class="text-caption text-medium-emphasis">{{ mailboxName(m.mailbox_id) }}</div></td>
+                <td data-col="subject" v-if="cols.show('subject')">{{ m.subject || '—' }}</td>
+                <td data-col="status" v-if="cols.show('status')"><v-chip size="small" label variant="tonal" :color="COLORS[m.status]" data-testid="inlog-status-chip">{{ $t(`agent.inboundLog.status.${m.status}`) }}</v-chip></td>
+                <td data-col="reason" class="text-caption" v-if="cols.show('reason')">{{ m.reason || '—' }}</td>
+                <td data-col="ticket" v-if="cols.show('ticket')">
+                  <router-link v-if="m.ticket_id" :to="{ path: '/agent/tickets', query: { q: m.ticket_id } }" data-testid="inlog-ticket">{{ $t('agent.inboundLog.openTicket') }}</router-link>
+                  <span v-else>—</span>
+                </td>
+                <td class="text-right">
+                  <v-btn v-if="retryable(m)" variant="text" size="small" :prepend-icon="mdiReplay" data-testid="inlog-retry" @click="retry(m)">{{ $t('agent.inboundLog.retry') }}</v-btn>
+                </td>
+              </ColumnCells>
             </tr>
           </tbody>
         </v-table>

@@ -28,7 +28,10 @@
       "button": "Colonnes",
       "title": "Choisir les colonnes",
       "locked": "Toujours affichée",
-      "reset": "Rétablir par défaut"
+      "reset": "Rétablir par défaut",
+      "hint": "Faites glisser ⋮ pour réordonner",
+      "move": "Déplacer la colonne {column} (↑/↓)",
+      "resize": "Redimensionner la colonne {column} (←/→)"
     },
     "moreCount": "+{n} de plus"
   },

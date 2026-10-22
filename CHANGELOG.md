@@ -13,9 +13,12 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+### Added
+- **Table columns can be reordered and resized.** In the *Columns* menu, drag a column by its handle (or press ↑/↓ on it); drag a column header's right edge (or press ←/→ on it) to resize. Order and widths are remembered per user and per table, and *Reset to default* restores them. The selection column of the agent ticket list stays pinned on the left when the table scrolls sideways.
+
 ### Changed
 - **SQLite search index keyed by ticket number.** Updating a ticket's search entry no longer scans the whole index: 0.13 ms instead of 76 ms (p50) at 100k tickets, on the single writer.
-- **Message cards** in the ticket thread have a light grey background (dark grey in dark mode) instead of a border, and every card has 16 px corners (square with the "sharp" branding corners).
+- **Message cards** in the ticket thread have a background instead of a border: neutral grey for customers, a slightly cooler grey-blue for staff, yellow for internal notes (all with a dark-mode variant). Every card has 16 px corners (square with the "sharp" branding corners).
 
 ### Fixed
 - **Upgrading from SimpleTickets 1.0.0** works without configuration changes: `ST_*` variables, `simpletickets.db`, SimpleTickets backups, `st_pat_` tokens, the `st_session` cookie, the `simpletickets.v1` WebSocket subprotocol and the `X-SimpleTickets-*` webhook and inbound headers keep working (see *Upgrading from SimpleTickets* in the documentation).

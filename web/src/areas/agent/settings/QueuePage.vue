@@ -16,6 +16,7 @@ import { useRealtime } from '@/composables/useRealtime'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 const { t } = useI18n()
 const q = ref<components['schemas']['QueueStatus'] | null>(null)
@@ -89,28 +90,32 @@ const cols = useTableColumns('queue', () => [
           <v-table density="comfortable" data-testid="queue-table">
             <thead>
               <tr>
-                <th v-if="cols.show('name')">{{ $t('agent.queue.name') }}</th>
-                <th v-if="cols.show('depth')">{{ $t('agent.queue.depth') }}</th>
-                <th v-if="cols.show('capacity')">{{ $t('agent.queue.capacity') }}</th>
-                <th v-if="cols.show('workers')">{{ $t('agent.queue.workers') }}</th>
-                <th style="width: 30%" v-if="cols.show('fill')">{{ $t('agent.queue.fill') }}</th>
+                <ColumnCells :cols="cols" head>
+                  <th data-col="name" v-if="cols.show('name')">{{ $t('agent.queue.name') }}</th>
+                  <th data-col="depth" v-if="cols.show('depth')">{{ $t('agent.queue.depth') }}</th>
+                  <th data-col="capacity" v-if="cols.show('capacity')">{{ $t('agent.queue.capacity') }}</th>
+                  <th data-col="workers" v-if="cols.show('workers')">{{ $t('agent.queue.workers') }}</th>
+                  <th data-col="fill" style="width: 30%" v-if="cols.show('fill')">{{ $t('agent.queue.fill') }}</th>
+                </ColumnCells>
               </tr>
             </thead>
             <tbody>
               <tr v-for="row in q.queues" :key="row.name" data-testid="queue-row">
-                <td class="font-weight-medium" v-if="cols.show('name')">{{ row.name }}</td>
-                <td v-if="cols.show('depth')">{{ row.depth }}</td>
-                <td v-if="cols.show('capacity')">{{ row.capacity }}</td>
-                <td v-if="cols.show('workers')">{{ row.workers ?? '—' }}</td>
-                <td v-if="cols.show('fill')">
-                  <v-progress-linear
-                    :model-value="pct(row.depth, row.capacity)"
-                    :color="pct(row.depth, row.capacity) >= 80 ? 'error' : 'primary'"
-                    height="8"
-                    rounded
-                    :aria-label="$t('agent.queue.fill')"
-                  />
-                </td>
+                <ColumnCells :cols="cols">
+                  <td data-col="name" class="font-weight-medium" v-if="cols.show('name')">{{ row.name }}</td>
+                  <td data-col="depth" v-if="cols.show('depth')">{{ row.depth }}</td>
+                  <td data-col="capacity" v-if="cols.show('capacity')">{{ row.capacity }}</td>
+                  <td data-col="workers" v-if="cols.show('workers')">{{ row.workers ?? '—' }}</td>
+                  <td data-col="fill" v-if="cols.show('fill')">
+                    <v-progress-linear
+                      :model-value="pct(row.depth, row.capacity)"
+                      :color="pct(row.depth, row.capacity) >= 80 ? 'error' : 'primary'"
+                      height="8"
+                      rounded
+                      :aria-label="$t('agent.queue.fill')"
+                    />
+                  </td>
+                </ColumnCells>
               </tr>
             </tbody>
           </v-table>

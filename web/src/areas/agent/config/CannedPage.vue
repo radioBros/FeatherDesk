@@ -17,6 +17,7 @@ import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -94,23 +95,27 @@ const cols = useTableColumns('config-canned', () => [
       <v-table density="comfortable" data-testid="canned-table">
         <thead>
           <tr>
-            <th v-if="cols.show('title')">{{ $t('agent.canned.title') }}</th>
-            <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-            <th v-if="cols.show('scope')">{{ $t('agent.canned.scope') }}</th>
-            <th v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="title" v-if="cols.show('title')">{{ $t('agent.canned.title') }}</th>
+              <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+              <th data-col="scope" v-if="cols.show('scope')">{{ $t('agent.canned.scope') }}</th>
+              <th data-col="updatedAt" v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in filtered" :key="c.id" data-testid="canned-row">
-            <td v-if="cols.show('title')">{{ c.title }}</td>
-            <td v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
-            <td v-if="cols.show('scope')">{{ c.team_id ? lookups.teamName(c.team_id) || '—' : $t('agent.canned.global') }}</td>
-            <td v-if="cols.show('updatedAt')"><RelativeTime v-if="c.updated_at ?? c.created_at" :value="(c.updated_at ?? c.created_at)!" /></td>
-            <td class="text-right text-no-wrap">
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
-              <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="canned-delete" @click="remove(c)" />
-            </td>
+            <ColumnCells :cols="cols">
+              <td data-col="title" v-if="cols.show('title')">{{ c.title }}</td>
+              <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
+              <td data-col="scope" v-if="cols.show('scope')">{{ c.team_id ? lookups.teamName(c.team_id) || '—' : $t('agent.canned.global') }}</td>
+              <td data-col="updatedAt" v-if="cols.show('updatedAt')"><RelativeTime v-if="c.updated_at ?? c.created_at" :value="(c.updated_at ?? c.created_at)!" /></td>
+              <td class="text-right text-no-wrap">
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
+                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="canned-delete" @click="remove(c)" />
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

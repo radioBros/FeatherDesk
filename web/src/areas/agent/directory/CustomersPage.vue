@@ -14,6 +14,7 @@ import { api, unwrap } from '@/api/client'
 import { useCursorList } from '../shared/useCursorList'
 import type { components } from '@/api/schema'
 import UserAvatar from '@/components/UserAvatar.vue'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const router = useRouter()
@@ -82,25 +83,29 @@ const cols = useTableColumns('agent-customers', () => [
       <v-table density="comfortable" data-testid="customer-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('email')">{{ $t('agent.common.email') }}</th>
-            <th v-if="cols.show('organization')">{{ $t('agent.customers.organization') }}</th>
-            <th v-if="cols.show('role')">{{ $t('agent.customers.role') }}</th>
-            <th v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="email" v-if="cols.show('email')">{{ $t('agent.common.email') }}</th>
+              <th data-col="organization" v-if="cols.show('organization')">{{ $t('agent.customers.organization') }}</th>
+              <th data-col="role" v-if="cols.show('role')">{{ $t('agent.customers.role') }}</th>
+              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in list.items.value" :key="c.id" class="fd-row" data-testid="customer-row" @click="router.push(`/agent/customers/${c.id}`)">
-            <td v-if="cols.show('name')">
-              <div class="d-flex align-center ga-2">
-                <UserAvatar :name="c.name" :size="28" />
-                <router-link :to="`/agent/customers/${c.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ c.name }}</router-link>
-              </div>
-            </td>
-            <td v-if="cols.show('email')">{{ c.email }}</td>
-            <td v-if="cols.show('organization')">{{ orgName(c.organization_id) || '—' }}</td>
-            <td v-if="cols.show('role')">{{ $t(`agent.customers.roles.${c.role === 'org_manager' ? 'org_manager' : 'requester'}`) }}</td>
-            <td v-if="cols.show('status')"><v-chip size="small" label :color="c.status === 'active' ? 'success' : undefined">{{ $t(`agent.customers.statuses.${c.status}`) }}</v-chip></td>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')">
+                <div class="d-flex align-center ga-2">
+                  <UserAvatar :name="c.name" :size="28" />
+                  <router-link :to="`/agent/customers/${c.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ c.name }}</router-link>
+                </div>
+              </td>
+              <td data-col="email" v-if="cols.show('email')">{{ c.email }}</td>
+              <td data-col="organization" v-if="cols.show('organization')">{{ orgName(c.organization_id) || '—' }}</td>
+              <td data-col="role" v-if="cols.show('role')">{{ $t(`agent.customers.roles.${c.role === 'org_manager' ? 'org_manager' : 'requester'}`) }}</td>
+              <td data-col="status" v-if="cols.show('status')"><v-chip size="small" label :color="c.status === 'active' ? 'success' : undefined">{{ $t(`agent.customers.statuses.${c.status}`) }}</v-chip></td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

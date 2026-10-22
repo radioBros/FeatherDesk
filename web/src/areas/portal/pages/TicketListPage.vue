@@ -23,6 +23,7 @@ import MarkdownView from '@/components/MarkdownView.vue'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { CUSTOMER_STATUSES, type CustomerStatus, type CustomerTicketSummary, type PortalProject } from '../types'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 /**
  * "My tickets" (FE-015): status filter in customer labels, search, cursor
@@ -244,24 +245,28 @@ void loadProjects()
       <v-table v-if="mdAndUp" data-testid="ticket-table" hover>
         <thead>
           <tr>
-            <th v-if="cols.show('number')" scope="col">{{ $t('portal.projects.ref') }}</th>
-            <th v-if="showProject && cols.show('project')" scope="col">{{ $t('portal.projects.project') }}</th>
-            <th v-if="cols.show('subject')" scope="col">{{ $t('portal.tickets.subject') }}</th>
-            <th v-if="session.isOrgManager && cols.show('requester')" scope="col">{{ $t('portal.tickets.requester') }}</th>
-            <th v-if="cols.show('status')" scope="col">{{ $t('portal.tickets.status') }}</th>
-            <th v-if="cols.show('priority')" scope="col">{{ $t('portal.tickets.priority') }}</th>
-            <th v-if="cols.show('updated')" scope="col">{{ $t('portal.tickets.updated') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="number" v-if="cols.show('number')" scope="col">{{ $t('portal.projects.ref') }}</th>
+              <th data-col="project" v-if="showProject && cols.show('project')" scope="col">{{ $t('portal.projects.project') }}</th>
+              <th data-col="subject" v-if="cols.show('subject')" scope="col">{{ $t('portal.tickets.subject') }}</th>
+              <th data-col="requester" v-if="session.isOrgManager && cols.show('requester')" scope="col">{{ $t('portal.tickets.requester') }}</th>
+              <th data-col="status" v-if="cols.show('status')" scope="col">{{ $t('portal.tickets.status') }}</th>
+              <th data-col="priority" v-if="cols.show('priority')" scope="col">{{ $t('portal.tickets.priority') }}</th>
+              <th data-col="updated" v-if="cols.show('updated')" scope="col">{{ $t('portal.tickets.updated') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="tk in items" :key="tk.id" data-testid="ticket-row" class="fd-row" @click="router.push(`/tickets/${tk.ref || tk.id}`)">
-            <td v-if="cols.show('number')"><TicketNumber :number="tk.number" :reftext="tk.ref" /></td>
-            <td v-if="showProject && cols.show('project')"><ProjectChip :project="tk.project" /></td>
-            <td v-if="cols.show('subject')"><router-link :to="`/tickets/${tk.ref || tk.id}`" class="text-high-emphasis" @click.stop>{{ tk.subject }}</router-link></td>
-            <td v-if="session.isOrgManager && cols.show('requester')">{{ tk.requester.name }}</td>
-            <td v-if="cols.show('status')"><StatusChip :status="tk.status" area="portal" /></td>
-            <td v-if="cols.show('priority')"><PriorityChip :priority="tk.priority" /></td>
-            <td v-if="cols.show('updated')"><RelativeTime :value="tk.updated_at" /></td>
+            <ColumnCells :cols="cols">
+              <td data-col="number" v-if="cols.show('number')"><TicketNumber :number="tk.number" :reftext="tk.ref" /></td>
+              <td data-col="project" v-if="showProject && cols.show('project')"><ProjectChip :project="tk.project" /></td>
+              <td data-col="subject" v-if="cols.show('subject')"><router-link :to="`/tickets/${tk.ref || tk.id}`" class="text-high-emphasis" @click.stop>{{ tk.subject }}</router-link></td>
+              <td data-col="requester" v-if="session.isOrgManager && cols.show('requester')">{{ tk.requester.name }}</td>
+              <td data-col="status" v-if="cols.show('status')"><StatusChip :status="tk.status" area="portal" /></td>
+              <td data-col="priority" v-if="cols.show('priority')"><PriorityChip :priority="tk.priority" /></td>
+              <td data-col="updated" v-if="cols.show('updated')"><RelativeTime :value="tk.updated_at" /></td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

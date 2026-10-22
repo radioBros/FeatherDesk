@@ -25,6 +25,7 @@ import { formatMinutes, type ReportFilter } from './format'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type Report = components['schemas']['Report']
 const { t, locale } = useI18n()
@@ -199,10 +200,12 @@ const teamCols = useTableColumns('reports-team', () => [
         <GroupedBarChart :groups="projectGroups" :series="series" :label="$t('projects.reports.byProject')" />
         <ColumnsMenu :cols="projectCols" />
         <v-table density="compact" class="mt-2" data-testid="reports-project-table">
-          <thead><tr><th v-if="projectCols.show('project')">{{ $t('projects.reports.project') }}</th><th v-if="projectCols.show('created')">{{ $t('agent.reports.created') }}</th><th v-if="projectCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></tr></thead>
+          <thead><tr><ColumnCells :cols="projectCols" head><th data-col="project" v-if="projectCols.show('project')">{{ $t('projects.reports.project') }}</th><th data-col="created" v-if="projectCols.show('created')">{{ $t('agent.reports.created') }}</th><th data-col="resolved" v-if="projectCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></ColumnCells></tr></thead>
           <tbody>
             <tr v-for="r in report.by_project ?? []" :key="r.project_id">
-              <td v-if="projectCols.show('project')"><ProjectChip :project="projectRef(r.project_id, r.key, r.name)" show-name /></td><td v-if="projectCols.show('created')">{{ n(r.created) }}</td><td v-if="projectCols.show('resolved')">{{ n(r.resolved) }}</td>
+              <ColumnCells :cols="projectCols">
+                <td data-col="project" v-if="projectCols.show('project')"><ProjectChip :project="projectRef(r.project_id, r.key, r.name)" show-name /></td><td data-col="created" v-if="projectCols.show('created')">{{ n(r.created) }}</td><td data-col="resolved" v-if="projectCols.show('resolved')">{{ n(r.resolved) }}</td>
+              </ColumnCells>
             </tr>
           </tbody>
         </v-table>
@@ -215,10 +218,12 @@ const teamCols = useTableColumns('reports-team', () => [
             <GroupedBarChart :groups="tierGroups" :series="series" :label="$t('agent.reports.byTier')" />
             <ColumnsMenu :cols="tierCols" />
             <v-table density="compact" class="mt-2" data-testid="reports-tier-table">
-              <thead><tr><th v-if="tierCols.show('tier')">{{ $t('tier.label') }}</th><th v-if="tierCols.show('created')">{{ $t('agent.reports.created') }}</th><th v-if="tierCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th><th v-if="tierCols.show('escalatedIn')">{{ $t('agent.reports.escalatedIn') }}</th></tr></thead>
+              <thead><tr><ColumnCells :cols="tierCols" head><th data-col="tier" v-if="tierCols.show('tier')">{{ $t('tier.label') }}</th><th data-col="created" v-if="tierCols.show('created')">{{ $t('agent.reports.created') }}</th><th data-col="resolved" v-if="tierCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th><th data-col="escalatedIn" v-if="tierCols.show('escalatedIn')">{{ $t('agent.reports.escalatedIn') }}</th></ColumnCells></tr></thead>
               <tbody>
                 <tr v-for="r in report.by_tier ?? []" :key="r.tier">
-                  <td v-if="tierCols.show('tier')">{{ config.tierLabel(r.tier ?? 1) }}</td><td v-if="tierCols.show('created')">{{ n(r.created) }}</td><td v-if="tierCols.show('resolved')">{{ n(r.resolved) }}</td><td v-if="tierCols.show('escalatedIn')">{{ n(r.escalated_in) }}</td>
+                  <ColumnCells :cols="tierCols">
+                    <td data-col="tier" v-if="tierCols.show('tier')">{{ config.tierLabel(r.tier ?? 1) }}</td><td data-col="created" v-if="tierCols.show('created')">{{ n(r.created) }}</td><td data-col="resolved" v-if="tierCols.show('resolved')">{{ n(r.resolved) }}</td><td data-col="escalatedIn" v-if="tierCols.show('escalatedIn')">{{ n(r.escalated_in) }}</td>
+                  </ColumnCells>
                 </tr>
               </tbody>
             </v-table>
@@ -230,10 +235,12 @@ const teamCols = useTableColumns('reports-team', () => [
             <GroupedBarChart :groups="teamGroups" :series="series" :label="$t('agent.reports.byTeam')" />
             <ColumnsMenu :cols="teamCols" />
             <v-table density="compact" class="mt-2" data-testid="reports-team-table">
-              <thead><tr><th v-if="teamCols.show('team')">{{ $t('agent.common.team') }}</th><th v-if="teamCols.show('created')">{{ $t('agent.reports.created') }}</th><th v-if="teamCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></tr></thead>
+              <thead><tr><ColumnCells :cols="teamCols" head><th data-col="team" v-if="teamCols.show('team')">{{ $t('agent.common.team') }}</th><th data-col="created" v-if="teamCols.show('created')">{{ $t('agent.reports.created') }}</th><th data-col="resolved" v-if="teamCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></ColumnCells></tr></thead>
               <tbody>
                 <tr v-for="r in report.by_team ?? []" :key="r.team_id ?? 'triage'">
-                  <td v-if="teamCols.show('team')">{{ r.name || $t('agent.reports.triage') }}</td><td v-if="teamCols.show('created')">{{ n(r.created) }}</td><td v-if="teamCols.show('resolved')">{{ n(r.resolved) }}</td>
+                  <ColumnCells :cols="teamCols">
+                    <td data-col="team" v-if="teamCols.show('team')">{{ r.name || $t('agent.reports.triage') }}</td><td data-col="created" v-if="teamCols.show('created')">{{ n(r.created) }}</td><td data-col="resolved" v-if="teamCols.show('resolved')">{{ n(r.resolved) }}</td>
+                  </ColumnCells>
                 </tr>
               </tbody>
             </v-table>

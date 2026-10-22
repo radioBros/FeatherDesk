@@ -28,7 +28,10 @@
       "button": "Spalten",
       "title": "Spalten auswählen",
       "locked": "Immer sichtbar",
-      "reset": "Auf Standard zurücksetzen"
+      "reset": "Auf Standard zurücksetzen",
+      "hint": "Zum Umsortieren ⋮ ziehen",
+      "move": "Spalte {column} verschieben (↑/↓)",
+      "resize": "Breite der Spalte {column} ändern (←/→)"
     },
     "moreCount": "+{n} weitere"
   },

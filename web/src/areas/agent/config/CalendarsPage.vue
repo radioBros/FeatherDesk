@@ -14,6 +14,7 @@ import { useConfirm } from '@/composables/useConfirm'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import { WEEKDAYS } from './constants'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -80,23 +81,27 @@ const cols = useTableColumns('config-calendars', () => [
       <v-table density="comfortable" data-testid="calendar-table">
         <thead>
           <tr>
-            <th v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-            <th v-if="cols.show('timezone')">{{ $t('agent.calendars.timezone') }}</th>
-            <th v-if="cols.show('openDays')">{{ $t('agent.calendars.openDays') }}</th>
-            <th v-if="cols.show('holidays')">{{ $t('agent.calendars.holidays') }}</th>
-            <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            <ColumnCells :cols="cols" head>
+              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
+              <th data-col="timezone" v-if="cols.show('timezone')">{{ $t('agent.calendars.timezone') }}</th>
+              <th data-col="openDays" v-if="cols.show('openDays')">{{ $t('agent.calendars.openDays') }}</th>
+              <th data-col="holidays" v-if="cols.show('holidays')">{{ $t('agent.calendars.holidays') }}</th>
+              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+            </ColumnCells>
           </tr>
         </thead>
         <tbody>
           <tr v-for="c in items" :key="c.id" data-testid="calendar-row">
-            <td v-if="cols.show('name')">{{ c.name }}</td>
-            <td v-if="cols.show('timezone')">{{ c.timezone }}</td>
-            <td v-if="cols.show('openDays')">{{ openDays(c) }}</td>
-            <td v-if="cols.show('holidays')">{{ c.holidays.length }}</td>
-            <td class="text-right text-no-wrap">
-              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
-              <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="calendar-delete" @click="remove(c)" />
-            </td>
+            <ColumnCells :cols="cols">
+              <td data-col="name" v-if="cols.show('name')">{{ c.name }}</td>
+              <td data-col="timezone" v-if="cols.show('timezone')">{{ c.timezone }}</td>
+              <td data-col="openDays" v-if="cols.show('openDays')">{{ openDays(c) }}</td>
+              <td data-col="holidays" v-if="cols.show('holidays')">{{ c.holidays.length }}</td>
+              <td class="text-right text-no-wrap">
+                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
+                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="calendar-delete" @click="remove(c)" />
+              </td>
+            </ColumnCells>
           </tr>
         </tbody>
       </v-table>

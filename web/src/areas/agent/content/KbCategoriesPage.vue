@@ -19,6 +19,7 @@ import { useAction } from '../shared/useAction'
 import { flattenTree, type KbCategory } from './kb'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
+import ColumnCells from '@/components/ColumnCells.vue'
 
 const { t, locale } = useI18n()
 const { confirm } = useConfirm()
@@ -107,27 +108,31 @@ const cols = useTableColumns('kb-categories', () => [
         <v-table density="comfortable" data-testid="kbcat-table">
           <thead>
             <tr>
-              <th v-if="cols.show('title')">{{ $t('agent.kbCategories.title') }}</th>
-              <th v-if="cols.show('slug')">{{ $t('agent.kb.slug') }}</th>
-              <th v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-              <th v-if="cols.show('visibility')">{{ $t('agent.kb.visibility') }}</th>
-              <th v-if="cols.show('articles')">{{ $t('agent.kbCategories.articles') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              <ColumnCells :cols="cols" head>
+                <th data-col="title" v-if="cols.show('title')">{{ $t('agent.kbCategories.title') }}</th>
+                <th data-col="slug" v-if="cols.show('slug')">{{ $t('agent.kb.slug') }}</th>
+                <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
+                <th data-col="visibility" v-if="cols.show('visibility')">{{ $t('agent.kb.visibility') }}</th>
+                <th data-col="articles" v-if="cols.show('articles')">{{ $t('agent.kbCategories.articles') }}</th>
+                <th class="text-right">{{ $t('agent.common.actions') }}</th>
+              </ColumnCells>
             </tr>
           </thead>
           <tbody>
             <tr v-for="{ item: c, depth } in rows" :key="c.id" data-testid="kbcat-row">
-              <td :style="{ paddingLeft: `${16 + depth * 24}px` }" v-if="cols.show('title')">{{ label(c) }}</td>
-              <td class="text-medium-emphasis" v-if="cols.show('slug')">{{ c.slug }}</td>
-              <td v-if="cols.show('project')"><ProjectCell :id="c.project_id" :empty-label="$t('projects.config.global')" /></td>
-              <td v-if="cols.show('visibility')"><v-chip size="small" label variant="tonal">{{ $t(`agent.kb.vis.${c.visibility}`) }}</v-chip></td>
-              <td v-if="cols.show('articles')">{{ c.article_count ?? '—' }}</td>
-              <td class="text-right text-no-wrap">
-                <v-btn :icon="mdiArrowUp" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveUp')" :disabled="siblings(c)[0]?.id === c.id" data-testid="kbcat-up" @click="move(c, -1)" />
-                <v-btn :icon="mdiArrowDown" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveDown')" :disabled="siblings(c).at(-1)?.id === c.id" data-testid="kbcat-down" @click="move(c, 1)" />
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
-                <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="kbcat-delete" @click="remove(c)" />
-              </td>
+              <ColumnCells :cols="cols">
+                <td data-col="title" :style="{ paddingLeft: `${16 + depth * 24}px` }" v-if="cols.show('title')">{{ label(c) }}</td>
+                <td data-col="slug" class="text-medium-emphasis" v-if="cols.show('slug')">{{ c.slug }}</td>
+                <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="c.project_id" :empty-label="$t('projects.config.global')" /></td>
+                <td data-col="visibility" v-if="cols.show('visibility')"><v-chip size="small" label variant="tonal">{{ $t(`agent.kb.vis.${c.visibility}`) }}</v-chip></td>
+                <td data-col="articles" v-if="cols.show('articles')">{{ c.article_count ?? '—' }}</td>
+                <td class="text-right text-no-wrap">
+                  <v-btn :icon="mdiArrowUp" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveUp')" :disabled="siblings(c)[0]?.id === c.id" data-testid="kbcat-up" @click="move(c, -1)" />
+                  <v-btn :icon="mdiArrowDown" variant="text" size="small" :aria-label="$t('agent.kbCategories.moveDown')" :disabled="siblings(c).at(-1)?.id === c.id" data-testid="kbcat-down" @click="move(c, 1)" />
+                  <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
+                  <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="kbcat-delete" @click="remove(c)" />
+                </td>
+              </ColumnCells>
             </tr>
           </tbody>
         </v-table>
