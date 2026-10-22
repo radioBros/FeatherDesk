@@ -17,7 +17,7 @@ import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t, locale } = useI18n()
@@ -76,14 +76,16 @@ async function setActive(f: S['CustomFieldDef'], active: boolean) {
     lookups.invalidate('customFields')
   }
 }
+const typeLabel = (f: S['CustomFieldDef']) => t(`agent.customFields.types.${f.type}`)
+const statusLabel = (f: S['CustomFieldDef']) => (f.active ? t('agent.common.active') : t('agent.customFields.archivedChip'))
 const cols = useTableColumns('config-custom-fields', () => [
   { key: 'key', label: t('agent.customFields.key'), locked: true },
-  { key: 'label', label: t('agent.customFields.label') },
-  { key: 'type', label: t('agent.customFields.type'), lowPriority: true },
-  { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
-  { key: 'categories', label: t('agent.customFields.categories'), lowPriority: true },
-  { key: 'flags', label: t('agent.customFields.flags'), lowPriority: true },
-  { key: 'status', label: t('agent.common.status') },
+  { key: 'label', label: t('agent.customFields.label'), sortValue: label },
+  { key: 'type', label: t('agent.customFields.type'), lowPriority: true, sortValue: typeLabel },
+  { key: 'projects', label: t('projects.config.projects'), lowPriority: true, sortValue: false },
+  { key: 'categories', label: t('agent.customFields.categories'), lowPriority: true, sortValue: categoryNames },
+  { key: 'flags', label: t('agent.customFields.flags'), lowPriority: true, sortValue: false },
+  { key: 'status', label: t('agent.common.status'), sortValue: statusLabel },
 ])
 </script>
 
@@ -101,62 +103,44 @@ const cols = useTableColumns('config-custom-fields', () => [
       <EmptyState v-if="!loading && !shown.length" :title="$t('agent.customFields.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="cf-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="key" v-if="cols.show('key')">{{ $t('agent.customFields.key') }}</th>
-              <th data-col="label" v-if="cols.show('label')">{{ $t('agent.customFields.label') }}</th>
-              <th data-col="type" v-if="cols.show('type')">{{ $t('agent.customFields.type') }}</th>
-              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
-              <th data-col="categories" v-if="cols.show('categories')">{{ $t('agent.customFields.categories') }}</th>
-              <th data-col="flags" v-if="cols.show('flags')">{{ $t('agent.customFields.flags') }}</th>
-              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="f in shown" :key="f.id" data-testid="cf-row">
-            <ColumnCells :cols="cols">
-              <td data-col="key" v-if="cols.show('key')"><code>{{ f.key }}</code></td>
-              <td data-col="label" v-if="cols.show('label')">{{ label(f) }}</td>
-              <td data-col="type" v-if="cols.show('type')">{{ $t(`agent.customFields.types.${f.type}`) }}</td>
-              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="f.project_ids ?? []" /></td>
-              <td data-col="categories" v-if="cols.show('categories')" class="text-caption">{{ categoryNames(f) }}</td>
-              <td data-col="flags" v-if="cols.show('flags')">
-                <v-chip v-if="f.required" size="x-small" label class="mr-1">{{ $t('agent.customFields.required') }}</v-chip>
-                <v-chip v-if="f.customer_visible" size="x-small" label color="info" class="mr-1">{{ $t('agent.customFields.visibleChip') }}</v-chip>
-                <v-chip v-if="f.customer_editable" size="x-small" label color="info">{{ $t('agent.customFields.editableChip') }}</v-chip>
-              </td>
-              <td data-col="status" v-if="cols.show('status')">
-                <v-chip size="small" label :color="f.active ? 'success' : undefined">{{ f.active ? $t('agent.common.active') : $t('agent.customFields.archivedChip') }}</v-chip>
-              </td>
-              <td class="text-right text-no-wrap">
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="cf-edit" @click="openForm(f)" />
-                <v-btn
-                  v-if="f.active"
-                  :icon="mdiArchiveArrowDown"
-                  variant="text"
-                  size="small"
-                  :aria-label="$t('agent.customFields.archive')"
-                  data-testid="cf-archive"
-                  @click="setActive(f, false)"
-                />
-                <v-btn
-                  v-else
-                  :icon="mdiArchiveArrowUp"
-                  variant="text"
-                  size="small"
-                  :aria-label="$t('agent.customFields.reactivate')"
-                  data-testid="cf-reactivate"
-                  @click="setActive(f, true)"
-                />
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable :cols="cols" :items="shown" :loading="loading" actions density="comfortable" :row-props="{ 'data-testid': 'cf-row' }" data-testid="cf-table">
+        <template #[`item.key`]="{ item }"><code>{{ item.key }}</code></template>
+        <template #[`item.label`]="{ item }">{{ label(item) }}</template>
+        <template #[`item.type`]="{ item }">{{ typeLabel(item) }}</template>
+        <template #[`item.projects`]="{ item }"><ProjectCell :ids="item.project_ids ?? []" /></template>
+        <template #[`item.categories`]="{ item }"><span class="text-caption">{{ categoryNames(item) }}</span></template>
+        <template #[`item.flags`]="{ item }">
+          <v-chip v-if="item.required" size="x-small" label class="mr-1">{{ $t('agent.customFields.required') }}</v-chip>
+          <v-chip v-if="item.customer_visible" size="x-small" label color="info" class="mr-1">{{ $t('agent.customFields.visibleChip') }}</v-chip>
+          <v-chip v-if="item.customer_editable" size="x-small" label color="info">{{ $t('agent.customFields.editableChip') }}</v-chip>
+        </template>
+        <template #[`item.status`]="{ item }">
+          <v-chip size="small" label :color="item.active ? 'success' : undefined">{{ statusLabel(item) }}</v-chip>
+        </template>
+        <template #[`item.actions`]="{ item }">
+          <span class="text-no-wrap">
+            <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="cf-edit" @click="openForm(item)" />
+            <v-btn
+              v-if="item.active"
+              :icon="mdiArchiveArrowDown"
+              variant="text"
+              size="small"
+              :aria-label="$t('agent.customFields.archive')"
+              data-testid="cf-archive"
+              @click="setActive(item, false)"
+            />
+            <v-btn
+              v-else
+              :icon="mdiArchiveArrowUp"
+              variant="text"
+              size="small"
+              :aria-label="$t('agent.customFields.reactivate')"
+              data-testid="cf-reactivate"
+              @click="setActive(item, true)"
+            />
+          </span>
+        </template>
+      </DataTable>
       </template>
     </v-card>
 

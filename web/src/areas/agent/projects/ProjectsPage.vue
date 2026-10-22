@@ -26,7 +26,7 @@ import ProjectMembers from './ProjectMembers.vue'
 import ProjectTeams from './ProjectTeams.vue'
 import ProjectSla from './ProjectSla.vue'
 import ProjectLogo from './ProjectLogo.vue'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -124,10 +124,10 @@ const cols = useTableColumns('admin-projects', () => [
   { key: 'name', label: t('agent.common.name'), locked: true },
   { key: 'color', label: t('projects.admin.color'), lowPriority: true },
   { key: 'active', label: t('agent.common.status'), lowPriority: true },
-  { key: 'portal', label: t('projects.admin.portalVisible'), lowPriority: true },
-  { key: 'members', label: t('agent.teams.members'), lowPriority: true },
-  { key: 'tickets', label: t('projects.admin.tickets'), lowPriority: true },
-  { key: 'defaultTeam', label: t('projects.admin.defaultTeam'), defaultHidden: true },
+  { key: 'portal', label: t('projects.admin.portalVisible'), lowPriority: true, sortValue: (p: S['Project']) => p.portal_visible },
+  { key: 'members', label: t('agent.teams.members'), lowPriority: true, sortValue: (p: S['Project']) => p.member_count },
+  { key: 'tickets', label: t('projects.admin.tickets'), lowPriority: true, sortValue: (p: S['Project']) => p.ticket_count },
+  { key: 'defaultTeam', label: t('projects.admin.defaultTeam'), defaultHidden: true, sortValue: (p: S['Project']) => teamName(p.default_team_id) },
   { key: 'sort', label: t('projects.admin.sort'), defaultHidden: true },
 ])
 </script>
@@ -145,46 +145,34 @@ const cols = useTableColumns('admin-projects', () => [
       <EmptyState v-if="!loading && !projects.length" :icon="mdiFolderMultipleOutline" :title="$t('projects.admin.empty')" :body="$t('projects.admin.emptyBody')" />
       <template v-else>
         <ColumnsMenu :cols="cols" />
-        <v-table density="compact" data-testid="project-table">
-          <thead>
-            <tr>
-              <ColumnCells :cols="cols" head>
-                <th>{{ $t('projects.admin.key') }}</th>
-                <th>{{ $t('agent.common.name') }}</th>
-                <th data-col="color" v-if="cols.show('color')">{{ $t('projects.admin.color') }}</th>
-                <th data-col="active" v-if="cols.show('active')">{{ $t('agent.common.status') }}</th>
-                <th data-col="portal" v-if="cols.show('portal')">{{ $t('projects.admin.portalVisible') }}</th>
-                <th data-col="members" v-if="cols.show('members')">{{ $t('agent.teams.members') }}</th>
-                <th data-col="tickets" v-if="cols.show('tickets')">{{ $t('projects.admin.tickets') }}</th>
-                <th data-col="defaultTeam" v-if="cols.show('defaultTeam')">{{ $t('projects.admin.defaultTeam') }}</th>
-                <th data-col="sort" v-if="cols.show('sort')">{{ $t('projects.admin.sort') }}</th>
-                <th class="text-right">{{ $t('agent.common.actions') }}</th>
-              </ColumnCells>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in projects" :key="p.id" data-testid="project-row">
-              <ColumnCells :cols="cols">
-                <td><ProjectChip :project="p" size="small" /></td>
-                <td>
-                  <div>{{ p.name }}</div>
-                  <div v-if="p.description" class="text-caption text-medium-emphasis">{{ p.description }}</div>
-                </td>
-                <td data-col="color" v-if="cols.show('color')"><span v-if="p.color" class="d-inline-flex align-center ga-1"><span class="fd-swatch" :style="{ background: p.color }" />{{ p.color }}</span></td>
-                <td data-col="active" v-if="cols.show('active')">{{ p.active ? $t('agent.common.active') : $t('agent.common.inactive') }}</td>
-                <td data-col="portal" v-if="cols.show('portal')">{{ p.portal_visible ? $t('agent.common.yes') : $t('agent.common.no') }}</td>
-                <td data-col="members" v-if="cols.show('members')">{{ p.member_count }}</td>
-                <td data-col="tickets" v-if="cols.show('tickets')">{{ p.ticket_count }}</td>
-                <td data-col="defaultTeam" v-if="cols.show('defaultTeam')">{{ teamName(p.default_team_id) }}</td>
-                <td data-col="sort" v-if="cols.show('sort')">{{ p.sort }}</td>
-                <td class="text-right text-no-wrap">
-                  <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="project-edit" @click="openEdit(p)" />
-                  <v-btn v-if="session.isSupervisor" :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="project-delete" @click="remove(p)" />
-                </td>
-              </ColumnCells>
-            </tr>
-          </tbody>
-        </v-table>
+        <DataTable
+          :cols="cols"
+          :items="projects"
+          :loading="loading"
+          actions
+          density="compact"
+          :row-props="{ 'data-testid': 'project-row' }"
+          data-testid="project-table"
+        >
+          <template #[`item.key`]="{ item }"><ProjectChip :project="item" size="small" /></template>
+          <template #[`item.name`]="{ item }">
+            <div>{{ item.name }}</div>
+            <div v-if="item.description" class="text-caption text-medium-emphasis">{{ item.description }}</div>
+          </template>
+          <template #[`item.color`]="{ item }"><span v-if="item.color" class="d-inline-flex align-center ga-1"><span class="fd-swatch" :style="{ background: item.color }" />{{ item.color }}</span></template>
+          <template #[`item.active`]="{ item }">{{ item.active ? $t('agent.common.active') : $t('agent.common.inactive') }}</template>
+          <template #[`item.portal`]="{ item }">{{ item.portal_visible ? $t('agent.common.yes') : $t('agent.common.no') }}</template>
+          <template #[`item.members`]="{ item }">{{ item.member_count }}</template>
+          <template #[`item.tickets`]="{ item }">{{ item.ticket_count }}</template>
+          <template #[`item.defaultTeam`]="{ item }">{{ teamName(item.default_team_id) }}</template>
+          <template #[`item.sort`]="{ item }">{{ item.sort }}</template>
+          <template #[`item.actions`]="{ item }">
+            <span class="text-no-wrap">
+              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="project-edit" @click="openEdit(item)" />
+              <v-btn v-if="session.isSupervisor" :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="project-delete" @click="remove(item)" />
+            </span>
+          </template>
+        </DataTable>
       </template>
     </v-card>
 

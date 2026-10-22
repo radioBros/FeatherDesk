@@ -6410,7 +6410,7 @@ export interface components {
          */
         TicketRefCode: string;
         /** @enum {string} */
-        TicketSort: "attention" | "updated_at" | "-updated_at" | "created_at" | "-created_at" | "priority" | "-priority" | "due" | "number" | "-number";
+        TicketSort: "attention" | "updated_at" | "-updated_at" | "created_at" | "-created_at" | "priority" | "-priority" | "due" | "-due" | "number" | "-number";
         /** @enum {string} */
         TicketStatus: "new" | "open" | "pending" | "on_hold" | "resolved" | "closed";
         TicketSummary: {
@@ -7100,6 +7100,8 @@ export interface operations {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
                 since?: components["schemas"]["Timestamp"];
+                /** @description Order by time (`-` = newest first). A cursor only continues the order it was issued for. */
+                sort?: "created_at" | "-created_at";
             };
             header?: never;
             path?: never;
@@ -8186,6 +8188,8 @@ export interface operations {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
                 mailbox_id?: components["schemas"]["Id"];
+                /** @description Order by time (`-` = newest first). A cursor only continues the order it was issued for. */
+                sort?: "received_at" | "-received_at";
                 status?: components["schemas"]["InboundStatus"];
             };
             header?: never;
@@ -9428,6 +9432,8 @@ export interface operations {
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
                 role?: components["schemas"]["StaffRole"];
+                /** @description Order (`-` = descending); without it, creation order. A cursor only continues the order it was issued for. */
+                sort?: "name" | "-name";
                 team_id?: components["schemas"]["Id"];
             };
             header?: never;
@@ -10062,6 +10068,8 @@ export interface operations {
                 /** @description Opaque cursor from `next_cursor` */
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description Order by time (`-` = newest first). A cursor only continues the order it was issued for. */
+                sort?: "created_at" | "-created_at";
             };
             header?: never;
             path: {
@@ -10435,6 +10443,8 @@ export interface operations {
                 organization_id?: components["schemas"]["Id"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
+                /** @description Order (`-` = descending); without it, creation order. A cursor only continues the order it was issued for. */
+                sort?: "name" | "-name" | "email" | "-email";
             };
             header?: never;
             path?: never;
@@ -10558,6 +10568,8 @@ export interface operations {
                 project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
+                /** @description Order (`-` = descending); without it, most recently updated first, or by relevance when `q` is set. A cursor only continues the order it was issued for. */
+                sort?: "title" | "-title" | "updated_at" | "-updated_at";
                 status?: components["schemas"]["KbStatus"];
             };
             header?: never;
@@ -10944,6 +10956,8 @@ export interface operations {
                 limit?: components["parameters"]["Limit"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
+                /** @description Order (`-` = descending); without it, creation order. A cursor only continues the order it was issued for. */
+                sort?: "name" | "-name";
             };
             header?: never;
             path?: never;
@@ -14110,6 +14124,8 @@ export interface operations {
                 project?: components["parameters"]["ProjectFilter"];
                 /** @description Full-text search */
                 q?: components["parameters"]["Q"];
+                /** @description Order (see TicketSort); default `-updated_at`. A cursor only continues the order it was issued for. */
+                sort?: components["schemas"]["TicketSort"];
                 status?: components["schemas"]["CustomerStatus"];
             };
             header?: never;

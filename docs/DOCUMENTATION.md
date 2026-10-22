@@ -1582,19 +1582,22 @@ Sign in at `/agent/login`, usually with **Continue with single sign-on**.
   - *Needs attention* (the default; see [Ticket lifecycle](#14-ticket-lifecycle));
   - *Recently updated* and *Least recently updated*;
   - *Newest first* and *Oldest first*;
-  - *Highest priority first*;
-  - *Due soonest*;
-  - *Highest number first*.
+  - *Highest priority first* and *Lowest priority first*;
+  - *Due soonest* and *Due latest*;
+  - *Highest number first* and *Lowest number first*.
+- **Click a column header** to sort by it: the reference, priority, updated and due columns sort (click again for the other direction, a third time back to *Needs attention*). The header click and the *Sort* menu are the same setting, in the URL.
 - Every filter is part of the URL, so you can bookmark or share a view.
 
 **Columns and density**
 - Columns: reference (`WEB-123`), project, subject (with tags and parent/child chips), requester, status, priority, tier, team, assignee, updated, and due (with a *Breached* chip).
 - The **Columns** button above the table switches each column on or off. The reference and the subject are always shown. Custom-field columns are off until you switch them on. On a phone, project, priority, tier, team, assignee, updated and due start hidden.
 - **Order:** in the same menu, drag a column by the handle on its left (mouse or touch), or focus the handle and press ↑ / ↓.
-- **Width:** drag the right edge of a column header, or focus that edge and press ← / →. The first resize fixes every column at its current width; a column can then be narrower than its content (long words wrap) and the table scrolls sideways when it is wider than the page.
+- **Width:** drag the right edge of a column header, or focus that edge and press ← / →. The first resize fixes every column at its current width; a column can then be narrower than its content (cells stay on one line and are cut off with "…") and the table scrolls sideways when it is wider than the page.
+- **Scrolling:** the table scrolls inside the page with its header row pinned, and only the rows in view are drawn, so long lists stay fast. Scrolling near the end loads the next page of tickets, so there is no *Load more* button. From the keyboard, Tab to the table and scroll it with the arrow keys, Page Down or End.
 - The selection checkbox column of the ticket list stays pinned on the left while the table scrolls sideways.
 - *Reset to default* restores visibility, order and widths.
-- The choices are remembered per user and per table in this browser (`localStorage`, keys `fd.v1.cols.<user>.<table>`, `fd.v1.colorder.<user>.<table>` and `fd.v1.colwidth.<user>.<table>`); there is no server-side setting. Every other table of the app (customers, organizations, staff, teams, calendars, categories, tags, canned responses, custom fields, rules, macros, KB articles and categories, inbound mailboxes and their log, webhooks and deliveries, tokens, reports, audit log, queue, failed jobs, privacy requests, projects and the portal's ticket list) has the same **Columns** button.
+- The choices are remembered per user and per table in this browser (`localStorage`, keys `fd.v1.cols.<user>.<table>`, `fd.v1.colorder.<user>.<table>` and `fd.v1.colwidth.<user>.<table>`); there is no server-side setting. Every other table of the app (customers, organizations, staff, teams, calendars, categories, tags, canned responses, custom fields, rules, macros, KB articles and categories, inbound mailboxes and their log, webhooks and deliveries, tokens, reports, audit log, queue, failed jobs, privacy requests, projects and the portal's ticket list) is the same kind of table: the same **Columns** button, resizable columns, scrolling and loading as above.
+- **Sorting in the other tables:** click a column header. Lists that load page by page are sorted by the server, so the order covers every row, not only the ones loaded so far: customers (name, email), organizations and staff (name), KB articles (title, updated), the audit log, webhook deliveries and the inbound log (time), and the portal's ticket list (number, priority, updated). Lists that are loaded whole (teams, tags, rules, macros, calendars, categories, canned responses, custom fields, webhooks, mailboxes, projects, your tokens, reports, queue) sort in the browser by any column. A column without a sort arrow on hover cannot be sorted.
 - **Density** is fixed and the same everywhere: every text field, select, date and number field is the compact 40 px outlined field, and the ticket table uses comfortable rows. There is no density switch.
 
 **Saved views and bulk actions**
@@ -1899,7 +1902,19 @@ GET /api/v1/agent/tickets?limit=50&cursor=<opaque>
 | `q` | Full-text search |
 | `cf.<key>` | A custom field value, e.g. `cf.contract=gold` |
 
-`sort` is one of `attention` (the default), `updated_at`, `-updated_at`, `created_at`, `-created_at`, `priority`, `-priority`, `due`, `number` or `-number`.
+`sort` is one of `attention` (the default), `updated_at`, `-updated_at`, `created_at`, `-created_at`, `priority`, `-priority`, `due`, `-due`, `number` or `-number` (`-` = descending; `due` puts tickets without a due date last in both directions). `GET /api/v1/portal/tickets` takes the same values, default `-updated_at`.
+
+Other lists take a `sort` too (`-` = descending):
+
+| List | `sort` | Without it |
+|---|---|---|
+| `GET /agent/customers` | `name`, `-name`, `email`, `-email` | creation order |
+| `GET /agent/organizations`, `GET /admin/staff` | `name`, `-name` | creation order |
+| `GET /agent/kb/articles` | `title`, `-title`, `updated_at`, `-updated_at` | newest update first; by relevance with `q` |
+| `GET /admin/audit-log`, `GET /admin/webhooks/{id}/deliveries` | `created_at`, `-created_at` | `-created_at` |
+| `GET /admin/inbound/messages` | `received_at`, `-received_at` | `-received_at` |
+
+Names and emails sort case-insensitively. A cursor continues only the order it was issued for: change `sort` and start again without `cursor`. On the audit log, webhook deliveries and the inbound log a cursor also stops working when the row it points at has been pruned (`422`, field `cursor`): start again without it.
 
 ### 10.4 Errors
 

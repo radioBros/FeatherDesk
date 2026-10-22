@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
 /** /agent/organizations (FE-026): search, cursor list, create dialog. */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { mdiDomain, mdiMagnify, mdiPlus } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
@@ -14,17 +14,20 @@ import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import { api, unwrap } from '@/api/client'
 import { useCursorList } from '../shared/useCursorList'
-import type { components } from '@/api/schema'
+import type { components, operations } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const router = useRouter()
 const q = ref('')
+type OrgsQuery = NonNullable<operations['listOrganizations']['parameters']['query']>
+const sort = ref<NonNullable<OrgsQuery['sort']> | null>(null)
 const dialog = ref(false)
 const list = useCursorList((cursor) =>
-  unwrap(api.GET('/agent/organizations', { params: { query: { q: q.value.trim() || undefined, cursor: cursor ?? undefined, limit: 50 } } })),
+  unwrap(api.GET('/agent/organizations', { params: { query: { q: q.value.trim() || undefined, sort: sort.value ?? undefined, cursor: cursor ?? undefined, limit: 50 } } })),
 )
+watch(sort, () => void list.reload())
 let timer: ReturnType<typeof setTimeout> | undefined
 function onSearch() {
   clearTimeout(timer)
@@ -39,7 +42,7 @@ const { t } = useI18n()
 const cp = useConfigProjects()
 const portalProjects = computed(() => cp.all.value.filter((p) => p.portal_visible && p.active))
 const cols = useTableColumns('agent-organizations', () => [
-  { key: 'name', label: t('agent.common.name'), locked: true },
+  { key: 'name', label: t('agent.common.name'), locked: true, sort: { asc: 'name', desc: '-name' } },
   { key: 'domains', label: t('agent.organizations.domains') },
   { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
   { key: 'members', label: t('agent.organizations.members'), lowPriority: true },
@@ -72,43 +75,37 @@ const cols = useTableColumns('agent-organizations', () => [
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.organizations.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="org-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-              <th data-col="domains" v-if="cols.show('domains')">{{ $t('agent.organizations.domains') }}</th>
-              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
-              <th data-col="members" v-if="cols.show('members')">{{ $t('agent.organizations.members') }}</th>
-              <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="o in list.items.value" :key="o.id" class="fd-row" data-testid="org-row" @click="router.push(`/agent/organizations/${o.id}`)">
-            <ColumnCells :cols="cols">
-              <td data-col="name" v-if="cols.show('name')">
-                <div class="d-flex align-center ga-2">
-                  <SectionIcon section="customers" :icon="mdiDomain" :size="28" />
-                  <router-link :to="`/agent/organizations/${o.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ o.name }}</router-link>
-                </div>
-              </td>
-              <td data-col="domains" v-if="cols.show('domains')">{{ (o.email_domains ?? []).join(', ') || '—' }}</td>
-              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="o.project_ids ?? []" /></td>
-              <td data-col="members" v-if="cols.show('members')">{{ o.member_count ?? '—' }}</td>
-              <td data-col="status" v-if="cols.show('status')">
-                <v-chip size="small" label :color="o.status === 'active' ? 'success' : undefined">
-                  {{ o.status === 'active' ? $t('agent.common.active') : $t('agent.organizations.archived') }}
-                </v-chip>
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable
+        :cols="cols"
+        :items="list.items.value"
+        :loading="list.loading.value"
+        server-sort
+        :sort="sort"
+        :has-more="!!list.next.value"
+        density="comfortable"
+        hover
+        :row-props="{ 'data-testid': 'org-row' }"
+        data-testid="org-table"
+        @update:sort="(v: string | null) => (sort = v as typeof sort)"
+        @load-more="list.loadMore()"
+        @click:row="(_e: unknown, { item }: { item: S['Organization'] }) => router.push(`/agent/organizations/${item.id}`)"
+      >
+        <template #[`item.name`]="{ item }">
+          <div class="d-flex align-center ga-2">
+            <SectionIcon section="customers" :icon="mdiDomain" :size="28" />
+            <router-link :to="`/agent/organizations/${item.id}`" class="text-decoration-none text-high-emphasis" @click.stop>{{ item.name }}</router-link>
+          </div>
+        </template>
+        <template #[`item.domains`]="{ item }">{{ (item.email_domains ?? []).join(', ') || '—' }}</template>
+        <template #[`item.projects`]="{ item }"><ProjectCell :ids="item.project_ids ?? []" /></template>
+        <template #[`item.members`]="{ item }">{{ item.member_count ?? '—' }}</template>
+        <template #[`item.status`]="{ item }">
+          <v-chip size="small" label :color="item.status === 'active' ? 'success' : undefined">
+            {{ item.status === 'active' ? $t('agent.common.active') : $t('agent.organizations.archived') }}
+          </v-chip>
+        </template>
+      </DataTable>
       </template>
-      <div v-if="list.next.value" class="pa-2 text-center">
-        <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
     </v-card>
     <v-dialog v-model="dialog" max-width="560">
       <v-card :title="$t('agent.organizations.new')">
@@ -119,7 +116,3 @@ const cols = useTableColumns('agent-organizations', () => [
     </v-dialog>
   </v-container>
 </template>
-
-<style scoped>
-.fd-row { cursor: pointer; }
-</style>

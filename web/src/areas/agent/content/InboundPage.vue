@@ -22,7 +22,8 @@ import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
+import { useProjectsStore } from '@/stores/projects'
 
 type Mailbox = components['schemas']['InboundMailbox']
 const { t } = useI18n()
@@ -30,6 +31,7 @@ const { confirm } = useConfirm()
 const { run } = useAction()
 const lookups = useLookupsStore()
 const cp = useConfigProjects()
+const projects = useProjectsStore()
 const items = ref<Mailbox[]>([])
 const loading = ref(true)
 const failed = ref(false)
@@ -75,14 +77,17 @@ async function remove(m: Mailbox) {
   if (ok !== undefined) await load()
 }
 
+const statusLabel = (m: Mailbox) => (m.last_error ? t('agent.inbound.error') : m.active ? t('agent.common.active') : t('agent.common.inactive'))
+const teamLabel = (m: Mailbox) => lookups.teamName(m.team_id) || t('agent.inbound.triage')
+
 const cols = useTableColumns('inbound', () => [
   { key: 'name', label: t('agent.common.name'), locked: true },
-  { key: 'kind', label: t('agent.inbound.kindLabel'), lowPriority: true },
+  { key: 'kind', label: t('agent.inbound.kindLabel'), lowPriority: true, sortValue: (m: Mailbox) => t(`agent.inbound.kind.${m.kind}`) },
   { key: 'address', label: t('agent.inbound.address'), lowPriority: true },
-  { key: 'project', label: t('projects.config.project'), lowPriority: true },
-  { key: 'team', label: t('agent.common.team'), lowPriority: true },
-  { key: 'status', label: t('agent.common.status') },
-  { key: 'lastOk', label: t('agent.inbound.lastOk'), lowPriority: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true, sortValue: (m: Mailbox) => (m.project_id ? projects.byId(m.project_id)?.key ?? '?' : '') },
+  { key: 'team', label: t('agent.common.team'), lowPriority: true, sortValue: teamLabel },
+  { key: 'status', label: t('agent.common.status'), sortValue: statusLabel },
+  { key: 'lastOk', label: t('agent.inbound.lastOk'), lowPriority: true, sortValue: (m: Mailbox) => m.last_ok_at ?? '' },
 ])
 </script>
 
@@ -100,49 +105,29 @@ const cols = useTableColumns('inbound', () => [
       <EmptyState v-if="!loading && !items.length" :title="$t('agent.inbound.empty')" :body="$t('agent.inbound.emptyBody')" />
       <template v-else>
         <ColumnsMenu :cols="cols" />
-        <v-table density="comfortable" data-testid="inbound-table">
-          <thead>
-            <tr>
-              <ColumnCells :cols="cols" head>
-                <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-                <th data-col="kind" v-if="cols.show('kind')">{{ $t('agent.inbound.kindLabel') }}</th>
-                <th data-col="address" v-if="cols.show('address')">{{ $t('agent.inbound.address') }}</th>
-                <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-                <th data-col="team" v-if="cols.show('team')">{{ $t('agent.common.team') }}</th>
-                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-                <th data-col="lastOk" v-if="cols.show('lastOk')">{{ $t('agent.inbound.lastOk') }}</th>
-                <th class="text-right">{{ $t('agent.common.actions') }}</th>
-              </ColumnCells>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="m in items" :key="m.id" data-testid="inbound-row">
-              <ColumnCells :cols="cols">
-                <td data-col="name" v-if="cols.show('name')">{{ m.name }}</td>
-                <td data-col="kind" v-if="cols.show('kind')">{{ $t(`agent.inbound.kind.${m.kind}`) }}</td>
-                <td data-col="address" v-if="cols.show('address')">{{ m.address }}</td>
-                <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="m.project_id" /></td>
-                <td data-col="team" v-if="cols.show('team')">{{ lookups.teamName(m.team_id) || $t('agent.inbound.triage') }}</td>
-                <td data-col="status" v-if="cols.show('status')">
-                  <v-chip size="small" label variant="tonal" :color="m.last_error ? 'error' : m.active ? 'success' : undefined">
-                    {{ m.last_error ? $t('agent.inbound.error') : m.active ? $t('agent.common.active') : $t('agent.common.inactive') }}
-                  </v-chip>
-                  <div v-if="m.last_error" class="text-caption text-error mt-1" data-testid="inbound-last-error">{{ m.last_error }}</div>
-                </td>
-                <td data-col="lastOk" v-if="cols.show('lastOk')"><RelativeTime v-if="m.last_ok_at" :value="m.last_ok_at" /><span v-else>{{ $t('agent.common.never') }}</span></td>
-                <td class="text-right text-no-wrap">
-                  <v-tooltip v-if="m.kind === 'webhook'" :text="$t('agent.inbound.regenerateHint')" location="top">
-                    <template #activator="{ props: tip }">
-                      <span v-bind="tip"><v-btn :icon="mdiRefresh" variant="text" size="small" disabled :aria-label="$t('agent.inbound.regenerate')" data-testid="inbound-regenerate" /></span>
-                    </template>
-                  </v-tooltip>
-                  <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="inbound-edit" @click="openForm(m)" />
-                  <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="inbound-delete" @click="remove(m)" />
-                </td>
-              </ColumnCells>
-            </tr>
-          </tbody>
-        </v-table>
+        <DataTable :cols="cols" :items="items" :loading="loading" actions density="comfortable" :row-props="{ 'data-testid': 'inbound-row' }" data-testid="inbound-table">
+          <template #[`item.name`]="{ item }">{{ item.name }}</template>
+          <template #[`item.kind`]="{ item }">{{ $t(`agent.inbound.kind.${item.kind}`) }}</template>
+          <template #[`item.address`]="{ item }">{{ item.address }}</template>
+          <template #[`item.project`]="{ item }"><ProjectCell :id="item.project_id" /></template>
+          <template #[`item.team`]="{ item }">{{ teamLabel(item) }}</template>
+          <template #[`item.status`]="{ item }">
+            <v-chip size="small" label variant="tonal" :color="item.last_error ? 'error' : item.active ? 'success' : undefined">{{ statusLabel(item) }}</v-chip>
+            <div v-if="item.last_error" class="text-caption text-error mt-1" data-testid="inbound-last-error">{{ item.last_error }}</div>
+          </template>
+          <template #[`item.lastOk`]="{ item }"><RelativeTime v-if="item.last_ok_at" :value="item.last_ok_at" /><span v-else>{{ $t('agent.common.never') }}</span></template>
+          <template #[`item.actions`]="{ item }">
+            <div class="text-no-wrap">
+              <v-tooltip v-if="item.kind === 'webhook'" :text="$t('agent.inbound.regenerateHint')" location="top">
+                <template #activator="{ props: tip }">
+                  <span v-bind="tip"><v-btn :icon="mdiRefresh" variant="text" size="small" disabled :aria-label="$t('agent.inbound.regenerate')" data-testid="inbound-regenerate" /></span>
+                </template>
+              </v-tooltip>
+              <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="inbound-edit" @click="openForm(item)" />
+              <v-btn :icon="mdiDeleteOutline" variant="text" size="small" color="error" :aria-label="$t('agent.common.delete')" data-testid="inbound-delete" @click="remove(item)" />
+            </div>
+          </template>
+        </DataTable>
       </template>
     </v-card>
 

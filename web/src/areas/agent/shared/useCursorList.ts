@@ -30,6 +30,8 @@ export function useCursorList<T>(fetchPage: (cursor: string | null) => Promise<C
       next.value = page.next_cursor ?? null
     } catch (e) {
       if (mine !== seq) return
+      // The row a cursor points at can be pruned meanwhile (logs): start over.
+      if (cursor && e instanceof ApiProblem && e.status === 422 && e.errors.some((f) => f.field === 'cursor')) return void run(null, false)
       error.value = e instanceof ApiProblem ? e : new ApiProblem(0, {})
     } finally {
       if (mine === seq) loading.value = false

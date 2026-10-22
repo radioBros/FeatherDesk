@@ -85,11 +85,14 @@ func (d *Directory) listCustomers(w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	after, err := dirCursor(r)
+	order, err := dirSort(r, "id", map[string]string{"name": "name", "email": "email"})
 	if err != nil {
 		return err
 	}
-	where, args := `kind = 'customer' AND id > ?`, []any{after}
+	where, args, err := order.after(r, `kind = 'customer'`, nil)
+	if err != nil {
+		return err
+	}
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
 		like := prefixLike(q)
 		where += ` AND (lower(name) LIKE ? ESCAPE '\' OR email LIKE ? ESCAPE '\')`
@@ -99,7 +102,7 @@ func (d *Directory) listCustomers(w http.ResponseWriter, r *http.Request) error 
 		where += ` AND organization_id = ?`
 		args = append(args, org)
 	}
-	rows, err := d.db.Read().QueryContext(r.Context(), `SELECT `+customerCols+` FROM users WHERE `+where+` ORDER BY id LIMIT ?`, append(args, limit+1)...)
+	rows, err := d.db.Read().QueryContext(r.Context(), `SELECT `+customerCols+` FROM users WHERE `+where+` ORDER BY `+order.orderBy()+` LIMIT ?`, append(args, limit+1)...)
 	if err != nil {
 		return err
 	}
@@ -117,7 +120,8 @@ func (d *Directory) listCustomers(w http.ResponseWriter, r *http.Request) error 
 	}
 	if len(page.Items) > limit {
 		page.Items = page.Items[:limit]
-		page.NextCursor = dirNextCursor(page.Items[limit-1].ID)
+		last := page.Items[limit-1]
+		page.NextCursor = order.next(last.ID, map[string]string{"name": last.Name, "email": last.Email})
 	}
 	dirJSON(w, http.StatusOK, page)
 	return nil
@@ -478,16 +482,19 @@ func (d *Directory) listOrgs(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	after, err := dirCursor(r)
+	order, err := dirSort(r, "o.id", map[string]string{"name": "o.name"})
 	if err != nil {
 		return err
 	}
-	where, args := `o.id > ?`, []any{after}
+	where, args, err := order.after(r, "1=1", nil)
+	if err != nil {
+		return err
+	}
 	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
 		where += ` AND lower(o.name) LIKE ? ESCAPE '\'`
 		args = append(args, prefixLike(q))
 	}
-	rows, err := d.db.Read().QueryContext(r.Context(), `SELECT `+orgCols+` FROM organizations o WHERE `+where+` ORDER BY o.id LIMIT ?`, append(args, limit+1)...)
+	rows, err := d.db.Read().QueryContext(r.Context(), `SELECT `+orgCols+` FROM organizations o WHERE `+where+` ORDER BY `+order.orderBy()+` LIMIT ?`, append(args, limit+1)...)
 	if err != nil {
 		return err
 	}
@@ -505,7 +512,8 @@ func (d *Directory) listOrgs(w http.ResponseWriter, r *http.Request) error {
 	}
 	if len(page.Items) > limit {
 		page.Items = page.Items[:limit]
-		page.NextCursor = dirNextCursor(page.Items[limit-1].ID)
+		last := page.Items[limit-1]
+		page.NextCursor = order.next(last.ID, map[string]string{"name": last.Name})
 	}
 	if err := fillOrgProjects(r.Context(), d.db.Read(), page.Items); err != nil {
 		return err

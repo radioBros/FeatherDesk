@@ -17,11 +17,11 @@ import { useConfigStore } from '@/stores/config'
 import { localized } from '@/utils/localized'
 import { useCursorList } from '../shared/useCursorList'
 import { editorLocales, loadKbCategories, VISIBILITIES, type KbCategory } from './kb'
-import type { components } from '@/api/schema'
+import type { components, operations } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 type Summary = S['KbArticleSummary'] & { available_locales?: string[] }
@@ -35,6 +35,9 @@ const filters = ref<{ q: string; status: S['KbStatus'] | null; category_id: stri
   category_id: null,
   locale: null,
 })
+type KbQuery = NonNullable<operations['listKbArticlesForEditor']['parameters']['query']>
+/** Header sort; null = the API default (newest updated, or relevance with `q`). */
+const sort = ref<NonNullable<KbQuery['sort']> | null>(null)
 const categories = ref<KbCategory[]>([])
 const locales = computed(() => editorLocales(config.config))
 
@@ -44,6 +47,7 @@ const list = useCursorList<Summary>((cursor) =>
       params: {
         query: {
           cursor: cursor ?? undefined,
+          sort: sort.value ?? undefined,
           q: filters.value.q.trim() || undefined,
           status: filters.value.status ?? undefined,
           category_id: filters.value.category_id ?? undefined,
@@ -69,6 +73,8 @@ watch(
   },
 )
 
+watch(sort, () => void list.reload())
+
 onMounted(async () => {
   void list.reload()
   categories.value = await loadKbCategories().catch(() => [])
@@ -77,14 +83,22 @@ onMounted(async () => {
 function open(a: Summary) {
   void router.push(`/agent/kb/articles/${a.id}`)
 }
+const covered = (a: Summary, l: string) => (a.available_locales ?? [a.locale]).includes(l as S['Locale'])
+const rowProps = ({ item }: { item: Summary }) => ({
+  'data-testid': 'kb-row',
+  tabindex: 0,
+  onKeydown: (e: KeyboardEvent) => {
+    if (e.key === 'Enter') open(item)
+  },
+})
 
 const cols = useTableColumns('kb-articles', () => [
-  { key: 'title', label: t('agent.kb.titleCol'), locked: true },
+  { key: 'title', label: t('agent.kb.titleCol'), locked: true, sort: { asc: 'title', desc: '-title' } },
   { key: 'category', label: t('agent.common.category'), lowPriority: true },
   { key: 'status', label: t('agent.common.status') },
   { key: 'visibility', label: t('agent.kb.visibility'), lowPriority: true },
   { key: 'locales', label: t('agent.kb.locales'), lowPriority: true },
-  { key: 'updated', label: t('agent.common.updatedAt'), lowPriority: true },
+  { key: 'updated', label: t('agent.common.updatedAt'), lowPriority: true, sort: { asc: 'updated_at', desc: '-updated_at' } },
 ])
 </script>
 
@@ -109,62 +123,51 @@ const cols = useTableColumns('kb-articles', () => [
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.kb.empty')" body="" />
       <template v-else>
         <ColumnsMenu :cols="cols" />
-        <v-table density="comfortable" hover data-testid="kb-table">
-          <thead>
-            <tr>
-              <ColumnCells :cols="cols" head>
-                <th data-col="title" v-if="cols.show('title')">{{ $t('agent.kb.titleCol') }}</th>
-                <th data-col="category" v-if="cols.show('category')">{{ $t('agent.common.category') }}</th>
-                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-                <th data-col="visibility" v-if="cols.show('visibility')">{{ $t('agent.kb.visibility') }}</th>
-                <th data-col="locales" v-if="cols.show('locales')">{{ $t('agent.kb.locales') }}</th>
-                <th data-col="updated" v-if="cols.show('updated')">{{ $t('agent.common.updatedAt') }}</th>
-              </ColumnCells>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="a in list.items.value" :key="a.id" class="fd-row" data-testid="kb-row" tabindex="0" @click="open(a)" @keydown.enter="open(a)">
-              <ColumnCells :cols="cols">
-                <td data-col="title" v-if="cols.show('title')">
-                  <div class="d-flex align-center ga-2">
-                    <SectionIcon section="kb" :icon="mdiFileDocumentOutline" :size="30" />
-                    <div>
-                      <router-link :to="`/agent/kb/articles/${a.id}`" class="text-decoration-none" @click.stop>{{ a.title }}</router-link>
-                      <div class="text-caption text-medium-emphasis">/{{ a.slug }}</div>
-                    </div>
-                  </div>
-                </td>
-                <td data-col="category" v-if="cols.show('category')">{{ categoryName(a.category_id) || '—' }}</td>
-                <td data-col="status" v-if="cols.show('status')">
-                  <v-chip v-if="a.status" size="small" label variant="tonal" :color="STATUS_COLOR[a.status]">{{ $t(`agent.kb.status.${a.status}`) }}</v-chip>
-                </td>
-                <td data-col="visibility" v-if="cols.show('visibility')">{{ a.visibility && VISIBILITIES.includes(a.visibility) ? $t(`agent.kb.vis.${a.visibility}`) : '—' }}</td>
-                <td data-col="locales" v-if="cols.show('locales')">
-                  <div class="d-flex flex-wrap ga-1" data-testid="kb-coverage">
-                    <v-chip
-                      v-for="l in locales"
-                      :key="l"
-                      size="x-small"
-                      label
-                      :variant="(a.available_locales ?? [a.locale]).includes(l as S['Locale']) ? 'flat' : 'outlined'"
-                      :color="(a.available_locales ?? [a.locale]).includes(l as S['Locale']) ? 'primary' : undefined"
-                      :title="(a.available_locales ?? [a.locale]).includes(l as S['Locale']) ? '' : $t('agent.kb.missingTranslation')"
-                    >{{ l.toUpperCase() }}</v-chip>
-                  </div>
-                </td>
-                <td data-col="updated" v-if="cols.show('updated')"><RelativeTime :value="a.updated_at" /></td>
-              </ColumnCells>
-            </tr>
-          </tbody>
-        </v-table>
+        <DataTable
+          :cols="cols"
+          :items="list.items.value"
+          :loading="list.loading.value"
+          server-sort
+          :sort="sort"
+          :has-more="!!list.next.value"
+          density="comfortable"
+          hover
+          :row-props="rowProps"
+          data-testid="kb-table"
+          @update:sort="(v: string | null) => (sort = v as typeof sort)"
+          @load-more="list.loadMore()"
+          @click:row="(_e: unknown, { item }: { item: Summary }) => open(item)"
+        >
+          <template #[`item.title`]="{ item }">
+            <div class="d-flex align-center ga-2">
+              <SectionIcon section="kb" :icon="mdiFileDocumentOutline" :size="30" />
+              <div>
+                <router-link :to="`/agent/kb/articles/${item.id}`" class="text-decoration-none" @click.stop>{{ item.title }}</router-link>
+                <div class="text-caption text-medium-emphasis">/{{ item.slug }}</div>
+              </div>
+            </div>
+          </template>
+          <template #[`item.category`]="{ item }">{{ categoryName(item.category_id) || '—' }}</template>
+          <template #[`item.status`]="{ item }">
+            <v-chip v-if="item.status" size="small" label variant="tonal" :color="STATUS_COLOR[item.status as S['KbStatus']]">{{ $t(`agent.kb.status.${item.status}`) }}</v-chip>
+          </template>
+          <template #[`item.visibility`]="{ item }">{{ item.visibility && VISIBILITIES.includes(item.visibility) ? $t(`agent.kb.vis.${item.visibility}`) : '—' }}</template>
+          <template #[`item.locales`]="{ item }">
+            <div class="d-flex flex-wrap ga-1" data-testid="kb-coverage">
+              <v-chip
+                v-for="l in locales"
+                :key="l"
+                size="x-small"
+                label
+                :variant="covered(item, l) ? 'flat' : 'outlined'"
+                :color="covered(item, l) ? 'primary' : undefined"
+                :title="covered(item, l) ? '' : $t('agent.kb.missingTranslation')"
+              >{{ l.toUpperCase() }}</v-chip>
+            </div>
+          </template>
+          <template #[`item.updated`]="{ item }"><RelativeTime :value="item.updated_at" /></template>
+        </DataTable>
       </template>
-      <div v-if="list.next.value" class="pa-3 text-center">
-        <v-btn variant="text" :loading="list.loading.value" data-testid="kb-more" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
     </v-card>
   </v-container>
 </template>
-
-<style scoped>
-.fd-row { cursor: pointer; }
-</style>

@@ -17,13 +17,15 @@ import ProjectCell from '../shared/ProjectCell.vue'
 import { useConfigProjects } from '../shared/useConfigProjects'
 import { useAction } from '../shared/useAction'
 import type { components } from '@/api/schema'
-import ColumnCells from '@/components/ColumnCells.vue'
+import { useProjectsStore } from '@/stores/projects'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
 const { confirm } = useConfirm()
 const lookups = useLookupsStore()
 const cp = useConfigProjects()
+const projects = useProjectsStore()
 const { run } = useAction()
 const items = ref<S['CannedResponse'][]>([])
 const loading = ref(true)
@@ -70,11 +72,15 @@ async function remove(c: S['CannedResponse']) {
   }, t('agent.common.deleted'))
   if (ok) void load()
 }
+const scopeLabel = (c: S['CannedResponse']) => (c.team_id ? lookups.teamName(c.team_id) || '—' : t('agent.canned.global'))
+const changedAt = (c: S['CannedResponse']) => c.updated_at ?? c.created_at
+/** What the project column shows (ProjectCell): the project key, or "all projects". */
+const projectKey = (id?: string | null) => (id ? (projects.byId(id)?.key ?? '?') : t('projects.config.all'))
 const cols = useTableColumns('config-canned', () => [
   { key: 'title', label: t('agent.canned.title'), locked: true },
-  { key: 'project', label: t('projects.config.project'), lowPriority: true },
-  { key: 'scope', label: t('agent.canned.scope') },
-  { key: 'updatedAt', label: t('agent.common.updatedAt'), lowPriority: true },
+  { key: 'project', label: t('projects.config.project'), lowPriority: true, sortValue: (c: S['CannedResponse']) => projectKey(c.project_id) },
+  { key: 'scope', label: t('agent.canned.scope'), sortValue: scopeLabel },
+  { key: 'updatedAt', label: t('agent.common.updatedAt'), lowPriority: true, sortValue: (c: S['CannedResponse']) => changedAt(c) ?? '' },
 ])
 </script>
 
@@ -92,33 +98,18 @@ const cols = useTableColumns('config-canned', () => [
       <EmptyState v-if="!loading && !filtered.length" :title="$t('agent.canned.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="canned-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="title" v-if="cols.show('title')">{{ $t('agent.canned.title') }}</th>
-              <th data-col="project" v-if="cols.show('project')">{{ $t('projects.config.project') }}</th>
-              <th data-col="scope" v-if="cols.show('scope')">{{ $t('agent.canned.scope') }}</th>
-              <th data-col="updatedAt" v-if="cols.show('updatedAt')">{{ $t('agent.common.updatedAt') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in filtered" :key="c.id" data-testid="canned-row">
-            <ColumnCells :cols="cols">
-              <td data-col="title" v-if="cols.show('title')">{{ c.title }}</td>
-              <td data-col="project" v-if="cols.show('project')"><ProjectCell :id="c.project_id" /></td>
-              <td data-col="scope" v-if="cols.show('scope')">{{ c.team_id ? lookups.teamName(c.team_id) || '—' : $t('agent.canned.global') }}</td>
-              <td data-col="updatedAt" v-if="cols.show('updatedAt')"><RelativeTime v-if="c.updated_at ?? c.created_at" :value="(c.updated_at ?? c.created_at)!" /></td>
-              <td class="text-right text-no-wrap">
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(c)" />
-                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="canned-delete" @click="remove(c)" />
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable :cols="cols" :items="filtered" :loading="loading" actions density="comfortable" :row-props="{ 'data-testid': 'canned-row' }" data-testid="canned-table">
+        <template #[`item.title`]="{ item }">{{ item.title }}</template>
+        <template #[`item.project`]="{ item }"><ProjectCell :id="item.project_id" /></template>
+        <template #[`item.scope`]="{ item }">{{ scopeLabel(item) }}</template>
+        <template #[`item.updatedAt`]="{ item }"><RelativeTime v-if="changedAt(item)" :value="changedAt(item)!" /></template>
+        <template #[`item.actions`]="{ item }">
+          <span class="text-no-wrap">
+            <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" @click="openForm(item)" />
+            <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="canned-delete" @click="remove(item)" />
+          </span>
+        </template>
+      </DataTable>
       </template>
     </v-card>
 

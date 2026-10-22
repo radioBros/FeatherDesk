@@ -10,7 +10,7 @@
  */
 import { test, expect, clientIp, type Credentials } from '../fixtures'
 import type { Page } from '@playwright/test'
-import { apiFor, seedTeam, signIn, uid } from './helpers'
+import { apiFor, seedTeam, signIn, tableRow, uid } from './helpers'
 
 const CONTROLS = { publish: 'kb-publish', unpublish: 'kb-unpublish', archive: 'kb-archive', delete: 'kb-delete' } as const
 
@@ -52,7 +52,7 @@ test.describe('KB editor and categories', () => {
       await pickOption(admin, 'kbcat-visibility', 'Public')
       await admin.getByTestId('kbcat-save').click()
       await expect(admin.getByTestId('kb-category-form')).toHaveCount(0)
-      await expect(admin.getByTestId('kbcat-table')).toContainText(title)
+      await tableRow(admin.getByTestId('kbcat-table'), 'kbcat-row', title)
     }
     // Empty submit sends nothing (FE-005).
     let posted = false
@@ -78,7 +78,7 @@ test.describe('KB editor and categories', () => {
 
     // Reorder siblings: Scanners moves above Printers.
     const sortOf = (list: typeof all, slug: string) => list.find((c) => c.slug === slug)!.sort ?? 0
-    const scannersRow = admin.getByTestId('kbcat-row').filter({ hasText: `Scanners ${id}` })
+    const scannersRow = await tableRow(admin.getByTestId('kbcat-table'), 'kbcat-row', `Scanners ${id}`)
     await scannersRow.getByTestId('kbcat-up').click()
     await expect.poll(async () => {
       const now = await cats()
@@ -86,11 +86,11 @@ test.describe('KB editor and categories', () => {
     }).toBe(true)
 
     // Edit a title, then delete the unused category.
-    await admin.getByTestId('kbcat-row').filter({ hasText: `Printers ${id}` }).getByRole('button', { name: 'Edit' }).click()
+    await (await tableRow(admin.getByTestId('kbcat-table'), 'kbcat-row', `Printers ${id}`)).getByRole('button', { name: 'Edit' }).click()
     await admin.getByTestId('kbcat-title-en').locator('input').fill(`Printers and copiers ${id}`)
     await admin.getByTestId('kbcat-save').click()
-    await expect(admin.getByTestId('kbcat-table')).toContainText(`Printers and copiers ${id}`)
-    await admin.getByTestId('kbcat-row').filter({ hasText: `Obsolete ${id}` }).getByTestId('kbcat-delete').click()
+    await tableRow(admin.getByTestId('kbcat-table'), 'kbcat-row', `Printers and copiers ${id}`)
+    await (await tableRow(admin.getByTestId('kbcat-table'), 'kbcat-row', `Obsolete ${id}`)).getByTestId('kbcat-delete').click()
     await admin.getByTestId('confirm-ok').click()
     await expect(admin.getByTestId('kbcat-table')).not.toContainText(`Obsolete ${id}`)
     all = await cats()

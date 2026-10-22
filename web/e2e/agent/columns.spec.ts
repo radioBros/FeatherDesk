@@ -100,8 +100,8 @@ test.describe('table columns', () => {
     await page.goto('/agent/admin/staff')
     const table = page.getByTestId('staff-table')
     const head = () => table.locator('thead th[data-col]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.col))
-    const row = () => table.locator('tbody tr').first().locator('td[data-col]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.col))
-    await expect(table.locator('tbody tr').first()).toBeVisible()
+    const row = () => table.getByTestId('staff-row').first().locator('td[data-col]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.col))
+    await expect(table.getByTestId('staff-row').first()).toBeVisible()
     const initial = await head()
     expect(initial[0]).toBe('name')
 
@@ -130,4 +130,3 @@ test.describe('table columns', () => {
     await admin.context.close()
   })
 })
-

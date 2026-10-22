@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
-/** Delivery log of one webhook (FE-040): status, latency, error, attempt; cursor "Load more". */
-import { onMounted } from 'vue'
+/** Delivery log of one webhook (FE-040): status, latency, error, attempt; cursor "Load more", sortable by time. */
+import { onMounted, ref, watch } from 'vue'
 import { api, unwrap } from '@/api/client'
 import RelativeTime from '@/components/RelativeTime.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -9,21 +9,26 @@ import { useI18n } from 'vue-i18n'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
 import { useCursorList } from '../shared/useCursorList'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
+import type { operations } from '@/api/schema'
 
+type DeliveriesQuery = NonNullable<operations['listWebhookDeliveries']['parameters']['query']>
 const props = defineProps<{ webhookId: string }>()
+/** null = the endpoint's default order (newest first). */
+const sort = ref<NonNullable<DeliveriesQuery['sort']> | null>(null)
 const list = useCursorList((cursor) =>
   unwrap(
     api.GET('/admin/webhooks/{id}/deliveries', {
-      params: { path: { id: props.webhookId }, query: cursor ? { cursor, limit: 50 } : { limit: 50 } },
+      params: { path: { id: props.webhookId }, query: { sort: sort.value ?? undefined, cursor: cursor ?? undefined, limit: 50 } },
     }),
   ),
 )
 onMounted(() => void list.reload())
+watch(sort, () => void list.reload())
 const ok = (code?: number | null) => !!code && code >= 200 && code < 300
 const { t } = useI18n()
 const cols = useTableColumns('webhook-deliveries', () => [
-  { key: 'when', label: t('agent.webhooks.when'), locked: true },
+  { key: 'when', label: t('agent.webhooks.when'), locked: true, sort: { asc: 'created_at', desc: '-created_at' } },
   { key: 'event', label: t('agent.webhooks.event') },
   { key: 'statusCode', label: t('agent.webhooks.statusCode') },
   { key: 'latency', label: t('agent.webhooks.latency'), lowPriority: true },
@@ -39,37 +44,28 @@ const cols = useTableColumns('webhook-deliveries', () => [
     <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.webhooks.noDeliveries')" body="" />
     <template v-else>
     <ColumnsMenu :cols="cols" />
-    <v-table density="compact">
-      <thead>
-        <tr>
-          <ColumnCells :cols="cols" head>
-            <th data-col="when" v-if="cols.show('when')">{{ $t('agent.webhooks.when') }}</th>
-            <th data-col="event" v-if="cols.show('event')">{{ $t('agent.webhooks.event') }}</th>
-            <th data-col="statusCode" v-if="cols.show('statusCode')">{{ $t('agent.webhooks.statusCode') }}</th>
-            <th data-col="latency" v-if="cols.show('latency')">{{ $t('agent.webhooks.latency') }}</th>
-            <th data-col="attempt" v-if="cols.show('attempt')">{{ $t('agent.webhooks.attempt') }}</th>
-            <th data-col="error" v-if="cols.show('error')">{{ $t('agent.webhooks.error') }}</th>
-          </ColumnCells>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="d in list.items.value" :key="d.id" data-testid="delivery-row">
-          <ColumnCells :cols="cols">
-            <td data-col="when" v-if="cols.show('when')"><RelativeTime :value="d.created_at" /></td>
-            <td data-col="event" v-if="cols.show('event')" class="text-caption">{{ d.event_type ?? '—' }}</td>
-            <td data-col="statusCode" v-if="cols.show('statusCode')">
-              <v-chip size="x-small" label :color="ok(d.status_code) ? 'success' : 'error'">{{ d.status_code ?? '—' }}</v-chip>
-            </td>
-            <td data-col="latency" v-if="cols.show('latency')">{{ d.response_ms != null ? `${d.response_ms} ms` : '—' }}</td>
-            <td data-col="attempt" v-if="cols.show('attempt')">{{ d.attempt }}</td>
-            <td data-col="error" v-if="cols.show('error')" class="text-caption">{{ d.error ?? '' }}</td>
-          </ColumnCells>
-        </tr>
-      </tbody>
-    </v-table>
+    <DataTable
+      :cols="cols"
+      :items="list.items.value"
+      :loading="list.loading.value"
+      server-sort
+      :sort="sort"
+      :has-more="!!list.next.value"
+      density="compact"
+      max-height="max(240px, calc(100dvh - 360px))"
+      :row-props="{ 'data-testid': 'delivery-row' }"
+      @update:sort="(v: string | null) => (sort = v as typeof sort)"
+      @load-more="list.loadMore()"
+    >
+      <template #[`item.when`]="{ item }"><RelativeTime :value="item.created_at" /></template>
+      <template #[`item.event`]="{ item }"><span class="text-caption">{{ item.event_type ?? '—' }}</span></template>
+      <template #[`item.statusCode`]="{ item }">
+        <v-chip size="x-small" label :color="ok(item.status_code) ? 'success' : 'error'">{{ item.status_code ?? '—' }}</v-chip>
+      </template>
+      <template #[`item.latency`]="{ item }">{{ item.response_ms != null ? `${item.response_ms} ms` : '—' }}</template>
+      <template #[`item.attempt`]="{ item }">{{ item.attempt }}</template>
+      <template #[`item.error`]="{ item }"><span class="text-caption">{{ item.error ?? '' }}</span></template>
+    </DataTable>
     </template>
-    <div v-if="list.next.value" class="text-center mt-2">
-      <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
-    </div>
   </div>
 </template>

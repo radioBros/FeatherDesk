@@ -15,10 +15,10 @@ import { api, unwrap } from '@/api/client'
 import { useConfirm } from '@/composables/useConfirm'
 import { useCursorList } from '../shared/useCursorList'
 import { useAction } from '../shared/useAction'
-import type { components } from '@/api/schema'
+import type { components, operations } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -27,6 +27,8 @@ const { run } = useAction()
 const status = ref<S['InboundStatus'] | null>(null)
 const mailboxId = ref<string | null>(null)
 const mailboxes = ref<S['InboundMailbox'][]>([])
+type InboundQuery = NonNullable<operations['listInboundMessages']['parameters']['query']>
+const sort = ref<NonNullable<InboundQuery['sort']> | null>(null)
 
 const STATUSES: S['InboundStatus'][] = ['processed', 'quarantined', 'failed', 'ignored']
 const COLORS: Record<S['InboundStatus'], string> = { processed: 'success', quarantined: 'warning', failed: 'error', ignored: 'grey' }
@@ -36,11 +38,11 @@ const mailboxName = (id: string) => mailboxes.value.find((m) => m.id === id)?.na
 const list = useCursorList<S['InboundMessage']>((cursor) =>
   unwrap(
     api.GET('/admin/inbound/messages', {
-      params: { query: { cursor: cursor ?? undefined, status: status.value ?? undefined, mailbox_id: mailboxId.value ?? undefined } },
+      params: { query: { cursor: cursor ?? undefined, sort: sort.value ?? undefined, status: status.value ?? undefined, mailbox_id: mailboxId.value ?? undefined } },
     }),
   ),
 )
-watch([status, mailboxId], () => void list.reload())
+watch([status, mailboxId, sort], () => void list.reload())
 onMounted(async () => {
   void list.reload()
   try {
@@ -62,7 +64,7 @@ async function retry(m: S['InboundMessage']) {
 }
 
 const cols = useTableColumns('inbound-log', () => [
-  { key: 'received', label: t('agent.inboundLog.received'), lowPriority: true },
+  { key: 'received', label: t('agent.inboundLog.received'), lowPriority: true, sort: { asc: 'received_at', desc: '-received_at' } },
   { key: 'sender', label: t('agent.inboundLog.sender') },
   { key: 'subject', label: t('agent.inboundLog.subject'), locked: true },
   { key: 'status', label: t('agent.common.status') },
@@ -88,43 +90,34 @@ const cols = useTableColumns('inbound-log', () => [
       <EmptyState v-if="!list.loading.value && !list.items.value.length" :title="$t('agent.inboundLog.empty')" body="" />
       <template v-else>
         <ColumnsMenu :cols="cols" />
-        <v-table density="comfortable" data-testid="inlog-table">
-          <thead>
-            <tr>
-              <ColumnCells :cols="cols" head>
-                <th data-col="received" v-if="cols.show('received')">{{ $t('agent.inboundLog.received') }}</th>
-                <th data-col="sender" v-if="cols.show('sender')">{{ $t('agent.inboundLog.sender') }}</th>
-                <th data-col="subject" v-if="cols.show('subject')">{{ $t('agent.inboundLog.subject') }}</th>
-                <th data-col="status" v-if="cols.show('status')">{{ $t('agent.common.status') }}</th>
-                <th data-col="reason" v-if="cols.show('reason')">{{ $t('agent.inboundLog.reason') }}</th>
-                <th data-col="ticket" v-if="cols.show('ticket')">{{ $t('agent.inboundLog.ticket') }}</th>
-                <th class="text-right">{{ $t('agent.common.actions') }}</th>
-              </ColumnCells>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="m in list.items.value" :key="m.id" data-testid="inlog-row">
-              <ColumnCells :cols="cols">
-                <td data-col="received" class="text-no-wrap" v-if="cols.show('received')"><RelativeTime :value="m.received_at" /></td>
-                <td data-col="sender" v-if="cols.show('sender')">{{ m.from_addr }}<div v-if="mailboxName(m.mailbox_id)" class="text-caption text-medium-emphasis">{{ mailboxName(m.mailbox_id) }}</div></td>
-                <td data-col="subject" v-if="cols.show('subject')">{{ m.subject || '—' }}</td>
-                <td data-col="status" v-if="cols.show('status')"><v-chip size="small" label variant="tonal" :color="COLORS[m.status]" data-testid="inlog-status-chip">{{ $t(`agent.inboundLog.status.${m.status}`) }}</v-chip></td>
-                <td data-col="reason" class="text-caption" v-if="cols.show('reason')">{{ m.reason || '—' }}</td>
-                <td data-col="ticket" v-if="cols.show('ticket')">
-                  <router-link v-if="m.ticket_id" :to="{ path: '/agent/tickets', query: { q: m.ticket_id } }" data-testid="inlog-ticket">{{ $t('agent.inboundLog.openTicket') }}</router-link>
-                  <span v-else>—</span>
-                </td>
-                <td class="text-right">
-                  <v-btn v-if="retryable(m)" variant="text" size="small" :prepend-icon="mdiReplay" data-testid="inlog-retry" @click="retry(m)">{{ $t('agent.inboundLog.retry') }}</v-btn>
-                </td>
-              </ColumnCells>
-            </tr>
-          </tbody>
-        </v-table>
+        <DataTable
+          :cols="cols"
+          :items="list.items.value"
+          :loading="list.loading.value"
+          server-sort
+          :sort="sort"
+          :has-more="!!list.next.value"
+          actions
+          density="comfortable"
+          :row-props="{ 'data-testid': 'inlog-row' }"
+          data-testid="inlog-table"
+          @update:sort="(v: string | null) => (sort = v as typeof sort)"
+          @load-more="list.loadMore()"
+        >
+          <template #[`item.received`]="{ item }"><span class="text-no-wrap"><RelativeTime :value="item.received_at" /></span></template>
+          <template #[`item.sender`]="{ item }">{{ item.from_addr }}<div v-if="mailboxName(item.mailbox_id)" class="text-caption text-medium-emphasis">{{ mailboxName(item.mailbox_id) }}</div></template>
+          <template #[`item.subject`]="{ item }">{{ item.subject || '—' }}</template>
+          <template #[`item.status`]="{ item }"><v-chip size="small" label variant="tonal" :color="COLORS[item.status as S['InboundStatus']]" data-testid="inlog-status-chip">{{ $t(`agent.inboundLog.status.${item.status}`) }}</v-chip></template>
+          <template #[`item.reason`]="{ item }"><span class="text-caption">{{ item.reason || '—' }}</span></template>
+          <template #[`item.ticket`]="{ item }">
+            <router-link v-if="item.ticket_id" :to="{ path: '/agent/tickets', query: { q: item.ticket_id } }" data-testid="inlog-ticket">{{ $t('agent.inboundLog.openTicket') }}</router-link>
+            <span v-else>—</span>
+          </template>
+          <template #[`item.actions`]="{ item }">
+            <v-btn v-if="retryable(item)" variant="text" size="small" :prepend-icon="mdiReplay" data-testid="inlog-retry" @click="retry(item)">{{ $t('agent.inboundLog.retry') }}</v-btn>
+          </template>
+        </DataTable>
       </template>
-      <div v-if="list.next.value" class="pa-3 text-center">
-        <v-btn variant="text" :loading="list.loading.value" @click="list.loadMore()">{{ $t('agent.common.loadMore') }}</v-btn>
-      </div>
     </v-card>
   </v-container>
 </template>

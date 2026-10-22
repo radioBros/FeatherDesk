@@ -8,7 +8,6 @@ package directory
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -96,6 +95,11 @@ func (s *StaffAdmin) list(w http.ResponseWriter, r *http.Request) {
 	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 {
 		limit = min(v, 200)
 	}
+	order, err := dirSort(r, "id", map[string]string{"name": "name"})
+	if err != nil {
+		problems.Write(w, r, err)
+		return
+	}
 	where, args := `kind = 'staff'`, []any{}
 	if role := q.Get("role"); role != "" {
 		if !domain.Role(role).ValidFor(domain.KindStaff) {
@@ -114,29 +118,25 @@ func (s *StaffAdmin) list(w http.ResponseWriter, r *http.Request) {
 		where += ` AND (lower(name) LIKE ? ESCAPE '\' OR lower(email) LIKE ? ESCAPE '\')`
 		args = append(args, like, like)
 	}
-	if c := q.Get("cursor"); c != "" {
-		b, err := base64.RawURLEncoding.DecodeString(c)
-		if err != nil {
-			problems.Write(w, r, problems.Validation(problems.Field("cursor", "invalid", "")))
-			return
-		}
-		where += ` AND id > ?`
-		args = append(args, string(b))
-	}
-	rows, err := s.d.DB.Read().QueryContext(r.Context(), `SELECT id FROM users WHERE `+where+` ORDER BY id LIMIT ?`, append(args, limit+1)...)
+	where, args, err = order.after(r, where, args)
 	if err != nil {
 		problems.Write(w, r, err)
 		return
 	}
-	var ids []string
+	rows, err := s.d.DB.Read().QueryContext(r.Context(), `SELECT id, name FROM users WHERE `+where+` ORDER BY `+order.orderBy()+` LIMIT ?`, append(args, limit+1)...)
+	if err != nil {
+		problems.Write(w, r, err)
+		return
+	}
+	var ids, names []string
 	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
 			rows.Close()
 			problems.Write(w, r, err)
 			return
 		}
-		ids = append(ids, id)
+		ids, names = append(ids, id), append(names, name)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
@@ -146,7 +146,7 @@ func (s *StaffAdmin) list(w http.ResponseWriter, r *http.Request) {
 	var next any
 	if len(ids) > limit {
 		ids = ids[:limit]
-		next = base64.RawURLEncoding.EncodeToString([]byte(ids[limit-1]))
+		next = order.next(ids[limit-1], map[string]string{"name": names[limit-1]})
 	}
 	items := make([]map[string]any, 0, len(ids))
 	for _, id := range ids {

@@ -26,16 +26,34 @@ function begin(): number {
   return props.cols.width(props.col) ?? th.getBoundingClientRect().width
 }
 
+// After a drag the browser sends `click` to the common ancestor of the press
+// and release targets: the <th> itself when the drag ends inside the column,
+// which would toggle its sort. Drop that one click; if none comes, stop
+// waiting on the next tick.
+function swallowNextClick() {
+  const swallow = (e: MouseEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+  }
+  window.addEventListener('click', swallow, { capture: true, once: true })
+  setTimeout(() => window.removeEventListener('click', swallow, { capture: true }), 0)
+}
+
 function onPointerdown(e: PointerEvent) {
   if (e.button !== 0 || !el.value) return
   e.preventDefault()
   const startX = e.clientX
   const startW = begin()
-  const move = (ev: PointerEvent) => props.cols.setWidths({ [props.col]: startW + ev.clientX - startX }, false)
+  let moved = false
+  const move = (ev: PointerEvent) => {
+    moved = true
+    props.cols.setWidths({ [props.col]: startW + ev.clientX - startX }, false)
+  }
   const end = () => {
     window.removeEventListener('pointermove', move)
     window.removeEventListener('pointerup', end)
     window.removeEventListener('pointercancel', end)
+    if (moved) swallowNextClick()
     props.cols.saveWidths()
   }
   window.addEventListener('pointermove', move)
@@ -71,8 +89,9 @@ function onKeydown(e: KeyboardEvent) {
 </template>
 
 <style>
-th:has(> .fd-col-resize),
-th:has(> * > .fd-col-resize) {
+/* The handle sits in its header cell; a sticky header cell already holds it. */
+th:not(.v-data-table__th--sticky):has(> .fd-col-resize),
+th:not(.v-data-table__th--sticky):has(> * > .fd-col-resize) {
   position: relative;
 }
 .fd-col-resize {
@@ -106,11 +125,5 @@ th:hover > * > .fd-col-resize::after,
 }
 .fd-col-resize:focus-visible {
   outline: none;
-}
-/* Resized tables: cells keep their width, long words wrap. */
-.fd-cols-sized > thead > tr > th,
-.fd-cols-sized > tbody > tr > td {
-  overflow: hidden;
-  overflow-wrap: anywhere;
 }
 </style>

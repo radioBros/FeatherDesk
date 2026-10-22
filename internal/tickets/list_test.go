@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -66,7 +67,7 @@ func TestList_CursorStableUnderInserts(t *testing.T) {
 			orig = append(orig, storetest.CreateTicket(t, db, storetest.Ticket{Requester: cust.UserID, TeamID: team, Priority: prios[i%4],
 				Status: domain.TicketStatuses[i%6], UpdatedAt: store.Now().Add(-time.Duration(i) * time.Minute)}))
 		}
-		for _, sort := range []string{"attention", "-updated_at", "updated_at", "priority", "-number", "due", "created_at"} {
+		for _, sort := range []string{"attention", "-updated_at", "updated_at", "priority", "-priority", "-number", "number", "due", "-due", "created_at"} {
 			seen := map[string]int{}
 			cursor := ""
 			for page := 0; page < 50; page++ {
@@ -90,6 +91,44 @@ func TestList_CursorStableUnderInserts(t *testing.T) {
 					t.Fatalf("sort %s: ticket seen %d times", sort, seen[id])
 				}
 			}
+		}
+	})
+}
+
+// -due: latest due date first, tickets without one last, across cursor pages.
+func TestList_DueDescOrder(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		e := newEnv(t, db)
+		team := storetest.CreateTeam(t, db, "")
+		sup := e.staff(domain.RoleSupervisor, 1)
+		cust := e.customer("", domain.RoleRequester)
+		now := store.Now()
+		var want []string
+		for i := 0; i < 5; i++ {
+			id := storetest.CreateTicket(t, db, storetest.Ticket{Requester: cust.UserID, TeamID: team})
+			e.exec(`UPDATE tickets SET first_response_due_at = NULL, resolution_due_at = ? WHERE id = ?`, now.Add(time.Duration(5-i)*time.Hour), id)
+			want = append(want, id)
+		}
+		noDue := storetest.CreateTicket(t, db, storetest.Ticket{Requester: cust.UserID, TeamID: team})
+		e.exec(`UPDATE tickets SET first_response_due_at = NULL, resolution_due_at = NULL WHERE id = ?`, noDue)
+		want = append(want, noDue)
+
+		var got []string
+		cursor := ""
+		for page := 0; page < 10; page++ {
+			path := "/api/v1/agent/tickets?limit=2&sort=-due"
+			if cursor != "" {
+				path += "&cursor=" + url.QueryEscape(cursor)
+			}
+			ids, next := listIDs(t, e, sup, path)
+			got = append(got, ids...)
+			if next == nil {
+				break
+			}
+			cursor = *next
+		}
+		if !slices.Equal(got, want) {
+			t.Fatalf("-due order:\n got %v\nwant %v", got, want)
 		}
 	})
 }
@@ -171,10 +210,84 @@ func TestList_CustomerFiltersIgnoreStaffParams(t *testing.T) {
 		e := newEnv(t, db)
 		cust := e.customer("", domain.RoleRequester)
 		e.createTicket(cust, CreateInput{})
-		for _, q := range []string{"assignee=me", "tier=2", "team_id=none", "sort=priority"} {
+		for _, q := range []string{"assignee=me", "tier=2", "team_id=none"} {
 			e.do(cust, "GET", "/api/v1/portal/tickets?"+q, nil).expect(t, 422)
 		}
 		e.do(cust, "GET", "/api/v1/portal/tickets?status=open", nil).expect(t, 200)
+	})
+}
+
+// TestPortalList_Sort: the portal list takes the TicketSort orders across
+// cursor pages, defaults to -updated_at, rejects an unknown sort and still
+// shows a customer only their own tickets.
+func TestPortalList_Sort(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		e := newEnv(t, db)
+		team := storetest.CreateTeam(t, db, "")
+		cust := e.customer("", domain.RoleRequester)
+		other := e.customer("", domain.RoleRequester)
+		prios := []domain.Priority{"normal", "urgent", "low", "high", "normal", "urgent", "low"}
+		updated := []int{4, 0, 6, 2, 5, 1, 3}
+		type tk struct {
+			id     string
+			number int64
+			prio   domain.Priority
+			upd    time.Time
+		}
+		var mine []tk
+		base := store.Now().Add(-time.Hour)
+		for i, pr := range prios {
+			// Interleave the other customer's tickets so numbers are not contiguous.
+			storetest.CreateTicket(t, db, storetest.Ticket{Requester: other.UserID, TeamID: team, Priority: pr})
+			upd := base.Add(time.Duration(updated[i]) * time.Minute)
+			id := storetest.CreateTicket(t, db, storetest.Ticket{Requester: cust.UserID, TeamID: team, Priority: pr, UpdatedAt: upd})
+			mine = append(mine, tk{id: id, number: int64(e.count(`SELECT number FROM tickets WHERE id = ?`, id)), prio: pr, upd: upd})
+		}
+		want := func(cmp func(a, b tk) int) []string {
+			xs := slices.Clone(mine)
+			slices.SortFunc(xs, cmp)
+			out := make([]string, len(xs))
+			for i, x := range xs {
+				out[i] = x.id
+			}
+			return out
+		}
+		byNumber := want(func(a, b tk) int { return int(a.number - b.number) })
+		byPrioDesc := want(func(a, b tk) int {
+			if c := priorityRank(b.prio) - priorityRank(a.prio); c != 0 {
+				return c
+			}
+			return strings.Compare(b.id, a.id)
+		})
+		byUpdatedDesc := want(func(a, b tk) int { return b.upd.Compare(a.upd) })
+		for _, c := range []struct {
+			query string
+			want  []string
+		}{
+			{"sort=number", byNumber},
+			{"sort=-priority", byPrioDesc},
+			{"sort=-updated_at", byUpdatedDesc},
+			{"mine_only=false", byUpdatedDesc}, // no sort: the default order
+		} {
+			if got := listAll(t, e, cust, "/api/v1/portal/tickets?limit=3&"+c.query); !slices.Equal(got, c.want) {
+				t.Errorf("%s\n got %v\nwant %v", c.query, got, c.want)
+			}
+		}
+		for _, srt := range []string{"attention", "created_at", "-created_at", "priority", "due", "-due", "-number", "updated_at"} {
+			got := listAll(t, e, cust, "/api/v1/portal/tickets?limit=2&sort="+srt)
+			if len(got) != len(mine) {
+				t.Errorf("sort=%s: %d tickets, want %d", srt, len(got), len(mine))
+			}
+			for _, id := range got {
+				if !slices.ContainsFunc(mine, func(x tk) bool { return x.id == id }) {
+					t.Fatalf("sort=%s: customer sees someone else's ticket %s", srt, id)
+				}
+			}
+		}
+		p := e.do(cust, "GET", "/api/v1/portal/tickets?sort=views", nil).expect(t, 422).problem(t)
+		if errs := p["errors"].([]any); len(errs) != 1 || errs[0].(map[string]any)["field"] != "sort" {
+			t.Fatalf("invalid sort problem %v", p)
+		}
 	})
 }
 

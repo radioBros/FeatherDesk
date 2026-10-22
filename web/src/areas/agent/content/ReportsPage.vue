@@ -25,9 +25,12 @@ import { formatMinutes, type ReportFilter } from './format'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type Report = components['schemas']['Report']
+type ProjectRow = NonNullable<Report['by_project']>[number]
+type TierRow = NonNullable<Report['by_tier']>[number]
+type TeamRow = NonNullable<Report['by_team']>[number]
 const { t, locale } = useI18n()
 const config = useConfigStore()
 const session = useSessionStore()
@@ -115,7 +118,7 @@ const projectGroups = computed(() =>
 const showProjects = computed(() => !report.value?.project_id && projectGroups.value.length > 1)
 const projectRef = (id: string, key: string, name: string) => ({ key, name, color: projects.byId(id)?.color })
 const projectCols = useTableColumns('reports-project', () => [
-  { key: 'project', label: t('projects.reports.project'), locked: true },
+  { key: 'project', label: t('projects.reports.project'), locked: true, sortValue: (r: ProjectRow) => r.key },
   { key: 'created', label: t('agent.reports.created') },
   { key: 'resolved', label: t('agent.reports.resolved') },
 ])
@@ -126,15 +129,18 @@ const slaParts = computed(() => [
 ])
 const isEmpty = computed(() => !!report.value && !Object.values(report.value.totals ?? {}).some((v) => (v ?? 0) > 0))
 
+const tierLabel = (r: TierRow) => config.tierLabel(r.tier ?? 1)
 const tierCols = useTableColumns('reports-tier', () => [
-  { key: 'tier', label: t('tier.label'), locked: true },
+  { key: 'tier', label: t('tier.label'), locked: true, sortValue: tierLabel },
   { key: 'created', label: t('agent.reports.created') },
   { key: 'resolved', label: t('agent.reports.resolved') },
-  { key: 'escalatedIn', label: t('agent.reports.escalatedIn'), lowPriority: true },
+  { key: 'escalatedIn', label: t('agent.reports.escalatedIn'), lowPriority: true, sortValue: (r: TierRow) => r.escalated_in },
 ])
 
+const teamLabel = (r: TeamRow) => r.name || t('agent.reports.triage')
+const teamKey = (r: TeamRow) => r.team_id ?? 'triage'
 const teamCols = useTableColumns('reports-team', () => [
-  { key: 'team', label: t('agent.common.team'), locked: true },
+  { key: 'team', label: t('agent.common.team'), locked: true, sortValue: teamLabel },
   { key: 'created', label: t('agent.reports.created') },
   { key: 'resolved', label: t('agent.reports.resolved') },
 ])
@@ -199,16 +205,11 @@ const teamCols = useTableColumns('reports-team', () => [
         <div class="text-subtitle-2 mb-2">{{ $t('projects.reports.byProject') }}</div>
         <GroupedBarChart :groups="projectGroups" :series="series" :label="$t('projects.reports.byProject')" />
         <ColumnsMenu :cols="projectCols" />
-        <v-table density="compact" class="mt-2" data-testid="reports-project-table">
-          <thead><tr><ColumnCells :cols="projectCols" head><th data-col="project" v-if="projectCols.show('project')">{{ $t('projects.reports.project') }}</th><th data-col="created" v-if="projectCols.show('created')">{{ $t('agent.reports.created') }}</th><th data-col="resolved" v-if="projectCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></ColumnCells></tr></thead>
-          <tbody>
-            <tr v-for="r in report.by_project ?? []" :key="r.project_id">
-              <ColumnCells :cols="projectCols">
-                <td data-col="project" v-if="projectCols.show('project')"><ProjectChip :project="projectRef(r.project_id, r.key, r.name)" show-name /></td><td data-col="created" v-if="projectCols.show('created')">{{ n(r.created) }}</td><td data-col="resolved" v-if="projectCols.show('resolved')">{{ n(r.resolved) }}</td>
-              </ColumnCells>
-            </tr>
-          </tbody>
-        </v-table>
+        <DataTable :cols="projectCols" :items="report.by_project ?? []" item-value="project_id" density="compact" class="mt-2" data-testid="reports-project-table">
+          <template #[`item.project`]="{ item }"><ProjectChip :project="projectRef(item.project_id, item.key, item.name)" show-name /></template>
+          <template #[`item.created`]="{ item }">{{ n(item.created) }}</template>
+          <template #[`item.resolved`]="{ item }">{{ n(item.resolved) }}</template>
+        </DataTable>
       </v-card>
 
       <v-row density="compact" class="mt-2">
@@ -217,16 +218,12 @@ const teamCols = useTableColumns('reports-team', () => [
             <div class="text-subtitle-2 mb-2">{{ $t('agent.reports.byTier') }}</div>
             <GroupedBarChart :groups="tierGroups" :series="series" :label="$t('agent.reports.byTier')" />
             <ColumnsMenu :cols="tierCols" />
-            <v-table density="compact" class="mt-2" data-testid="reports-tier-table">
-              <thead><tr><ColumnCells :cols="tierCols" head><th data-col="tier" v-if="tierCols.show('tier')">{{ $t('tier.label') }}</th><th data-col="created" v-if="tierCols.show('created')">{{ $t('agent.reports.created') }}</th><th data-col="resolved" v-if="tierCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th><th data-col="escalatedIn" v-if="tierCols.show('escalatedIn')">{{ $t('agent.reports.escalatedIn') }}</th></ColumnCells></tr></thead>
-              <tbody>
-                <tr v-for="r in report.by_tier ?? []" :key="r.tier">
-                  <ColumnCells :cols="tierCols">
-                    <td data-col="tier" v-if="tierCols.show('tier')">{{ config.tierLabel(r.tier ?? 1) }}</td><td data-col="created" v-if="tierCols.show('created')">{{ n(r.created) }}</td><td data-col="resolved" v-if="tierCols.show('resolved')">{{ n(r.resolved) }}</td><td data-col="escalatedIn" v-if="tierCols.show('escalatedIn')">{{ n(r.escalated_in) }}</td>
-                  </ColumnCells>
-                </tr>
-              </tbody>
-            </v-table>
+            <DataTable :cols="tierCols" :items="report.by_tier ?? []" item-value="tier" density="compact" class="mt-2" data-testid="reports-tier-table">
+              <template #[`item.tier`]="{ item }">{{ tierLabel(item) }}</template>
+              <template #[`item.created`]="{ item }">{{ n(item.created) }}</template>
+              <template #[`item.resolved`]="{ item }">{{ n(item.resolved) }}</template>
+              <template #[`item.escalatedIn`]="{ item }">{{ n(item.escalated_in) }}</template>
+            </DataTable>
           </v-card>
         </v-col>
         <v-col v-if="teamGroups.length" cols="12" md="6">
@@ -234,16 +231,11 @@ const teamCols = useTableColumns('reports-team', () => [
             <div class="text-subtitle-2 mb-2">{{ $t('agent.reports.byTeam') }}</div>
             <GroupedBarChart :groups="teamGroups" :series="series" :label="$t('agent.reports.byTeam')" />
             <ColumnsMenu :cols="teamCols" />
-            <v-table density="compact" class="mt-2" data-testid="reports-team-table">
-              <thead><tr><ColumnCells :cols="teamCols" head><th data-col="team" v-if="teamCols.show('team')">{{ $t('agent.common.team') }}</th><th data-col="created" v-if="teamCols.show('created')">{{ $t('agent.reports.created') }}</th><th data-col="resolved" v-if="teamCols.show('resolved')">{{ $t('agent.reports.resolved') }}</th></ColumnCells></tr></thead>
-              <tbody>
-                <tr v-for="r in report.by_team ?? []" :key="r.team_id ?? 'triage'">
-                  <ColumnCells :cols="teamCols">
-                    <td data-col="team" v-if="teamCols.show('team')">{{ r.name || $t('agent.reports.triage') }}</td><td data-col="created" v-if="teamCols.show('created')">{{ n(r.created) }}</td><td data-col="resolved" v-if="teamCols.show('resolved')">{{ n(r.resolved) }}</td>
-                  </ColumnCells>
-                </tr>
-              </tbody>
-            </v-table>
+            <DataTable :cols="teamCols" :items="report.by_team ?? []" :item-value="teamKey" density="compact" class="mt-2" data-testid="reports-team-table">
+              <template #[`item.team`]="{ item }">{{ teamLabel(item) }}</template>
+              <template #[`item.created`]="{ item }">{{ n(item.created) }}</template>
+              <template #[`item.resolved`]="{ item }">{{ n(item.resolved) }}</template>
+            </DataTable>
           </v-card>
         </v-col>
       </v-row>

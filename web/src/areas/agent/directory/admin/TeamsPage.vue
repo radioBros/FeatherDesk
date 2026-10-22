@@ -18,7 +18,7 @@ import { useAction } from '../../shared/useAction'
 import { useLookupsStore } from '../../shared/lookups'
 import type { components } from '@/api/schema'
 import SectionIcon from '@/components/SectionIcon.vue'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 type S = components['schemas']
 const { t } = useI18n()
@@ -92,10 +92,10 @@ async function remove(team: S['Team']) {
 }
 const cols = useTableColumns('admin-teams', () => [
   { key: 'name', label: t('agent.common.name'), locked: true },
-  { key: 'projects', label: t('projects.config.projects'), lowPriority: true },
-  { key: 'members', label: t('agent.teams.members'), lowPriority: true },
-  { key: 'notifyMode', label: t('agent.teams.notifyMode'), lowPriority: true },
-  { key: 'calendar', label: t('agent.teams.calendar'), lowPriority: true },
+  { key: 'projects', label: t('projects.config.projects'), lowPriority: true, sortValue: false as const },
+  { key: 'members', label: t('agent.teams.members'), lowPriority: true, sortValue: (team: S['Team']) => team.member_count ?? -1 },
+  { key: 'notifyMode', label: t('agent.teams.notifyMode'), lowPriority: true, sortValue: (team: S['Team']) => t(`agent.teams.modes.${team.notify_mode}`) },
+  { key: 'calendar', label: t('agent.teams.calendar'), lowPriority: true, sortValue: (team: S['Team']) => calendarName(team.calendar_id) },
 ])
 </script>
 
@@ -112,47 +112,39 @@ const cols = useTableColumns('admin-teams', () => [
       <EmptyState v-if="!loading && !teams.length" :title="$t('agent.teams.empty')" body="" />
       <template v-else>
       <ColumnsMenu :cols="cols" />
-      <v-table density="comfortable" data-testid="team-table">
-        <thead>
-          <tr>
-            <ColumnCells :cols="cols" head>
-              <th data-col="name" v-if="cols.show('name')">{{ $t('agent.common.name') }}</th>
-              <th data-col="projects" v-if="cols.show('projects')">{{ $t('projects.config.projects') }}</th>
-              <th data-col="members" v-if="cols.show('members')">{{ $t('agent.teams.members') }}</th>
-              <th data-col="notifyMode" v-if="cols.show('notifyMode')">{{ $t('agent.teams.notifyMode') }}</th>
-              <th data-col="calendar" v-if="cols.show('calendar')">{{ $t('agent.teams.calendar') }}</th>
-              <th class="text-right">{{ $t('agent.common.actions') }}</th>
-            </ColumnCells>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="team in teams" :key="team.id" data-testid="team-row">
-            <ColumnCells :cols="cols">
-              <td data-col="name" v-if="cols.show('name')">
-                <div class="d-flex align-center ga-2">
-                  <SectionIcon section="teams" :icon="mdiAccountGroupOutline" :size="30" />
-                  <div>
-                    <div>{{ team.name }}</div>
-                    <div v-if="team.description" class="text-caption text-medium-emphasis">{{ team.description }}</div>
-                  </div>
-                </div>
-              </td>
-              <td data-col="projects" v-if="cols.show('projects')"><ProjectCell :ids="team.project_ids ?? []" /></td>
-              <td data-col="members" v-if="cols.show('members')">{{ team.member_count ?? '—' }}</td>
-              <td data-col="notifyMode" v-if="cols.show('notifyMode')">
-                {{ $t(`agent.teams.modes.${team.notify_mode}`) }}
-                <div v-if="team.notification_email" class="text-caption text-medium-emphasis">{{ team.notification_email }}</div>
-              </td>
-              <td data-col="calendar" v-if="cols.show('calendar')">{{ calendarName(team.calendar_id) }}</td>
-              <td class="text-right text-no-wrap">
-                <v-btn :icon="mdiAccountGroup" variant="text" size="small" :aria-label="$t('agent.teams.members')" data-testid="team-members-open" @click="openMembers(team)" />
-                <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="team-edit" @click="openForm(team)" />
-                <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="team-delete" @click="remove(team)" />
-              </td>
-            </ColumnCells>
-          </tr>
-        </tbody>
-      </v-table>
+      <DataTable
+        :cols="cols"
+        :items="teams"
+        :loading="loading"
+        actions
+        density="comfortable"
+        :row-props="{ 'data-testid': 'team-row' }"
+        data-testid="team-table"
+      >
+        <template #[`item.name`]="{ item }">
+          <div class="d-flex align-center ga-2">
+            <SectionIcon section="teams" :icon="mdiAccountGroupOutline" :size="30" />
+            <div>
+              <div>{{ item.name }}</div>
+              <div v-if="item.description" class="text-caption text-medium-emphasis">{{ item.description }}</div>
+            </div>
+          </div>
+        </template>
+        <template #[`item.projects`]="{ item }"><ProjectCell :ids="item.project_ids ?? []" /></template>
+        <template #[`item.members`]="{ item }">{{ item.member_count ?? '—' }}</template>
+        <template #[`item.notifyMode`]="{ item }">
+          {{ $t(`agent.teams.modes.${item.notify_mode}`) }}
+          <div v-if="item.notification_email" class="text-caption text-medium-emphasis">{{ item.notification_email }}</div>
+        </template>
+        <template #[`item.calendar`]="{ item }">{{ calendarName(item.calendar_id) }}</template>
+        <template #[`item.actions`]="{ item }">
+          <span class="text-no-wrap">
+            <v-btn :icon="mdiAccountGroup" variant="text" size="small" :aria-label="$t('agent.teams.members')" data-testid="team-members-open" @click="openMembers(item)" />
+            <v-btn :icon="mdiPencil" variant="text" size="small" :aria-label="$t('agent.common.edit')" data-testid="team-edit" @click="openForm(item)" />
+            <v-btn :icon="mdiDelete" variant="text" size="small" :aria-label="$t('agent.common.delete')" data-testid="team-delete" @click="remove(item)" />
+          </span>
+        </template>
+      </DataTable>
       </template>
     </v-card>
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -697,6 +699,125 @@ func TestSuccessLogIsSampledRing(t *testing.T) {
 		if resp.StatusCode != 200 || len(p2.Items) == 0 || p2.Items[0].ID >= page.Items[19].ID {
 			t.Fatalf("page 2: %d %s", resp.StatusCode, body)
 		}
+	})
+}
+
+// sortRows writes 7 rows through insert and returns their ids oldest first.
+// Two pairs share a timestamp (one pair straddles a limit-2 page boundary
+// ascending, the other descending), and the 4th row has the newest id but a
+// middle time, so only a (time, id) order lists them as returned.
+func sortRows(t *testing.T, insert func(id string, at time.Time)) []string {
+	t.Helper()
+	ids := make([]string, 7)
+	for i := range ids {
+		ids[i] = store.NewID()
+	}
+	slices.Sort(ids)
+	order := []string{ids[0], ids[1], ids[2], ids[6], ids[3], ids[4], ids[5]}
+	base := time.Date(2026, 3, 1, 12, 0, 0, 0, time.UTC)
+	for i, m := range []int{0, 1, 1, 2, 3, 3, 4} {
+		insert(order[i], base.Add(time.Duration(m)*time.Minute))
+	}
+	return order
+}
+
+// TestDeliveriesSort: sort=created_at pages a webhook's delivery log oldest
+// first and the default (or -created_at) newest first, both by (created_at,
+// id) and only for that webhook; the default cursor stays base64url(id), and a
+// cursor only works in the direction (and webhook) that issued it.
+func TestDeliveriesSort(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		h := newHarness(t, db)
+		rc := newReceiver(t, 200)
+		id, _ := h.createHook(rc.URL, []string{events.TicketCreated}, false)
+		other, _ := h.createHook(rc.URL, []string{events.TicketCreated}, false)
+		ctx := context.Background()
+		insert := func(rowID, hook string, at time.Time) {
+			if err := db.Tx(ctx, func(tx *store.Tx) error {
+				_, err := tx.ExecContext(ctx, `INSERT INTO webhook_deliveries (id, webhook_id, event_id, event_type, attempt, success, status_code, response_ms, error, created_at) VALUES (?, ?, ?, ?, 1, TRUE, 200, 5, '', ?)`,
+					rowID, hook, store.NewID(), events.TicketCreated, at)
+				return err
+			}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		want := sortRows(t, func(rowID string, at time.Time) { insert(rowID, id, at) })
+		otherRow := store.NewID()
+		insert(otherRow, other, time.Date(2026, 3, 1, 12, 1, 30, 0, time.UTC)) // another webhook
+		rev := slices.Clone(want)
+		slices.Reverse(rev)
+
+		path := "/api/v1/admin/webhooks/" + id + "/deliveries?limit=2"
+		get := func(url string, code int) (items []string, next string, body []byte) {
+			t.Helper()
+			var resp *http.Response
+			if !strings.Contains(url, "sort=attempt") {
+				resp, body = h.do("GET", url, admin, nil)
+			} else {
+				// Not through h.do: an unknown sort is outside the spec's
+				// enum, so the validator would reject the request itself.
+				req := httptest.NewRequest("GET", url, nil)
+				req.Header.Set("Authorization", "Bearer "+admin)
+				rec := httptest.NewRecorder()
+				h.srv.Handler().ServeHTTP(rec, req)
+				resp, body = rec.Result(), rec.Body.Bytes()
+			}
+			if resp.StatusCode != code {
+				t.Fatalf("GET %s: %d %s", url, resp.StatusCode, body)
+			}
+			var p struct {
+				Items      []deliveryDTO `json:"items"`
+				NextCursor *string       `json:"next_cursor"`
+			}
+			_ = json.Unmarshal(body, &p)
+			for _, d := range p.Items {
+				items = append(items, d.ID)
+			}
+			if p.NextCursor != nil {
+				next = *p.NextCursor
+			}
+			return items, next, body
+		}
+		pageAll := func(query string) (got, cursors []string) {
+			t.Helper()
+			cursor := ""
+			for range 10 {
+				items, next, _ := get(path+query+cursor, 200)
+				got = append(got, items...)
+				if next == "" {
+					return got, cursors
+				}
+				cursors = append(cursors, next)
+				cursor = "&cursor=" + next
+			}
+			t.Fatalf("%s: no last page", query)
+			return nil, nil
+		}
+
+		asc, ascCursors := pageAll("&sort=created_at")
+		if !slices.Equal(asc, want) {
+			t.Fatalf("ascending\n got %v\nwant %v", asc, want)
+		}
+		desc, descCursors := pageAll("")
+		if !slices.Equal(desc, rev) {
+			t.Fatalf("default\n got %v\nwant %v", desc, rev)
+		}
+		for i, c := range descCursors {
+			if c != base64.RawURLEncoding.EncodeToString([]byte(desc[2*i+1])) {
+				t.Fatalf("default cursor %d = %q, want base64url(id)", i, c)
+			}
+		}
+		if explicit, _ := pageAll("&sort=-created_at"); !slices.Equal(explicit, rev) {
+			t.Fatalf("-created_at\n got %v\nwant %v", explicit, rev)
+		}
+
+		if _, _, body := get(path+"&sort=attempt", 422); !strings.Contains(string(body), `"sort"`) {
+			t.Fatalf("bad sort: %s", body)
+		}
+		get(path+"&cursor="+ascCursors[0], 422)
+		get(path+"&sort=-created_at&cursor="+ascCursors[0], 422)
+		get(path+"&sort=created_at&cursor="+descCursors[0], 422)
+		get(path+"&cursor="+base64.RawURLEncoding.EncodeToString([]byte(otherRow)), 422) // row of another webhook
 	})
 }
 

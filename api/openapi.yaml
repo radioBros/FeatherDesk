@@ -1733,6 +1733,11 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order (see TicketSort); default `-updated_at`. A cursor only continues the order it was issued for."
+          schema:
+            $ref: "#/components/schemas/TicketSort"
         - name: status
           in: query
           schema:
@@ -3520,6 +3525,16 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order (`-` = descending); without it, creation order. A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - name
+              - "-name"
+              - email
+              - "-email"
         - $ref: "#/components/parameters/Q"
         - name: organization_id
           in: query
@@ -3535,6 +3550,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserPage"
+        "422":
+          $ref: "#/components/responses/Validation"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -3643,6 +3660,14 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order (`-` = descending); without it, creation order. A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - name
+              - "-name"
         - $ref: "#/components/parameters/Q"
       x-scopes:
         - "directory:read"
@@ -3654,6 +3679,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrganizationPage"
+        "422":
+          $ref: "#/components/responses/Validation"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -4090,6 +4117,16 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order (`-` = descending); without it, most recently updated first, or by relevance when `q` is set. A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - title
+              - "-title"
+              - updated_at
+              - "-updated_at"
         - $ref: "#/components/parameters/Q"
         - name: status
           in: query
@@ -4679,6 +4716,14 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order (`-` = descending); without it, creation order. A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - name
+              - "-name"
         - $ref: "#/components/parameters/Q"
         - name: role
           in: query
@@ -4698,6 +4743,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserPage"
+        "422":
+          $ref: "#/components/responses/Validation"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -7137,6 +7184,15 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order by time (`-` = newest first). A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - received_at
+              - "-received_at"
+            default: "-received_at"
         - name: status
           in: query
           schema:
@@ -7365,6 +7421,15 @@ paths:
         - $ref: "#/components/parameters/Id"
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order by time (`-` = newest first). A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - created_at
+              - "-created_at"
+            default: "-created_at"
       x-scopes:
         - admin
       x-phase: V1
@@ -7375,6 +7440,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WebhookDeliveryPage"
+        "422":
+          $ref: "#/components/responses/Validation"
         "401":
           $ref: "#/components/responses/Unauthenticated"
         "403":
@@ -7639,6 +7706,15 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Cursor"
         - $ref: "#/components/parameters/Limit"
+        - name: sort
+          in: query
+          description: "Order by time (`-` = newest first). A cursor only continues the order it was issued for."
+          schema:
+            type: string
+            enum:
+              - created_at
+              - "-created_at"
+            default: "-created_at"
         - name: action
           in: query
           schema:
@@ -9499,6 +9575,7 @@ components:
         - priority
         - "-priority"
         - due
+        - "-due"
         - number
         - "-number"
     Tier:

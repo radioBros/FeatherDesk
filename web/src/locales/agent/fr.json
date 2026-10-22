@@ -605,8 +605,11 @@
         "createdDesc": "Plus récents d'abord",
         "createdAsc": "Plus anciens d'abord",
         "priorityDesc": "Priorité décroissante",
+        "priorityAsc": "Priorité la plus basse d’abord",
         "due": "Échéance la plus proche",
-        "numberDesc": "Numéro décroissant"
+        "dueDesc": "Échéance la plus lointaine",
+        "numberDesc": "Numéro décroissant",
+        "numberAsc": "Plus petit numéro d’abord"
       }
     },
     "views": {

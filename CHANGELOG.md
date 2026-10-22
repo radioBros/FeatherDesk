@@ -15,8 +15,11 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ### Added
 - **Table columns can be reordered and resized.** In the *Columns* menu, drag a column by its handle (or press ↑/↓ on it); drag a column header's right edge (or press ←/→ on it) to resize. Order and widths are remembered per user and per table, and *Reset to default* restores them. The selection column of the agent ticket list stays pinned on the left when the table scrolls sideways.
+- **Sort any table by clicking a column header.** Lists loaded page by page sort on the server, so the order covers every row: the agent ticket list (reference, priority, updated, due), customers (name, email), organizations and staff (name), KB articles (title, updated), the audit log, webhook deliveries, the inbound log and the portal's ticket list. Lists loaded whole sort in the browser by any column.
+- **API: `sort` on more lists.** `GET /agent/customers` (`name`, `email`), `/agent/organizations` and `/admin/staff` (`name`), `/agent/kb/articles` (`title`, `updated_at`), `/admin/audit-log` and `/admin/webhooks/{id}/deliveries` (`created_at`), `/admin/inbound/messages` (`received_at`), each also with `-` for descending; `GET /portal/tickets` takes the ticket `sort` values. New ticket sort `-due` (latest due first, no due date last). Additive: without `sort` every list keeps its order and cursors.
 
 ### Changed
+- **Every table scrolls inside the page and draws only the rows in view** (virtual table, header row pinned), and scrolling near the end loads the next page (the table body takes keyboard focus, so arrows, Page Down and End work too); the *Load more* buttons under tables are gone. On a phone the portal's ticket cards keep theirs. Resized columns keep their cells on one line, cut off with "…".
 - **SQLite search index keyed by ticket number.** Updating a ticket's search entry no longer scans the whole index: 0.13 ms instead of 76 ms (p50) at 100k tickets, on the single writer.
 - **Message cards** in the ticket thread have a background instead of a border: neutral grey for customers, a slightly cooler grey-blue for staff, yellow for internal notes (all with a dark-mode variant). Every card has 16 px corners (square with the "sharp" branding corners).
 
@@ -30,6 +33,7 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 ### Migrations
 - `0160_legacy_names`: on PostgreSQL, renames the SimpleTickets 1.0.0 database functions `st_*` to `fd_*` and re-creates the two KB visibility functions; on both engines, an untouched "SimpleTickets" product name becomes "FeatherDesk". Fast, no operator action; a fresh database only gets the two functions re-created.
 - `0161_ticket_fts_rowid`: SQLite only. Rebuilds `tickets_fts` keyed by ticket number and copies the existing index text, so search keeps working without a reindex. It reads and rewrites the whole index once: 12 s at 100k tickets, 41 MB peak memory (measured on Apple M-series). No operator action.
+- `0162_list_sort_indexes`: indexes for the new list sorts: `users (kind, lower(name), id)`, `users (kind, lower(email), id)` and `inbound_messages (received_at, id)`. Additive; building them reads the users and inbound-log tables once (fast at typical sizes). No operator action.
 
 ## [1.0.0] - 2026-10-22
 

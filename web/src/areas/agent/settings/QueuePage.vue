@@ -16,9 +16,10 @@ import { useRealtime } from '@/composables/useRealtime'
 import type { components } from '@/api/schema'
 import ColumnsMenu from '@/components/ColumnsMenu.vue'
 import { useTableColumns } from '@/composables/useTableColumns'
-import ColumnCells from '@/components/ColumnCells.vue'
+import DataTable from '@/components/DataTable.vue'
 
 const { t } = useI18n()
+type QueueRow = components['schemas']['QueueStatus']['queues'][number]
 const q = ref<components['schemas']['QueueStatus'] | null>(null)
 const loading = ref(true)
 const failed = ref(false)
@@ -50,7 +51,7 @@ const cols = useTableColumns('queue', () => [
   { key: 'depth', label: t('agent.queue.depth') },
   { key: 'capacity', label: t('agent.queue.capacity'), lowPriority: true },
   { key: 'workers', label: t('agent.queue.workers'), lowPriority: true },
-  { key: 'fill', label: t('agent.queue.fill') },
+  { key: 'fill', label: t('agent.queue.fill'), width: 280, sortValue: (r: QueueRow) => pct(r.depth, r.capacity) },
 ])
 </script>
 
@@ -84,41 +85,24 @@ const cols = useTableColumns('queue', () => [
       </v-row>
       <v-card border flat>
         <EmptyState v-if="!q.queues.length" :title="$t('agent.queue.empty')" body="" />
-        <!-- On a narrow screen the table scrolls sideways: the scroll region is keyboard-reachable (FE-032). -->
+        <!-- A labelled region (FE-032). On a narrow screen the table scrolls sideways inside DataTable's own wrapper, which is not focusable. -->
         <div v-else class="fd-scroll" tabindex="0" role="region" :aria-label="$t('agent.admin.nav.queue')">
           <ColumnsMenu :cols="cols" />
-          <v-table density="comfortable" data-testid="queue-table">
-            <thead>
-              <tr>
-                <ColumnCells :cols="cols" head>
-                  <th data-col="name" v-if="cols.show('name')">{{ $t('agent.queue.name') }}</th>
-                  <th data-col="depth" v-if="cols.show('depth')">{{ $t('agent.queue.depth') }}</th>
-                  <th data-col="capacity" v-if="cols.show('capacity')">{{ $t('agent.queue.capacity') }}</th>
-                  <th data-col="workers" v-if="cols.show('workers')">{{ $t('agent.queue.workers') }}</th>
-                  <th data-col="fill" style="width: 30%" v-if="cols.show('fill')">{{ $t('agent.queue.fill') }}</th>
-                </ColumnCells>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="row in q.queues" :key="row.name" data-testid="queue-row">
-                <ColumnCells :cols="cols">
-                  <td data-col="name" class="font-weight-medium" v-if="cols.show('name')">{{ row.name }}</td>
-                  <td data-col="depth" v-if="cols.show('depth')">{{ row.depth }}</td>
-                  <td data-col="capacity" v-if="cols.show('capacity')">{{ row.capacity }}</td>
-                  <td data-col="workers" v-if="cols.show('workers')">{{ row.workers ?? '—' }}</td>
-                  <td data-col="fill" v-if="cols.show('fill')">
-                    <v-progress-linear
-                      :model-value="pct(row.depth, row.capacity)"
-                      :color="pct(row.depth, row.capacity) >= 80 ? 'error' : 'primary'"
-                      height="8"
-                      rounded
-                      :aria-label="$t('agent.queue.fill')"
-                    />
-                  </td>
-                </ColumnCells>
-              </tr>
-            </tbody>
-          </v-table>
+          <DataTable :cols="cols" :items="q.queues" item-value="name" density="comfortable" :row-props="{ 'data-testid': 'queue-row' }" data-testid="queue-table">
+            <template #[`item.name`]="{ item }"><span class="font-weight-medium">{{ item.name }}</span></template>
+            <template #[`item.depth`]="{ item }">{{ item.depth }}</template>
+            <template #[`item.capacity`]="{ item }">{{ item.capacity }}</template>
+            <template #[`item.workers`]="{ item }">{{ item.workers ?? '—' }}</template>
+            <template #[`item.fill`]="{ item }">
+              <v-progress-linear
+                :model-value="pct(item.depth, item.capacity)"
+                :color="pct(item.depth, item.capacity) >= 80 ? 'error' : 'primary'"
+                height="8"
+                rounded
+                :aria-label="$t('agent.queue.fill')"
+              />
+            </template>
+          </DataTable>
         </div>
       </v-card>
     </template>
@@ -127,5 +111,4 @@ const cols = useTableColumns('queue', () => [
 
 <style scoped>
 .fd-scroll { overflow-x: auto; }
-.fd-scroll :deep(.v-table__wrapper) { overflow: visible; }
 </style>
