@@ -3,6 +3,7 @@ development/
 
 # Build output
 /bin/
+/featherdesk
 /dist/
 web/dist/*
 !web/dist/.gitkeep

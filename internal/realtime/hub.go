@@ -30,6 +30,10 @@ import (
 // Subprotocol is required on every connection.
 const Subprotocol = "featherdesk.v1"
 
+// LegacySubprotocol is the SimpleTickets 1.0.0 name of the same protocol,
+// still accepted so existing API clients keep connecting.
+const LegacySubprotocol = "simpletickets.v1"
+
 // Close codes (realtime_spec §7).
 const (
 	CloseUnauthenticated websocket.StatusCode = 4401
@@ -482,12 +486,12 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		problems.Write(w, r, problems.RateLimited(5*time.Second))
 		return
 	}
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{Subprotocol}, InsecureSkipVerify: true})
+	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{Subprotocols: []string{Subprotocol, LegacySubprotocol}, InsecureSkipVerify: true})
 	if err != nil {
 		h.release(p.UserID)
 		return
 	}
-	if ws.Subprotocol() != Subprotocol {
+	if sp := ws.Subprotocol(); sp != Subprotocol && sp != LegacySubprotocol {
 		h.release(p.UserID)
 		_ = ws.Close(websocket.StatusProtocolError, "subprotocol featherdesk.v1 required")
 		return

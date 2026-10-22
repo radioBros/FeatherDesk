@@ -90,9 +90,27 @@ start_pg() { # name volume
 }
 if [ "$ENGINE" = postgres ]; then PG=$ID-pg; start_pg "$PG" "$ID-pgdata"; fi
 envs() { # volume pg
-  E=(-e "FD_SECRET_KEY=$SECRET" -e FD_PUBLIC_URL=http://127.0.0.1 -e FD_LOG_LEVEL=warn -v "$1":/data)
-  [ -n "${2:-}" ] && E+=(-e FD_DATABASE_URL="postgres://st:$PGPW@$2:5432/st?sslmode=disable")
+  # The ST_* copies serve --from images released as SimpleTickets (1.0.0), which
+  # read only those; FeatherDesk ignores them because FD_* is set.
+  local db=""
+  [ -n "${2:-}" ] && db="postgres://st:$PGPW@$2:5432/st?sslmode=disable"
+  E=(-v "$1":/data)
+  for p in FD ST; do
+    E+=(-e "${p}_SECRET_KEY=$SECRET" -e "${p}_PUBLIC_URL=http://127.0.0.1" -e "${p}_LOG_LEVEL=warn")
+    [ -n "$db" ] && E+=(-e "${p}_DATABASE_URL=$db")
+  done
   return 0
+}
+peek_db() { # volume dir: copy the SQLite database (featherdesk.db, or simpletickets.db of a SimpleTickets volume) to dir/db.sqlite
+  docker create --name "$ID-peek" -v "$1":/data "$FROM" >/dev/null
+  rm -rf "$2"; mkdir -p "$2"
+  for f in featherdesk.db simpletickets.db; do
+    if docker cp "$ID-peek:/data/$f" "$2/db.sqlite" >/dev/null 2>&1; then
+      docker cp "$ID-peek:/data/$f-wal" "$2/db.sqlite-wal" >/dev/null 2>&1 || true
+      break
+    fi
+  done
+  docker rm "$ID-peek" >/dev/null
 }
 oneoff() { local img=$1 vol=$2 pg=$3; shift 3; envs "$vol" "$pg"; docker run --rm "${HARDEN[@]}" "${E[@]}" -i "$img" "$@"; }
 serve() { # image volume pg → base URL
@@ -106,13 +124,9 @@ serve() { # image volume pg → base URL
 stop_app() { docker stop "$ID-app" >/dev/null; docker rm "$ID-app" >/dev/null; }
 tables() { # → "table count"; schema_migrations and FTS5 shadow tables excluded
   if [ "$ENGINE" = sqlite ]; then
-    docker create --name "$ID-peek" -v "$ID-data":/data "$FROM" >/dev/null
-    rm -rf "$WORK/peek"; mkdir -p "$WORK/peek"
-    docker cp "$ID-peek:/data/featherdesk.db" "$WORK/peek/" >/dev/null
-    docker cp "$ID-peek:/data/featherdesk.db-wal" "$WORK/peek/" >/dev/null 2>&1 || true
-    docker rm "$ID-peek" >/dev/null
-    for t in $(sqlite3 "$WORK/peek/featherdesk.db" "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts_%' AND name <> 'schema_migrations' ORDER BY name"); do
-      printf '%s %s\n' "$t" "$(sqlite3 "$WORK/peek/featherdesk.db" "SELECT COUNT(*) FROM \"$t\"")"
+    peek_db "$ID-data" "$WORK/peek"
+    for t in $(sqlite3 "$WORK/peek/db.sqlite" "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%_fts_%' AND name <> 'schema_migrations' ORDER BY name"); do
+      printf '%s %s\n' "$t" "$(sqlite3 "$WORK/peek/db.sqlite" "SELECT COUNT(*) FROM \"$t\"")"
     done
   else
     for t in $(docker exec "$PG" psql -U st -d st -tAc "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> 'schema_migrations' ORDER BY tablename"); do
@@ -122,12 +136,8 @@ tables() { # → "table count"; schema_migrations and FTS5 shadow tables exclude
 }
 schema() { # volume pg-container → normalized schema
   if [ "$ENGINE" = sqlite ]; then
-    docker create --name "$ID-peek" -v "$1":/data "$FROM" >/dev/null
-    rm -rf "$WORK/sch"; mkdir -p "$WORK/sch"
-    docker cp "$ID-peek:/data/featherdesk.db" "$WORK/sch/" >/dev/null
-    docker cp "$ID-peek:/data/featherdesk.db-wal" "$WORK/sch/" >/dev/null 2>&1 || true
-    docker rm "$ID-peek" >/dev/null
-    sqlite3 "$WORK/sch/featherdesk.db" "SELECT type||' '||name||' '||COALESCE(sql,'') FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
+    peek_db "$1" "$WORK/sch"
+    sqlite3 "$WORK/sch/db.sqlite" "SELECT type||' '||name||' '||COALESCE(sql,'') FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name"
   else
     docker exec "$2" pg_dump -U st -d st --schema-only --no-owner | grep -vE '^(--|SET |SELECT pg_catalog|\\(un)?restrict )' | sed '/^$/d'
   fi

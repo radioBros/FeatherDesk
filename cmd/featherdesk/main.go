@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/radioBros/FeatherDesk/internal/cli"
@@ -31,6 +32,10 @@ func main() {
 }
 
 func run(ctx context.Context, args []string) int {
+	// An install configured for SimpleTickets 1.0.0 keeps its ST_* variables.
+	if n := config.ApplyLegacyEnv(os.Environ(), os.LookupEnv, os.Setenv); len(n) > 0 {
+		fmt.Fprintf(os.Stderr, "warning: %d SimpleTickets ST_* variables were read as FD_* (rename them): %s\n", len(n), strings.Join(n, ", "))
+	}
 	name := "serve"
 	if len(args) > 0 {
 		switch args[0] {

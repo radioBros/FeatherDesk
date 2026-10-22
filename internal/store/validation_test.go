@@ -5,6 +5,7 @@ package store_test
 import (
 	"context"
 	"errors"
+	"hash/fnv"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -515,6 +516,41 @@ func TestSecondInstanceRefused(t *testing.T) {
 		}
 		r2()
 	})
+}
+
+// TestInstanceLockCoversSimpleTickets: on Postgres, a SimpleTickets 1.0.0
+// process still holding its own lock key keeps FeatherDesk from starting.
+func TestInstanceLockCoversSimpleTickets(t *testing.T) {
+	if storetest.PostgresURL() == "" {
+		t.Skip("needs postgres")
+	}
+	db := storetest.Open(t, store.Postgres)
+	conn, err := db.W.Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+	var schema string
+	if err := conn.QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema); err != nil {
+		t.Fatal(err)
+	}
+	h := fnv.New64a()
+	h.Write([]byte("simpletickets-instance" + schema))
+	key := int64(h.Sum64() >> 1)
+	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, key); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.LockInstance(ctx); !errors.Is(err, store.ErrInstanceRunning) {
+		t.Fatalf("lock while SimpleTickets runs: %v", err)
+	}
+	if _, err := conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, key); err != nil {
+		t.Fatal(err)
+	}
+	release, err := db.LockInstance(ctx)
+	if err != nil {
+		t.Fatalf("lock after SimpleTickets stopped: %v", err)
+	}
+	release()
 }
 
 // TestMigrateEngineRoundTrip (DB-031): demo seed SQLite → Postgres → SQLite.

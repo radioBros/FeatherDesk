@@ -58,9 +58,14 @@ func (m *Module) send(ctx context.Context, h *hook, typ string, body []byte) res
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "FeatherDesk-Webhook/1")
+	id, sig := store.NewID(), Sign(h.Secret, m.Now(), body)
 	req.Header.Set("X-FeatherDesk-Event", typ)
-	req.Header.Set("X-FeatherDesk-Delivery", store.NewID())
-	req.Header.Set("X-FeatherDesk-Signature", Sign(h.Secret, m.Now(), body))
+	req.Header.Set("X-FeatherDesk-Delivery", id)
+	req.Header.Set("X-FeatherDesk-Signature", sig)
+	// The SimpleTickets 1.0.0 names, so receivers written for them keep working.
+	req.Header.Set("X-SimpleTickets-Event", typ)
+	req.Header.Set("X-SimpleTickets-Delivery", id)
+	req.Header.Set("X-SimpleTickets-Signature", sig)
 	start := time.Now()
 	resp, err := m.client.Do(req)
 	ms := time.Since(start).Milliseconds()

@@ -24,6 +24,10 @@ var errInvalidCred = errors.New("authn: invalid credentials")
 // PATPrefix starts every personal access token.
 const PATPrefix = "fd_pat_"
 
+// legacyPATPrefix starts the tokens issued by SimpleTickets 1.0.0; they keep
+// working after the upgrade (the stored hash covers the whole token).
+const legacyPATPrefix = "st_pat_"
+
 // userRow is a users row as authn reads it.
 type userRow struct {
 	ID          string
@@ -92,7 +96,7 @@ func (m *Module) Authenticate(r *http.Request) (*domain.Principal, error) {
 		scheme, tok, _ := strings.Cut(h, " ")
 		if strings.EqualFold(scheme, "Bearer") {
 			tok = strings.TrimSpace(tok)
-			if !strings.HasPrefix(tok, PATPrefix) || len(tok) > 128 {
+			if !strings.HasPrefix(tok, PATPrefix) && !strings.HasPrefix(tok, legacyPATPrefix) || len(tok) > 128 {
 				return nil, problems.Unauthenticated()
 			}
 			p, err := m.patPrincipal(ctx, "t.token_hash = ?", hashToken(tok), true)
@@ -126,7 +130,7 @@ func (m *Module) Authenticate(r *http.Request) (*domain.Principal, error) {
 			return p, nil
 		}
 	}
-	c, err := r.Cookie(CookieName)
+	c, err := sessionCookie(r)
 	if err != nil || c.Value == "" || len(c.Value) > 128 {
 		return nil, nil
 	}

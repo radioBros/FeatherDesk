@@ -28,6 +28,9 @@ import (
 // webhooks: t=<unix>,v1=<hex hmac_sha256(secret, t + "." + body)>).
 const SignatureHeader = "X-FeatherDesk-Inbound-Signature"
 
+// legacySignatureHeader is the SimpleTickets 1.0.0 name, still accepted.
+const legacySignatureHeader = "X-SimpleTickets-Inbound-Signature"
+
 // Mount registers the inbound webhook (Public) and the admin API.
 func (m *Module) Mount(g server.Groups) {
 	mw := []func(http.Handler) http.Handler{server.MaxBody(m.maxBytes)}
@@ -107,7 +110,11 @@ func (m *Module) handleInbound(w http.ResponseWriter, r *http.Request) {
 			problems.Write(w, r, err)
 			return
 		}
-		if !VerifySignature(secret, r.Header.Get(SignatureHeader), raw, m.now()) {
+		sig := r.Header.Get(SignatureHeader)
+		if sig == "" {
+			sig = r.Header.Get(legacySignatureHeader)
+		}
+		if !VerifySignature(secret, sig, raw, m.now()) {
 			problems.Write(w, r, problems.Unauthenticated())
 			return
 		}

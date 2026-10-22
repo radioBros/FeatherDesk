@@ -141,6 +141,25 @@ func TestSubprotocolRequired(t *testing.T) {
 	}
 }
 
+// TestLegacySubprotocolAccepted: clients written for SimpleTickets 1.0.0 still
+// connect with simpletickets.v1.
+func TestLegacySubprotocolAccepted(t *testing.T) {
+	_, srv := newHub(t, Options{})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	c, _, err := websocket.Dial(ctx, wsURL(srv), &websocket.DialOptions{Subprotocols: []string{LegacySubprotocol}, HTTPHeader: bearer("staff:agent")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = c.CloseNow() }()
+	if c.Subprotocol() != LegacySubprotocol {
+		t.Fatalf("negotiated %q", c.Subprotocol())
+	}
+	if f := subscribe(t, c, "tickets"); f["op"] == "error" {
+		t.Fatalf("subscribe over the legacy subprotocol: %v", f)
+	}
+}
+
 // TestWS_CookieOriginEnforced: cross-site WebSocket hijacking is refused (D-10).
 func TestWS_CookieOriginEnforced(t *testing.T) {
 	_, srv := newHub(t, Options{})

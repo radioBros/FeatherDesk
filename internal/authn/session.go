@@ -23,6 +23,20 @@ import (
 // CookieName is the session cookie (AUTH-001).
 const CookieName = "fd_session"
 
+// legacyCookieName is the SimpleTickets 1.0.0 session cookie: still read, so
+// nobody is signed out by the upgrade, never set.
+const legacyCookieName = "st_session"
+
+// sessionCookie returns the session cookie of r, falling back to the
+// SimpleTickets one.
+func sessionCookie(r *http.Request) (*http.Cookie, error) {
+	c, err := r.Cookie(CookieName)
+	if err != nil {
+		return r.Cookie(legacyCookieName)
+	}
+	return c, nil
+}
+
 func randomToken(n int) string {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {
@@ -103,7 +117,7 @@ func (m *Module) nowDB() time.Time { return m.now().UTC().Truncate(time.Microsec
 // revokePresentedSession deletes the session whose cookie came with r
 // (session fixation: a login always starts from a fresh token).
 func (m *Module) revokePresentedSession(ctx context.Context, tx *store.Tx, r *http.Request) error {
-	c, err := r.Cookie(CookieName)
+	c, err := sessionCookie(r)
 	if err != nil || c.Value == "" {
 		return nil
 	}

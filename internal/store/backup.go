@@ -26,9 +26,11 @@ import (
 var BlobPrefixes = []string{"attachments", "branding", "kb", "inbound"}
 
 const (
-	backupDBFile    = "featherdesk.db"
-	backupBlobsFile = "blobs.tar.gz"
-	backupManifest  = "manifest.json"
+	backupDBFile = "featherdesk.db"
+	// legacyBackupDBFile is the database file in a SimpleTickets 1.0.0 backup.
+	legacyBackupDBFile = "simpletickets.db"
+	backupBlobsFile    = "blobs.tar.gz"
+	backupManifest     = "manifest.json"
 )
 
 type BackupOptions struct {
@@ -146,6 +148,10 @@ func Restore(ctx context.Context, opt RestoreOptions) (Manifest, error) {
 		return m, fmt.Errorf("restore: backup schema version %d is newer than this binary (%d); restore it with the release that wrote it", m.SchemaVersion, ms[len(ms)-1].Version)
 	}
 	if m.Engine == SQLite.String() {
+		dbFile := filepath.Join(opt.BackupDir, backupDBFile)
+		if _, err := os.Stat(dbFile); errors.Is(err, fs.ErrNotExist) {
+			dbFile = filepath.Join(opt.BackupDir, legacyBackupDBFile) // a SimpleTickets 1.0.0 backup
+		}
 		if opt.DBPath == "" {
 			return m, errors.New("restore: DBPath is required for a SQLite backup")
 		}
@@ -154,7 +160,7 @@ func Restore(ctx context.Context, opt RestoreOptions) (Manifest, error) {
 		if exists && !opt.Force {
 			return m, fmt.Errorf("restore: %s exists (use --force to overwrite)", opt.DBPath)
 		}
-		if err := checkBackupDB(ctx, filepath.Join(opt.BackupDir, backupDBFile), filepath.Dir(opt.DBPath)); err != nil {
+		if err := checkBackupDB(ctx, dbFile, filepath.Dir(opt.DBPath)); err != nil {
 			return m, err
 		}
 		if exists {
@@ -166,7 +172,7 @@ func Restore(ctx context.Context, opt RestoreOptions) (Manifest, error) {
 				}
 			}
 		}
-		if err := copyFileAtomic(filepath.Join(opt.BackupDir, backupDBFile), opt.DBPath); err != nil {
+		if err := copyFileAtomic(dbFile, opt.DBPath); err != nil {
 			return m, err
 		}
 		os.Remove(opt.DBPath + "-wal")

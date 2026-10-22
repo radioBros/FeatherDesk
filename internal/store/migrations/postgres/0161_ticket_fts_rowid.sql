@@ -1,0 +1,12 @@
+-- Code generated from migrations/_templates for both engines (D-18). DO NOT EDIT. Engine: postgres.
+-- Ticket search, SQLite only. Postgres keeps ticket_search unchanged.
+--
+-- tickets_fts used to get a fresh rowid on every write and was looked up by its
+-- UNINDEXED ticket_id column, so replacing one ticket's entry scanned the whole
+-- index: 76 ms p50 at 100k tickets, on the single writer. The rowid is now the
+-- ticket number (unique, never changes), and store.IndexTicket replaces an
+-- entry by rowid.
+--
+-- The index is rebuilt with its current text, so search keeps working through
+-- the upgrade without a reindex. One entry per ticket is kept (the newest);
+-- entries of tickets that no longer exist are dropped.

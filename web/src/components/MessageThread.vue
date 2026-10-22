@@ -49,8 +49,8 @@ const visible = computed(() =>
       </div>
       <v-card
         v-else
-        :color="m.kind === 'internal' ? 'internal-note' : undefined"
-        :variant="m.kind === 'internal' ? 'flat' : 'outlined'"
+        :color="m.kind === 'internal' ? 'internal-note' : 'surface-light'"
+        variant="flat"
         :class="['fd-msg', m.author?.kind === 'customer' ? 'fd-msg--customer' : 'fd-msg--staff']"
         :data-testid="m.kind === 'internal' ? 'msg-internal' : 'msg-public'"
         role="article"

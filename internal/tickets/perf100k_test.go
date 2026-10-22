@@ -220,11 +220,11 @@ func runPerf100k(t *testing.T, db *store.DB, total int) map[string]perfStat {
 				}
 				doc := store.TicketDoc{TicketID: x.id, Public: strings.Join(pub, "\n"), Internal: strings.Join(in, "\n")}
 				if db.Dialect == store.SQLite {
-					// Fresh rows: a plain INSERT. store.IndexTicket first runs
-					// DELETE ... WHERE ticket_id = ?, which on the UNINDEXED FTS5
-					// column is a full-table scan (measured separately below).
-					if _, err := tx.ExecContext(ctx, `INSERT INTO tickets_fts (ticket_id, public_text, internal_text, staff_fields_text) VALUES (?, ?, ?, '')`,
-						doc.TicketID, doc.Public, doc.Internal); err != nil {
+					// Fresh rows: a plain INSERT keyed by the ticket number, as
+					// store.IndexTicket writes it (its replace path is measured
+					// separately below).
+					if _, err := tx.ExecContext(ctx, `INSERT INTO tickets_fts (rowid, ticket_id, public_text, internal_text, staff_fields_text) SELECT number, id, ?, ?, '' FROM tickets WHERE id = ?`,
+						doc.Public, doc.Internal, doc.TicketID); err != nil {
 						return err
 					}
 				} else if err := store.IndexTicket(ctx, tx, doc); err != nil {

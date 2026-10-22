@@ -36,21 +36,34 @@ func IndexTicket(ctx context.Context, q Querier, doc TicketDoc) error {
 			doc.TicketID, FoldDiacritics(doc.Internal), FoldDiacritics(doc.StaffFields), Now(), FoldDiacritics(doc.Public))
 		return err
 	}
-	if _, err := q.ExecContext(ctx, `DELETE FROM tickets_fts WHERE ticket_id = ?`, doc.TicketID); err != nil {
+	// The FTS5 rowid is the ticket number (migration 0161): replacing an entry
+	// is a rowid lookup, not a scan of the UNINDEXED ticket_id column. A
+	// ticket deleted meanwhile inserts nothing.
+	if _, err := q.ExecContext(ctx, `DELETE FROM tickets_fts WHERE rowid = (SELECT number FROM tickets WHERE id = ?)`, doc.TicketID); err != nil {
 		return err
 	}
-	_, err := q.ExecContext(ctx, `INSERT INTO tickets_fts (ticket_id, public_text, internal_text, staff_fields_text) VALUES (?, ?, ?, ?)`,
-		doc.TicketID, doc.Public, doc.Internal, doc.StaffFields)
+	_, err := q.ExecContext(ctx, `INSERT INTO tickets_fts (rowid, ticket_id, public_text, internal_text, staff_fields_text)
+		SELECT number, id, ?, ?, ? FROM tickets WHERE id = ?`,
+		doc.Public, doc.Internal, doc.StaffFields, doc.TicketID)
 	return err
 }
 
 // UnindexTicket removes a ticket from the index (hard delete).
 func UnindexTicket(ctx context.Context, q Querier, ticketID string) error {
-	tbl := "tickets_fts"
 	if q.Dialect() == Postgres {
-		tbl = "ticket_search"
+		_, err := q.ExecContext(ctx, `DELETE FROM ticket_search WHERE ticket_id = ?`, ticketID)
+		return err
 	}
-	_, err := q.ExecContext(ctx, `DELETE FROM `+tbl+` WHERE ticket_id = ?`, ticketID)
+	res, err := q.ExecContext(ctx, `DELETE FROM tickets_fts WHERE rowid = (SELECT number FROM tickets WHERE id = ?)`, ticketID)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n > 0 {
+		return nil
+	}
+	// The ticket row is already gone, so its number is unknown: scan (hard
+	// deletes only).
+	_, err = q.ExecContext(ctx, `DELETE FROM tickets_fts WHERE ticket_id = ?`, ticketID)
 	return err
 }
 

@@ -81,6 +81,16 @@ func TestInboundWebhookHMAC(t *testing.T) {
 		if c := post(Sign("s3cret", raw, now)); c != 202 {
 			t.Fatalf("good signature → %d", c)
 		}
+		// Senders written for SimpleTickets 1.0.0 use the old header name.
+		raw = mkMail("h@client.example.org", "y", "y", nil)
+		req := httptest.NewRequest("POST", "/api/v1/inbound/mime/"+tok, bytes.NewReader(raw))
+		req.Header.Set("Content-Type", "message/rfc822")
+		req.Header.Set("X-SimpleTickets-Inbound-Signature", Sign("s3cret", raw, now))
+		rec := httptest.NewRecorder()
+		e.srv.Handler().ServeHTTP(rec, req)
+		if rec.Code != 202 {
+			t.Fatalf("legacy signature header → %d", rec.Code)
+		}
 		// the secret is sealed at rest
 		var enc string
 		_ = db.Read().QueryRowContext(context.Background(), `SELECT hmac_secret_enc FROM inbound_mailboxes`).Scan(&enc)

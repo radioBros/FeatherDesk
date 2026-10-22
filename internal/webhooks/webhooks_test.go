@@ -453,6 +453,12 @@ func TestDeliverySignedEnvelope(t *testing.T) {
 		if hdr.Get("X-FeatherDesk-Event") != events.TicketCreated || hdr.Get("X-FeatherDesk-Delivery") == "" {
 			t.Fatalf("headers: %v", hdr)
 		}
+		// Receivers written for SimpleTickets 1.0.0 get the same values under the old names.
+		for _, n := range []string{"Event", "Delivery", "Signature"} {
+			if hdr.Get("X-SimpleTickets-"+n) != hdr.Get("X-FeatherDesk-"+n) {
+				t.Fatalf("X-SimpleTickets-%s = %q, want %q", n, hdr.Get("X-SimpleTickets-"+n), hdr.Get("X-FeatherDesk-"+n))
+			}
+		}
 		if err := verifySignature("wrong", hdr.Get("X-FeatherDesk-Signature"), body, time.Now()); err == nil {
 			t.Fatal("wrong secret verified")
 		}

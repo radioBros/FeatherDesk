@@ -24,6 +24,11 @@
     padding-inline-start: 12px;
 }
 
+// Cards: 16px corners everywhere. The "sharp" branding corners (rounded-0) stay square.
+.v-card:not(.rounded-0) {
+    border-radius: 16px;
+}
+
 .v-btn--icon {
     border-radius: 8px !important;
     height: auto !important;

@@ -26,21 +26,26 @@ func (db *DB) LockInstance(ctx context.Context) (release func(), err error) {
 		if err != nil {
 			return nil, err
 		}
-		h := fnv.New64a()
-		h.Write([]byte("featherdesk-instance"))
 		var schema string
 		_ = conn.QueryRowContext(ctx, `SELECT current_schema()`).Scan(&schema)
-		h.Write([]byte(schema))
-		key := int64(h.Sum64() >> 1)
+		// The SimpleTickets 1.0.0 key is held too, so a not-yet-upgraded
+		// SimpleTickets process and FeatherDesk never run on one database.
+		var keys []int64
+		for _, name := range []string{"featherdesk-instance", "simpletickets-instance"} {
+			h := fnv.New64a()
+			h.Write([]byte(name))
+			h.Write([]byte(schema))
+			keys = append(keys, int64(h.Sum64()>>1))
+		}
 		var ok bool
-		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, key).Scan(&ok); err != nil {
+		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1) AND pg_try_advisory_lock($2)`, keys[0], keys[1]).Scan(&ok); err != nil {
 			return nil, closeWith(err, conn)
 		}
 		if !ok {
-			return nil, closeWith(ErrInstanceRunning, conn)
+			return nil, closeWith(ErrInstanceRunning, conn) // closing the session drops a half-taken lock
 		}
 		return func() {
-			_, _ = conn.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1)`, key)
+			_, _ = conn.ExecContext(context.Background(), `SELECT pg_advisory_unlock($1), pg_advisory_unlock($2)`, keys[0], keys[1])
 			_ = conn.Close() // release func has no error path; closing ends the session lock anyway
 		}, nil
 	}

@@ -13,6 +13,17 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+### Changed
+- **SQLite search index keyed by ticket number.** Updating a ticket's search entry no longer scans the whole index: 0.13 ms instead of 76 ms (p50) at 100k tickets, on the single writer.
+- **Message cards** in the ticket thread have a light grey background (dark grey in dark mode) instead of a border, and every card has 16 px corners (square with the "sharp" branding corners).
+
+### Fixed
+- **Upgrading from SimpleTickets 1.0.0** works without configuration changes: `ST_*` variables, `simpletickets.db`, SimpleTickets backups, `st_pat_` tokens, the `st_session` cookie, the `simpletickets.v1` WebSocket subprotocol and the `X-SimpleTickets-*` webhook and inbound headers keep working (see *Upgrading from SimpleTickets* in the documentation).
+
+### Migrations
+- `0160_legacy_names`: on PostgreSQL, renames the SimpleTickets 1.0.0 database functions `st_*` to `fd_*` and re-creates the two KB visibility functions; on both engines, an untouched "SimpleTickets" product name becomes "FeatherDesk". Fast, no operator action; a fresh database only gets the two functions re-created.
+- `0161_ticket_fts_rowid`: SQLite only. Rebuilds `tickets_fts` keyed by ticket number and copies the existing index text, so search keeps working without a reindex. It reads and rewrites the whole index once: 12 s at 100k tickets, 41 MB peak memory (measured on Apple M-series). No operator action.
+
 ## [1.0.0] - 2026-10-22
 
 First stable release of FeatherDesk, developed by [RadioBros](https://radiobros.com/). Everything under *Added* is new; *Changed* and *Fixed* list what changed during the release candidates.

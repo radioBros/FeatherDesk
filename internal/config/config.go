@@ -249,8 +249,9 @@ func decodeSecret(s string) ([]byte, error) {
 	return nil, errors.New("must be at least 32 bytes (base64 or raw)")
 }
 
-// SQLitePath is where the default SQLite database lives.
-func (c *Config) SQLitePath() string { return filepath.Join(c.DataDir, "featherdesk.db") }
+// SQLitePath is where the default SQLite database lives: featherdesk.db, or
+// the simpletickets.db of an upgraded SimpleTickets install (legacy.go).
+func (c *Config) SQLitePath() string { return sqliteFileIn(c.DataDir) }
 
 // EffectiveDatabaseURL resolves the empty default to the SQLite file in DataDir.
 func (c *Config) EffectiveDatabaseURL() string {

@@ -4,6 +4,8 @@ package authn_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -182,6 +184,30 @@ func TestInvariant_I5_DisabledPATRejected(t *testing.T) {
 		e.Exec(`UPDATE users SET status = 'active' WHERE id = ?`, u.ID)
 		if r, _ := pat.Do("GET", "/api/v1/me", nil); r.StatusCode != 401 {
 			t.Fatalf("PAT valid after re-enable: %d", r.StatusCode)
+		}
+	})
+}
+
+// TestSimpleTicketsCredentials: a token issued by SimpleTickets 1.0.0
+// (st_pat_ prefix) and its session cookie (st_session) keep working.
+func TestSimpleTicketsCredentials(t *testing.T) {
+	storetest.Engines(t, func(t *testing.T, db *store.DB) {
+		e := authntest.New(t, db, authntest.Options{})
+		u := e.Customer("", domain.RoleRequester)
+		c := e.Login(u)
+		pat := c.PAT("tickets:read")
+		legacy := "st_pat_" + strings.TrimPrefix(pat.Bearer, authn.PATPrefix)
+		sum := sha256.Sum256([]byte(legacy))
+		e.Exec(`UPDATE api_tokens SET token_hash = ? WHERE user_id = ?`, hex.EncodeToString(sum[:]), u.ID)
+		if r, _ := (&authntest.Client{E: e, Bearer: legacy}).Do("GET", "/api/v1/me", nil); r.StatusCode != 200 {
+			t.Fatalf("st_pat_ token: %d", r.StatusCode)
+		}
+		req := httptest.NewRequest("GET", "/api/v1/me", nil)
+		req.AddCookie(&http.Cookie{Name: "st_session", Value: c.Cookie})
+		rec := httptest.NewRecorder()
+		e.Handler().ServeHTTP(rec, req)
+		if rec.Code != 200 {
+			t.Fatalf("st_session cookie: %d %s", rec.Code, rec.Body)
 		}
 	})
 }

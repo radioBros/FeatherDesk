@@ -2669,6 +2669,29 @@ Exit codes: `0` success, `1` error, `2` configuration error or unknown command.
 
 On Kubernetes, the `Recreate` strategy stops the old pod before the new one starts, which is required: only one instance may run at a time.
 
+**Upgrading from SimpleTickets.** FeatherDesk was called SimpleTickets up to 1.0.0. An existing SimpleTickets install upgrades with the steps above and **no other changes**: change only the image name to `ghcr.io/radiobros/featherdesk`. What keeps working:
+
+| SimpleTickets 1.0.0 | FeatherDesk reads it as |
+|---|---|
+| `ST_*` environment variables | `FD_*`, when the `FD_` variable is not set. Startup prints one warning that lists them |
+| `/data/simpletickets.db` | The database, as long as no `featherdesk.db` exists next to it |
+| Backups (`simpletickets-<time>/` with `simpletickets.db`) | Restored by `featherdesk restore --from` |
+| API tokens `st_pat_…` | Valid as before. New tokens start with `fd_pat_` |
+| Session cookie `st_session` | Valid, so nobody is signed out. New sign-ins get `fd_session` |
+| WebSocket subprotocol `simpletickets.v1` | Accepted next to `featherdesk.v1` |
+| Webhook headers `X-SimpleTickets-Event`, `-Delivery`, `-Signature` | Still sent, with the same values as the `X-FeatherDesk-*` headers |
+| Inbound header `X-SimpleTickets-Inbound-Signature` | Accepted next to `X-FeatherDesk-Inbound-Signature` |
+| Product name "SimpleTickets" (the untouched default) | Renamed to "FeatherDesk" by migration 0160. A name you chose is kept |
+
+On PostgreSQL, migration 0160 renames the SimpleTickets database functions (`st_*` → `fd_*`). The instance lock also holds the SimpleTickets key, so a SimpleTickets process that is still running keeps FeatherDesk from starting on the same database. Things to update when convenient, none urgent:
+
+- Rename `ST_*` to `FD_*` in your environment, compose files and Helm values.
+- With Litestream, rename the database file while the app is stopped: `simpletickets.db` (plus `-wal` and `-shm`, if present) → `featherdesk.db`. The shipped Litestream config replicates `/data/featherdesk.db`.
+- The default SSO group names in the shipped Authentik blueprint and Keycloak realm are now `fd-*`. Your own `FD_OIDC_*_ROLE_MAP` decides which groups count, so existing `st-*` groups keep working as long as the role map names them.
+- Metric names changed from `st_*` to `fd_*` (dashboards and alerts).
+
+`scripts/upgrade-drill.sh --from <SimpleTickets image>` rehearses this upgrade on both engines.
+
 ### 13.4 Monitoring
 
 | Endpoint | Auth | Answers |
