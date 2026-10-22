@@ -20,6 +20,8 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 - **SQLite search index keyed by ticket number.** Updating a ticket's search entry no longer scans the whole index: 0.13 ms instead of 76 ms (p50) at 100k tickets, on the single writer.
 - **Message cards** in the ticket thread have a background instead of a border: neutral grey for customers, a slightly cooler grey-blue for staff, yellow for internal notes (all with a dark-mode variant). Every card has 16 px corners (square with the "sharp" branding corners).
 
+- **Footprint gate:** on Linux (CI) idle CPU is measured from the app process's own CPU time and must stay under 0.10% of a core; a 500 ms polling loop (0.15%) now fails the gate. Elsewhere the `docker stats` check with its 1% limit stays.
+
 ### Fixed
 - **Upgrading from SimpleTickets 1.0.0** works without configuration changes: `ST_*` variables, `simpletickets.db`, SimpleTickets backups, `st_pat_` tokens, the `st_session` cookie, the `simpletickets.v1` WebSocket subprotocol and the `X-SimpleTickets-*` webhook and inbound headers keep working (see *Upgrading from SimpleTickets* in the documentation).
 - **Secrets sealed by SimpleTickets 1.0.0 open again after the upgrade.** The key derivation was renamed with the product, so SMTP and IMAP passwords, IMAP refresh tokens, webhook secrets and TOTP secrets no longer decrypted (mail stopped silently, TOTP sign-in failed), and reply links and satisfaction links in emails sent before the upgrade no longer verified. Both names are accepted now; new values use the FeatherDesk one.

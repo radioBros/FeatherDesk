@@ -158,7 +158,7 @@ Measured on 2026-10-21 with the production compose file (one container, read-onl
 | Image size (compressed) | 11.1 MiB (arm64, D-19 build); earlier 10.5 (arm64) / 11.3 (amd64) | ≤ 20 MB | ≤ 30 MB |
 | Memory at idle (RSS, 1 000 tickets) | 26.5 MiB (D-19 build; was ~21 MiB before it) | ≤ 35 MB | ≤ 50 MB |
 | Memory under load (50 agents, 200 WebSockets, 10 req/s, 10 min) | 42 MiB peak | ≤ 80 MB | ≤ 120 MB |
-| CPU at idle | 0.03 % | ≈ 0 % | < 1 % |
+| CPU at idle | 0.03 % | ≈ 0 % | < 0.10 % of the app process on Linux (CI); < 1 % in `docker stats` elsewhere |
 | Cold start (container start → ready) | 0.11 s (median) | ≤ 1 s | ≤ 3 s |
 | Initial JavaScript per area (gzip) | 190–200 KB (portal 193.7, agent 199.7, kb 193.3, setup 190.4) | ≤ 200 KB | ≤ 300 KB |
 | Optional Postgres container at idle | 42–51 MiB | ≤ 60 MB | — |

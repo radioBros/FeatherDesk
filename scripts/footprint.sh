@@ -7,7 +7,9 @@
 #
 #   image size     docker save | gzip -c | wc -c          ≤ 20 MB / ≤ 30 MB
 #   idle RSS       docker stats after IDLE_SECONDS idle    ≤ 35 MB / ≤ 50 MB
-#   idle CPU       mean of docker stats samples while idle ≈ 0%  / < 1%
+#   idle CPU       on Linux: the app process's own CPU time over the idle
+#                  window, from /proc/<pid>/stat (no Docker overhead)  ≈ 0% / < 0.10%;
+#                  elsewhere (Docker Desktop): mean of docker stats samples  ≈ 0% / < 1%
 #   cold start     docker start → first /readyz 200, median of RUNS ≤ 1 s / ≤ 3 s
 #
 # With --engine postgres the compose.postgres.yml overlay is added and the
@@ -126,6 +128,10 @@ echo "settled after $(( $(date +%s) - settle_start )) s"
 
 echo "== idle ${IDLE}s (CPU sampled every 5 s)"
 CPU_SAMPLES=()
+# The app's own CPU ticks (utime + stime), readable from the host on Linux.
+APP_PID=$(docker inspect -f '{{.State.Pid}}' "$APP")
+proc_ticks() { [ -r "/proc/$APP_PID/stat" ] && awk '{print $14 + $15}' "/proc/$APP_PID/stat"; }
+T0=$(proc_ticks || true) W0=$(date +%s)
 end=$(( $(date +%s) + IDLE ))
 while [ "$(date +%s)" -lt "$end" ]; do
   c=$(docker stats --no-stream --format '{{.CPUPerc}}' "$APP" | tr -d '%')
@@ -133,6 +139,12 @@ while [ "$(date +%s)" -lt "$end" ]; do
   sleep 5
 done
 IDLE_CPU=$(printf '%s\n' "${CPU_SAMPLES[@]}" | awk '{s+=$1;n++} END{printf "%.2f", (n?s/n:0)}')
+T1=$(proc_ticks || true) W1=$(date +%s)
+PROC_CPU=""
+if [ -n "$T0" ] && [ -n "$T1" ]; then
+  PROC_CPU=$(awk -v d="$((T1 - T0))" -v hz="$(getconf CLK_TCK)" -v s="$((W1 - W0))" 'BEGIN{printf "%.3f", d / hz / s * 100}')
+  echo "idle CPU of the app process (/proc): $PROC_CPU% over $((W1 - W0)) s"
+fi
 IDLE_RSS=$(mib "$(docker stats --no-stream --format '{{.MemUsage}}' "$APP")")
 PROC_RSS=$( (docker top "$APP" -o pid,rss 2>/dev/null || true) | awk 'NR>1{s+=$2} END{printf "%.1f", s/1024}')
 PG_RSS="-"
@@ -167,7 +179,12 @@ TABLE=$(
   echo "|---|---|---|---|---|"
   row "Image size (compressed, $(docker image inspect -f '{{.Architecture}}' "$IMAGE"))" "$IMG_MB" MiB "≤ 20 MiB" 30 le
   row "Idle RSS after ${IDLE}s" "$IDLE_RSS" MiB "≤ 35 MiB" 50 le
-  row "Idle CPU (mean)" "$IDLE_CPU" "%" "≈ 0%" 1 lt
+  if [ -n "$PROC_CPU" ]; then
+    row "Idle CPU (app process, /proc)" "$PROC_CPU" "%" "≈ 0%" 0.10 lt
+    echo "| Idle CPU (docker stats mean) | $IDLE_CPU % | ≈ 0% | (reported) | - |"
+  else
+    row "Idle CPU (docker stats mean)" "$IDLE_CPU" "%" "≈ 0%" 1 lt
+  fi
   row "Cold start to /readyz (median of $RUNS)" "$COLD" s "≤ 1 s" 3 le
   [ "$ENGINE" = postgres ] && echo "| Postgres idle RSS | $PG_RSS MiB | ≤ 60 MiB | (reported) | - |"
   echo "| OOM killed / restarts | $OOM / $RESTARTS | false / 0 | false / 0 | $( [ "$OOM" = false ] && echo ok || echo FAIL) |"
