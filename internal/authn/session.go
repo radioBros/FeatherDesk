@@ -4,7 +4,6 @@ package authn
 
 import (
 	"context"
-	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -62,7 +61,12 @@ func (m *Module) ValidCSRF(p *domain.Principal, token string) bool {
 	if p == nil || p.SessionID == "" || token == "" {
 		return false
 	}
-	return hmac.Equal([]byte(m.csrfFor(p.SessionID)), []byte(token))
+	mac, err := base64.RawURLEncoding.DecodeString(token)
+	if err != nil {
+		return false
+	}
+	// VerifyMAC also accepts a token a SimpleTickets 1.0.0 page still holds.
+	return m.d.Secrets.VerifyMAC("csrf-token", []byte(p.SessionID), mac)
 }
 
 // publicSessionID is the id exposed by GET /me/sessions (a prefix of the

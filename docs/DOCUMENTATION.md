@@ -2678,6 +2678,7 @@ On Kubernetes, the `Recreate` strategy stops the old pod before the new one star
 | Backups (`simpletickets-<time>/` with `simpletickets.db`) | Restored by `featherdesk restore --from` |
 | API tokens `st_pat_…` | Valid as before. New tokens start with `fd_pat_` |
 | Session cookie `st_session` | Valid, so nobody is signed out. New sign-ins get `fd_session` |
+| Encrypted settings (SMTP/IMAP passwords, IMAP refresh tokens, webhook secrets, TOTP secrets), reply and satisfaction links in sent emails | Open and verify as before. Values saved from now on use the FeatherDesk key |
 | WebSocket subprotocol `simpletickets.v1` | Accepted next to `featherdesk.v1` |
 | Webhook headers `X-SimpleTickets-Event`, `-Delivery`, `-Signature` | Still sent, with the same values as the `X-FeatherDesk-*` headers |
 | Inbound header `X-SimpleTickets-Inbound-Signature` | Accepted next to `X-FeatherDesk-Inbound-Signature` |

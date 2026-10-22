@@ -22,6 +22,12 @@ import (
 // Prefix marks a sealed value so callers can tell ciphertext from plaintext.
 const Prefix = "enc:v1:"
 
+// salts are the HKDF salts, current first. SimpleTickets 1.0.0 derived every
+// key with "simpletickets": values it sealed (SMTP/IMAP passwords, webhook
+// secrets, TOTP secrets) and MACs it issued (reply plus-tokens, CSAT links)
+// still open and verify after the upgrade. New values always use salts[0].
+var salts = [][]byte{[]byte("featherdesk"), []byte("simpletickets")}
+
 var ErrDecrypt = errors.New("crypto: cannot decrypt (wrong FD_SECRET_KEY or tampered value)")
 
 // Box seals and opens values. It is safe for concurrent use.
@@ -52,20 +58,22 @@ func (b *Box) ciphers(purpose string) ([]cipher.AEAD, error) {
 		return a, nil
 	}
 	var out []cipher.AEAD
-	for _, root := range b.keys {
-		k, err := hkdf.Key(sha256.New, root, []byte("featherdesk"), "secretbox:"+purpose, 32)
-		if err != nil {
-			return nil, err
+	for _, salt := range salts {
+		for _, root := range b.keys {
+			k, err := hkdf.Key(sha256.New, root, salt, "secretbox:"+purpose, 32)
+			if err != nil {
+				return nil, err
+			}
+			blk, err := aes.NewCipher(k)
+			if err != nil {
+				return nil, err
+			}
+			g, err := cipher.NewGCM(blk)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, g)
 		}
-		blk, err := aes.NewCipher(k)
-		if err != nil {
-			return nil, err
-		}
-		g, err := cipher.NewGCM(blk)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, g)
 	}
 	b.aead[purpose] = out
 	return out, nil
@@ -95,7 +103,8 @@ func (b *Box) SealString(purpose, s string) (string, error) {
 	return b.Seal(purpose, []byte(s))
 }
 
-// Open decrypts a value produced by Seal, trying the previous keys after a rotation.
+// Open decrypts a value produced by Seal, trying the previous keys after a
+// rotation and the SimpleTickets salt after an upgrade.
 func (b *Box) Open(purpose, sealed string) ([]byte, error) {
 	if !strings.HasPrefix(sealed, Prefix) {
 		return nil, ErrDecrypt
@@ -134,21 +143,35 @@ func IsSealed(s string) bool { return strings.HasPrefix(s, Prefix) }
 // MAC returns a hex-free raw HMAC-SHA256 of msg under a purpose key (CSRF tokens,
 // plus-address reply tokens, ws-tickets). Verify with hmac.Equal.
 func (b *Box) MAC(purpose string, msg []byte) []byte {
-	k, _ := hkdf.Key(sha256.New, b.keys[0], []byte("featherdesk"), "mac:"+purpose, 32)
-	m := hmac.New(sha256.New, k)
-	m.Write(msg)
-	return m.Sum(nil)
+	return macWith(b.keys[0], salts[0], purpose, msg)
+}
+
+// MACs returns every MAC msg may legitimately carry: the current one first, then
+// those under previous keys and the SimpleTickets salt. For callers that compare
+// a truncated MAC themselves; others use VerifyMAC.
+func (b *Box) MACs(purpose string, msg []byte) [][]byte {
+	out := make([][]byte, 0, len(salts)*len(b.keys))
+	for _, salt := range salts {
+		for _, root := range b.keys {
+			out = append(out, macWith(root, salt, purpose, msg))
+		}
+	}
+	return out
 }
 
 // VerifyMAC checks mac against msg using the current and previous keys.
 func (b *Box) VerifyMAC(purpose string, msg, mac []byte) bool {
-	for _, root := range b.keys {
-		k, _ := hkdf.Key(sha256.New, root, []byte("featherdesk"), "mac:"+purpose, 32)
-		m := hmac.New(sha256.New, k)
-		m.Write(msg)
-		if hmac.Equal(m.Sum(nil), mac) {
+	for _, want := range b.MACs(purpose, msg) {
+		if hmac.Equal(want, mac) {
 			return true
 		}
 	}
 	return false
+}
+
+func macWith(root, salt []byte, purpose string, msg []byte) []byte {
+	k, _ := hkdf.Key(sha256.New, root, salt, "mac:"+purpose, 32)
+	m := hmac.New(sha256.New, k)
+	m.Write(msg)
+	return m.Sum(nil)
 }

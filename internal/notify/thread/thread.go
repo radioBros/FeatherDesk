@@ -139,8 +139,14 @@ func VerifyPlusToken(box *crypto.Box, token string) (ticketID, recipientPrefix s
 		return "", "", false
 	}
 	body, mac := raw[:16+tokRecipientBytes], raw[16+tokRecipientBytes:]
-	want := box.MAC(PurposePlusToken, body)
-	if !hmac.Equal(want[:tokMACBytes], mac) {
+	valid := false
+	for _, want := range box.MACs(PurposePlusToken, body) {
+		if hmac.Equal(want[:tokMACBytes], mac) {
+			valid = true
+			break
+		}
+	}
+	if !valid {
 		return "", "", false
 	}
 	var u uuid.UUID

@@ -19,6 +19,7 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ### Fixed
 - **Upgrading from SimpleTickets 1.0.0** works without configuration changes: `ST_*` variables, `simpletickets.db`, SimpleTickets backups, `st_pat_` tokens, the `st_session` cookie, the `simpletickets.v1` WebSocket subprotocol and the `X-SimpleTickets-*` webhook and inbound headers keep working (see *Upgrading from SimpleTickets* in the documentation).
+- **Secrets sealed by SimpleTickets 1.0.0 open again after the upgrade.** The key derivation was renamed with the product, so SMTP and IMAP passwords, IMAP refresh tokens, webhook secrets and TOTP secrets no longer decrypted (mail stopped silently, TOTP sign-in failed), and reply links and satisfaction links in emails sent before the upgrade no longer verified. Both names are accepted now; new values use the FeatherDesk one.
 
 ### Migrations
 - `0160_legacy_names`: on PostgreSQL, renames the SimpleTickets 1.0.0 database functions `st_*` to `fd_*` and re-creates the two KB visibility functions; on both engines, an untouched "SimpleTickets" product name becomes "FeatherDesk". Fast, no operator action; a fresh database only gets the two functions re-created.
