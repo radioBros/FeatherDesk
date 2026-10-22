@@ -83,6 +83,7 @@ The binding rules live in `docs/dev/internals.md`. The essentials:
 - Use conventional commit messages (`feat:`, `fix:`, `docs:`, `chore:` …), since release notes are generated from them.
 - Add user-visible changes to the `[Unreleased]` section of [CHANGELOG.md](CHANGELOG.md) (Keep a Changelog). A change under `internal/store/migrations/` **must** add a `### Migrations` entry there; CI checks it (`scripts/changelog-check.sh`).
 - CI must be green. A gate that blocks a legitimate change is relaxed only in a reviewed PR that records the reason.
+- CI runs only what a change needs (`scripts/ci-changes.sh`): Go jobs for Go code, migrations or the API spec (and `go test` only on the packages the change can break, `tools/ciaffected`), web jobs for `web/`, the docs check for docs or Go, e2e for Go or web (on SQLite; Postgres too when `internal/store/` changed). The image, smoke, kind and proxy jobs run on a pull request only when `Dockerfile`, `deploy/` or their scripts change, and after merging when Go or web changed. The nightly run, a manual run and any change to CI itself run everything. So run the full local checks above before you push.
 
 ## Reporting bugs and security issues
 

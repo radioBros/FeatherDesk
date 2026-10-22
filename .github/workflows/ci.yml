@@ -36,9 +36,44 @@ env:
   IMAGE: featherdesk:ci
 
 jobs:
+  # ------------------------------------------------------------- changes --
+  # Which parts of CI this change needs (scripts/ci-changes.sh): every job below
+  # runs only when its inputs changed. The nightly and manual runs, and a change
+  # to CI itself, run everything.
+  changes:
+    name: changes (which parts of CI this change needs)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.c.outputs.go }}
+      web: ${{ steps.c.outputs.web }}
+      api: ${{ steps.c.outputs.api }}
+      docs: ${{ steps.c.outputs.docs }}
+      deploy: ${{ steps.c.outputs.deploy }}
+      e2e_engines: ${{ steps.c.outputs.e2e_engines }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: c
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          scripts/ci-changed-files.sh > changed.txt
+          { echo '### Changed files'; echo '```'; head -200 changed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          scripts/ci-changes.sh < changed.txt | tee -a "$GITHUB_OUTPUT" "$GITHUB_STEP_SUMMARY"
+          # Pull requests run e2e on SQLite; Postgres too when the database layer changed, and after merging.
+          if grep -qE '^(store|all)=true$' <(scripts/ci-changes.sh < changed.txt) || [ "$GITHUB_EVENT_NAME" != pull_request ]; then
+            echo 'e2e_engines=["sqlite","postgres"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'e2e_engines=["sqlite"]' >> "$GITHUB_OUTPUT"
+          fi
+
   # ------------------------------------------------------------------ Go --
   go:
     name: go (vet, gofmt, test -race on SQLite + Postgres 18, shard ${{ matrix.shard }}/2)
+    needs: [changes]
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     # The race suite runs every store test on both engines; two shards keep each
@@ -55,6 +90,8 @@ jobs:
       FD_REQUIRE_POSTGRES15: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -79,11 +116,18 @@ jobs:
           if [ -n "$out" ]; then echo "::error::gofmt needed"; echo "$out"; exit 1; fi
       - name: go vet
         run: go vet ./...
-      - name: go test -race (both engines; CI=true makes a missing Postgres fail)
+      - name: go test -race (affected packages, both engines; CI=true makes a missing Postgres fail)
+        env:
+          BEFORE: ${{ github.event.before }}
         run: |
+          # Only the packages the change can break (tools/ciaffected): the changed ones and their importers.
+          affected=$(scripts/ci-changed-files.sh | go run ./tools/ciaffected)
+          if [ "$affected" = "./..." ]; then affected=$(go list ./...); fi
           heavy='/internal/(authn|demo|kb|mailin|webhooks|privacy)(/|$)'
-          if [ "${{ matrix.shard }}" = 1 ]; then pkgs=$(go list ./... | grep -E "$heavy")
-          else pkgs=$(go list ./... | grep -vE "$heavy"); fi
+          if [ "${{ matrix.shard }}" = 1 ]; then pkgs=$(printf '%s\n' "$affected" | grep -E "$heavy" || true)
+          else pkgs=$(printf '%s\n' "$affected" | grep -vE "$heavy" || true); fi
+          if [ -z "$pkgs" ]; then echo "No affected package in this shard." | tee -a "$GITHUB_STEP_SUMMARY"; exit 0; fi
+          { echo "### Tested packages (shard ${{ matrix.shard }})"; echo '```'; echo "$pkgs"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           # shellcheck disable=SC2086
           go test -race -count=1 -timeout 25m -coverprofile=coverage.out $pkgs
       - name: Schema parity between migrations/sqlite and migrations/postgres
@@ -97,6 +141,8 @@ jobs:
 
   golangci:
     name: golangci-lint
+    needs: [changes]
+    if: needs.changes.outputs.go == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # 66 pre-existing findings are tracked debt (TD-DEP-01 in deployment_log.md):
@@ -117,6 +163,8 @@ jobs:
   # ----------------------------------------------------------------- web --
   web:
     name: web (typecheck, lint, test, build, budget, i18n)
+    needs: [changes]
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -142,6 +190,8 @@ jobs:
   # ------------------------------------------------- contract + inventory --
   openapi:
     name: openapi lint + route inventory
+    needs: [changes]
+    if: needs.changes.outputs.go == 'true' || needs.changes.outputs.api == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -218,6 +268,8 @@ jobs:
     # server. DEP-026: THIRD_PARTY_NOTICES current + licence compatibility.
     # DEP-019: a migration change needs a `### Migrations` note in CHANGELOG.md.
     name: docs (lychee, doc-test, drift greps, THIRD_PARTY_NOTICES, changelog)
+    needs: [changes]
+    if: needs.changes.outputs.docs == 'true' || needs.changes.outputs.go == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -258,6 +310,8 @@ jobs:
     # Postgres pod; /readyz, WebSocket ping/pong through a port-forward, no restarts,
     # read-only root filesystem. kind, helm and kubectl are preinstalled on the runner.
     name: kind (helm install → /readyz + WS ping; SQLite and Postgres pod)
+    needs: [changes]
+    if: needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -296,11 +350,13 @@ jobs:
     name: e2e (${{ matrix.engine }}; binary + Mailpit + Playwright chromium & mobile)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    needs: [web]
+    # After web when it ran; a Go-only change skips web and still runs e2e.
+    needs: [changes, web]
+    if: ${{ !cancelled() && (needs.changes.outputs.go == 'true' || needs.changes.outputs.web == 'true') && (needs.web.result == 'success' || needs.web.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
-        engine: [sqlite, postgres]
+        engine: ${{ fromJSON(needs.changes.outputs.e2e_engines) }}
     services:
       mailpit:
         image: axllent/mailpit@sha256:23fe39e81bde596a918000b3135c0f85dc8bb4c9ea6be274b051143f3e300387
@@ -351,6 +407,8 @@ jobs:
   # ---------------------------------------------------------------- image --
   image:
     name: image (buildx multi-arch, size gate, Trivy, smoke, footprint)
+    needs: [changes]
+    if: needs.changes.outputs.deploy == 'true' || (github.event_name != 'pull_request' && (needs.changes.outputs.go == 'true' || needs.changes.outputs.web == 'true'))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -413,6 +471,8 @@ jobs:
 
   proxies:
     name: reverse proxy examples (Caddy, nginx, Traefik; HTTPS + WebSocket)
+    needs: [changes]
+    if: needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -448,6 +508,8 @@ jobs:
     # → resolve, reply mail in Mailpit. Authentik migrates while the app image builds and
     # Playwright installs; the whole job must stay within 10 minutes.
     name: smoke (prod compose + dev overlay + SSO)
+    needs: [changes]
+    if: needs.changes.outputs.deploy == 'true' || (github.event_name != 'pull_request' && (needs.changes.outputs.go == 'true' || needs.changes.outputs.web == 'true'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
