@@ -338,7 +338,7 @@ jobs:
     # migrate-engine), §2.4 (blob-migrate → MinIO), §2.5 (k8s manifests + Helm on kind)
     # and §6.4 (env IMAP mailbox → Dovecot), extracted from the manual and run.
     name: doc-test-ops (compose overlay, MinIO, Dovecot, kind)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'integration')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'integration') || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -495,7 +495,7 @@ jobs:
   # ------------------------------------------------- nightly: load + IT --
   loadtest:
     name: load test (50 agents, 200 WS, 10 req/s, 10 min, 256m/1 CPU)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -586,7 +586,7 @@ jobs:
     # AUTH-023: staff/customer SSO, group → role/tier sync, demotion/disable and
     # RP-initiated logout against a real Authentik (deploy/compose.dev.yml).
     name: e2e-sso (Authentik 2026.8.4 + Playwright)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'sso')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'sso') || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -638,7 +638,7 @@ jobs:
   e2e-sso-keycloak:
     # AUTH-029: the AUTH-023 staff scenarios against Keycloak (realm import, no blueprint).
     name: e2e-sso-keycloak (Keycloak 26.8.1 + Playwright)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'sso')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'sso') || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -674,7 +674,7 @@ jobs:
   screenshots:
     # DEP-027: README screenshots regenerated with no manual steps (`pnpm screenshots`).
     name: screenshots (portal, agent, branding; light + dark)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -700,7 +700,7 @@ jobs:
 
   drills:
     name: backup/restore drill (DEP-013, SQLite + Postgres; DEP-020 Litestream)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -713,7 +713,8 @@ jobs:
 
   integration:
     name: integration (MinIO S3 blob store, Dovecot IMAP)
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'integration')
+    # Opt-in like every heavy suite (owner rule): nightly, manual, or the `integration` / `ci:full` label.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'integration') || contains(github.event.pull_request.labels.*.name, 'ci:full')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
