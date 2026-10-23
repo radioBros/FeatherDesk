@@ -8,6 +8,8 @@ name: ci
 
 on:
   pull_request:
+    # labeled: adding `ci:full` starts a full run (owner rule: affected parts only otherwise)
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   schedule:
@@ -16,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read # scripts/ci-changed-files.sh: is this push the merge of a tested PR?
 
 # Explicit `shell: bash` = `bash --noprofile --norc -eo pipefail`, so a gate
 # piped into `tee` still fails the step.
@@ -38,8 +41,8 @@ env:
 jobs:
   # ------------------------------------------------------------- changes --
   # Which parts of CI this change needs (scripts/ci-changes.sh): every job below
-  # runs only when its inputs changed. The nightly and manual runs, and a change
-  # to CI itself, run everything.
+  # runs only when its inputs changed. Only the nightly and manual runs and the
+  # `ci:full` PR label run everything; the push that merges a tested PR runs nothing.
   changes:
     name: changes (which parts of CI this change needs)
     runs-on: ubuntu-24.04
@@ -58,6 +61,8 @@ jobs:
       - id: c
         env:
           BEFORE: ${{ github.event.before }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           scripts/ci-changed-files.sh > changed.txt
           { echo '### Changed files'; echo '```'; head -200 changed.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
@@ -119,6 +124,8 @@ jobs:
       - name: go test -race (affected packages, both engines; CI=true makes a missing Postgres fail)
         env:
           BEFORE: ${{ github.event.before }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Only the packages the change can break (tools/ciaffected): the changed ones and their importers.
           affected=$(scripts/ci-changed-files.sh | go run ./tools/ciaffected)
