@@ -28,7 +28,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  GO_VERSION: "1.27.x" # go.mod requires ≥ 1.27.3 (eMudhra CA distrust)
+  GO_VERSION: "1.27.3" # exact: a cached 1.27.x may predate the eMudhra CA distrust go.mod requires
   NODE_VERSION: "24.22.1" # ≥ 24.22.1: eMudhra CA distrust (2026-10-23)
   PNPM_VERSION: "11.0.8"
   PG_IMAGE: postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
