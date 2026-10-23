@@ -1535,20 +1535,6 @@ The **AI assistants (MCP)** integration has one switch. It turns on the built-in
 
 Details, tools and client setup: [features/mcp.md](features/mcp.md).
 
-### 7.22 Integrations (Channels → Integrations, admin)
-
-One page lists every integration as a card with its status: **Slack**, **AI assistants (MCP)** ([7.20](#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin)), **Outgoing webhooks** ([7.11](#711-webhooks-channels--webhooks-admin)) and the **REST API** reference. Each card opens its own settings. Integrations that sign in to another service do it in a **popup window**; the page you are on never navigates away.
-
-**Slack** posts ticket activity to channels, one thread per ticket:
-
-1. *Create app in Slack* creates your own Slack app from a pre-filled manifest (FeatherDesk is self-hosted, so the app is yours).
-2. Paste its *Client ID* and *Client Secret*.
-3. *Connect to Slack* opens Slack's permission screen in a popup; *Allow* and it closes. `FD_PUBLIC_URL` must be HTTPS (Slack's rule).
-
-Then add **rules**: a channel, the events (new tickets, status, assignment, priority, escalation, customer and agent replies, internal notes, SLA warnings and breaches, satisfaction ratings), optional project and priority filters, threads, message text and internal details, with a live preview. Channel problems show on the rule; a revoked token shows *Reconnect*. Every change is audited (`slack.*`).
-
-Details: [features/slack.md](features/slack.md).
-
 ### 7.21 Projects (Administration → Projects, supervisor+)
 
 A project groups tickets under a key: `WEB-12`, `MOB-3`. Every installation has at least one, the **Default project** (key `HD`), which the upgrade creates and fills with everything that existed; a single-project installation works exactly as before and the agent panel hides the project switcher.
@@ -1569,6 +1555,20 @@ A project groups tickets under a key: `WEB-12`, `MOB-3`. Every installation has 
 Details, permissions and API: [features/projects.md](features/projects.md) (the screens: [§11](features/projects.md#11-the-user-interface)).
 
 ---
+
+### 7.22 Integrations (Channels → Integrations, admin)
+
+One page lists every integration as a card with its status: **Slack**, **AI assistants (MCP)** ([7.20](#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin)), **Outgoing webhooks** ([7.11](#711-webhooks-channels--webhooks-admin)) and the **REST API** reference. Each card opens its own settings. Integrations that sign in to another service do it in a **popup window**; the page you are on never navigates away.
+
+**Slack** posts ticket activity to channels, one thread per ticket:
+
+1. *Create app in Slack* creates your own Slack app from a pre-filled manifest (FeatherDesk is self-hosted, so the app is yours).
+2. Paste its *Client ID* and *Client Secret*.
+3. *Connect to Slack* opens Slack's permission screen in a popup; *Allow* and it closes. `FD_PUBLIC_URL` must be HTTPS (Slack's rule).
+
+Then add **rules**: a channel, the events (new tickets, status, assignment, priority, escalation, customer and agent replies, internal notes, SLA warnings and breaches, satisfaction ratings), optional project and priority filters, threads, message text and internal details, with a live preview. Channel problems show on the rule; a revoked token shows *Reconnect*. Every change is audited (`slack.*`).
+
+Details: [features/slack.md](features/slack.md).
 
 ## 8. Agent guide
 
