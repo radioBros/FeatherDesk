@@ -10,6 +10,8 @@ test.describe('API reference', () => {
   test.skip(({ isMobile }) => isMobile, 'the phone width is checked below on desktop chromium')
 
   test('accessible, downloadable spec, fits 412 px', async ({ page }) => {
+    // axe over ~1.3 MB of reference markup takes a while on CI runners.
+    test.setTimeout(120_000)
     await page.goto('/api/docs')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('API reference')
     const download = page.getByRole('link', { name: /Download openapi\.yaml/ })

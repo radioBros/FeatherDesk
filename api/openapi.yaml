@@ -4,7 +4,7 @@
 openapi: "3.1.0"
 info:
   title: FeatherDesk API
-  version: "1.1.0"
+  version: "1.1.1"
   summary: "Self-hosted, lightweight help desk"
   description: |-
     FeatherDesk REST API (v1). One API serves the SPA and integrations.

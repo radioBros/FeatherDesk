@@ -400,10 +400,10 @@ var byName = map[string]string{
 	"notes": "Escalated after the second outage.", "reply_md": "Thanks, we are on it.", "portal_title": "Acme Help Center",
 	"icon": "briefcase", "from_name": "Acme Support", "assignee": "me", "csrf_token": "8c1d4f2e9a6b3c70d5e1f4a2b9c8d7e6",
 	"processed_folder": "Processed", "helo": "help.example.com", "subtitle": "Fast answers from real people",
-	"policy_version": "2026-10", "mfa_token": "mfa_7Kq2vW9xYzR3", "disabled_reason": "failures", "custom_css": "/* custom CSS */",
+	"policy_version": "2026-10", "mfa_token": "mfa_…", "disabled_reason": "failures", "custom_css": "/* custom CSS */",
 	"prefix": "fd_pat_3fQ9", "otpauth_uri": "otpauth://totp/Acme:ada@example.com?secret=JBSWY3DPEHPK3PXP&issuer=Acme",
 	"oidc_label": "Sign in with Authentik", "from_addr": "support@example.com", "target_type": "ticket", "ticket": "HD-1042",
-	"secret": "whsec_5f0c2b8e9d1a", "current_password": "old-horse-battery-staple", "commit": "41f2521", "bucket": "featherdesk",
+	"secret": "whsec_…", "current_password": "old-horse-battery-staple", "commit": "41f2521", "bucket": "featherdesk",
 	"ticket_subject": "VPN drops every 10 minutes", "excerpt": "Since this morning the VPN disconnects…", "strategy": "round_robin",
 }
 
@@ -413,8 +413,8 @@ var bySuffix = []struct{ suffix, value string }{
 	{"_html", "<p>Thanks for contacting <strong>Acme</strong> support.</p>"},
 	{"cursor", "eyJpZCI6IjAxOTJmMGM0In0"},
 	{"error", "dial tcp 203.0.113.7:443: i/o timeout"},
-	{"_secret", "whsec_5f0c2b8e9d1a"},
-	{"_token", "tok_7Kq2vW9xYzR3"},
+	{"_secret", "whsec_…"},
+	{"_token", "tok_…"},
 	{"_by", "Ada Lovelace"},
 	{"_name", "Acme Support"},
 	{"_title", "Acme Help Center"},

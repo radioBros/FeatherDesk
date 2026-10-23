@@ -1,0 +1,10 @@
+# gitleaks: findings reviewed and accepted, by fingerprint (commit:file:rule:line).
+# Keep this list short and explain every entry; it never covers a real secret.
+#
+# 72c72e4 (API reference, 2026-10-23): made-up example values in the docs
+# generator (mfa_/whsec_/tok_ placeholders), never credentials. Redacted to
+# "whsec_…"-style values in the next commit; history on main cannot be rewritten.
+72c72e43aad96c3bff8ed2a673a754fc050964c3:internal/apispec/docs_example.go:generic-api-key:403
+72c72e43aad96c3bff8ed2a673a754fc050964c3:internal/apispec/docs_example.go:generic-api-key:406
+72c72e43aad96c3bff8ed2a673a754fc050964c3:internal/apispec/docs_example.go:generic-api-key:416
+72c72e43aad96c3bff8ed2a673a754fc050964c3:internal/apispec/docs_example.go:generic-api-key:417

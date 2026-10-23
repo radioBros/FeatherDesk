@@ -13,6 +13,12 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-23
+
+### Fixed
+- **API reference examples** use clearly redacted placeholders (`whsec_…`, `tok_…`, `mfa_…`) for secrets, so they can't be mistaken for real credentials (the secret scanner flagged the previous made-up values).
+- The end-to-end check of the API reference page has the time it needs on slower CI machines.
+
 ## [1.1.0] - 2026-10-23
 
 ### Added
@@ -223,6 +229,7 @@ pre-release builds.
   `api_tokens`, `ON DELETE SET NULL`) and a partial index on it. Additive and fast; no
   operator action.
 
-[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/radioBros/FeatherDesk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/radioBros/FeatherDesk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/radioBros/FeatherDesk/releases/tag/v1.0.0

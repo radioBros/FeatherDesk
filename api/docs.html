@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FeatherDesk API reference</title>
-<meta name="description" content="REST API reference of FeatherDesk 1.1.0: every operation with parameters, request and response examples.">
+<meta name="description" content="REST API reference of FeatherDesk 1.1.1: every operation with parameters, request and response examples.">
 <style>
 :root{color-scheme:light dark;--fg:#1b1d21;--muted:#5d6470;--bg:#fff;--bg2:#f6f7f9;--line:#e3e6ea;--accent:#3b5bdb;--code:#eef0f3;
 --get:#1971c2;--post:#2f9e44;--put:#e8590c;--patch:#e8590c;--delete:#c92a2a;--panel:#0f1218;--panel2:#171b23;--panelfg:#e6e9ef;--panelmuted:#9aa3b2}
@@ -57,7 +57,7 @@ pre.light{background:var(--bg2);color:var(--fg);border:1px solid var(--line);bor
 @media (max-width:600px){.tw table{min-width:540px}}
 @media (max-width:900px){.layout{grid-template-columns:1fr}nav.side{display:none}.mobile-toc{display:block}main{padding:16px 16px 80px}header.top{padding:10px 16px}header.top .ver,header.top .manual{display:none}}
 </style></head><body>
-<header class="top"><span class="brand">FeatherDesk API</span><span class="ver">v1.1.0 · OpenAPI 3.1</span><span class="sp"></span>
+<header class="top"><span class="brand">FeatherDesk API</span><span class="ver">v1.1.1 · OpenAPI 3.1</span><span class="sp"></span>
 <a class="btn manual" href="/agent">Open the app</a>
 <a class="btn primary" href="/api/v1/openapi.yaml" download="featherdesk-openapi.yaml">⬇ Download openapi.yaml</a></header>
 <div class="layout">
@@ -70,7 +70,7 @@ pre.light{background:var(--bg2);color:var(--fg);border:1px solid var(--line);bor
 <main>
 <section id="overview">
 <h1>FeatherDesk API reference</h1>
-<p class="lead">Self-hosted, lightweight help desk. Version 1.1.0. Every operation below with its parameters, request body, responses and copy-ready examples.</p>
+<p class="lead">Self-hosted, lightweight help desk. Version 1.1.1. Every operation below with its parameters, request body, responses and copy-ready examples.</p>
 <div class="callout"><strong>Machine-readable spec.</strong> The full OpenAPI 3.1 document is at <a href="/api/v1/openapi.yaml" download="featherdesk-openapi.yaml"><code>/api/v1/openapi.yaml</code></a> — import it into Postman, Insomnia or Bruno, or generate a client with openapi-generator / oapi-codegen / openapi-typescript.</div>
 <div class="desc"><p>FeatherDesk REST API (v1). One API serves the SPA and integrations.</p><p><strong>Path convention.</strong> Paths below are relative to the server URL <code>/api/v1</code> (e.g. <code>/auth/config</code> is <code>GET /api/v1/auth/config</code>). A few routes live at the site root and carry a path-level <code>servers: [{url: /}]</code> override: <code>/healthz</code>, <code>/readyz</code>, <code>/metrics</code>, <code>/branding/{file}</code>, <code>/kb/sitemap.xml</code>, <code>/api/docs</code>, <code>/mcp</code>.</p><p><strong>Authentication.</strong> Either the session cookie <code>fd_session</code> (browser; cookie-authenticated <code>POST/PUT/PATCH/DELETE</code> must send <code>X-CSRF-Token</code> with the value from <code>GET /me</code>) or <code>Authorization: Bearer fd_pat_…</code> (personal access token). Required PAT scopes are listed per operation in <code>x-scopes</code>; effective permission is the owner&#39;s role ∩ token scopes.</p><p><strong>Errors</strong> are RFC 9457 <code>application/problem+json</code> (<code>Problem</code>). Reads of objects outside the caller&#39;s visibility return <strong>404</strong>; actions on visible objects the caller may not perform return <strong>403</strong>.</p><p><strong>Pagination</strong> is cursor-based: <code>?limit=50&amp;cursor=…</code> → <code>{items, next_cursor}</code>.</p><p><strong>Realtime.</strong> <code>GET /ws</code> upgrades to a WebSocket (subprotocol <code>featherdesk.v1</code>); see <code>x-websocket</code> on that operation and the <code>WsClientFrame</code>/<code>WsServerFrame</code> schemas. Mutations always go through REST.</p><p><strong>Webhooks</strong> are described in the top-level <code>webhooks</code> section. Delivery is at-least-once: deduplicate on the envelope <code>id</code>.</p></div>
 <div class="mobile-toc callout"><strong>Sections</strong>: <a href="#authentication">Authentication</a> · <a href="#errors">Errors</a> · <a href="#webhooks">Webhooks</a> · <a href="#tag-system">System</a> · <a href="#tag-auth">Auth</a> · <a href="#tag-setup">Setup</a> · <a href="#tag-me">Me</a> · <a href="#tag-realtime">Realtime</a> · <a href="#tag-portal">Portal</a> · <a href="#tag-tickets">Tickets</a> · <a href="#tag-projects">Projects</a> · <a href="#tag-directory">Directory</a> · <a href="#tag-reports">Reports</a> · <a href="#tag-knowledge-base">Knowledge base</a> · <a href="#tag-inbound-email">Inbound email</a> · <a href="#tag-branding">Branding</a> · <a href="#tag-administration">Administration</a> · <a href="#tag-privacy">Privacy</a> · <a href="#tag-mcp">MCP</a> · <a href="#tag-integrations">Integrations</a></div>
@@ -594,9 +594,9 @@ Retry-After: 5
 </div><div class="opr">
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/auth/mfa/verify&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_7Kq2vW9xYzR3&#34;,&#34;method&#34;:&#34;totp&#34;,&#34;code&#34;:&#34;123456&#34;}&#39;</pre>
+  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_…&#34;,&#34;method&#34;:&#34;totp&#34;,&#34;code&#34;:&#34;123456&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
-  &#34;mfa_token&#34;: &#34;mfa_7Kq2vW9xYzR3&#34;,
+  &#34;mfa_token&#34;: &#34;mfa_…&#34;,
   &#34;method&#34;: &#34;totp&#34;,
   &#34;code&#34;: &#34;123456&#34;
 }</pre>
@@ -681,9 +681,9 @@ Retry-After: 5
 </div><div class="opr">
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/auth/mfa/email/send&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_7Kq2vW9xYzR3&#34;}&#39;</pre>
+  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_…&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
-  &#34;mfa_token&#34;: &#34;mfa_7Kq2vW9xYzR3&#34;
+  &#34;mfa_token&#34;: &#34;mfa_…&#34;
 }</pre>
 <p class="lbl">Response · 200 · application/json</p><pre>{
   &#34;ok&#34;: true
@@ -710,12 +710,12 @@ Retry-After: 5
 </div><div class="opr">
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/auth/mfa/enroll/totp&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_7Kq2vW9xYzR3&#34;}&#39;</pre>
+  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_…&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
-  &#34;mfa_token&#34;: &#34;mfa_7Kq2vW9xYzR3&#34;
+  &#34;mfa_token&#34;: &#34;mfa_…&#34;
 }</pre>
 <p class="lbl">Response · 200 · application/json</p><pre>{
-  &#34;secret&#34;: &#34;whsec_5f0c2b8e9d1a&#34;,
+  &#34;secret&#34;: &#34;whsec_…&#34;,
   &#34;otpauth_uri&#34;: &#34;otpauth://totp/Acme:ada@example.com?secret=JBSWY3DPEHPK3PXP&amp;issuer=Acme&#34;
 }</pre>
 </div></div></article>
@@ -742,9 +742,9 @@ Retry-After: 5
 </div><div class="opr">
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/auth/mfa/enroll/confirm&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_7Kq2vW9xYzR3&#34;,&#34;method&#34;:&#34;totp&#34;,&#34;code&#34;:&#34;123456&#34;}&#39;</pre>
+  -d &#39;{&#34;mfa_token&#34;:&#34;mfa_…&#34;,&#34;method&#34;:&#34;totp&#34;,&#34;code&#34;:&#34;123456&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
-  &#34;mfa_token&#34;: &#34;mfa_7Kq2vW9xYzR3&#34;,
+  &#34;mfa_token&#34;: &#34;mfa_…&#34;,
   &#34;method&#34;: &#34;totp&#34;,
   &#34;code&#34;: &#34;123456&#34;
 }</pre>
@@ -1269,9 +1269,9 @@ Retry-After: 5
 </div><div class="opr">
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/setup/complete&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;setup_token&#34;:&#34;tok_7Kq2vW9xYzR3&#34;,&#34;admin&#34;:{&#34;email&#34;:&#34;ada@example.com&#34;,&#34;name&#34;:&#34;Ada Lovelace&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;},&#34;branding&#34;:{&#34;product_name&#34;:&#34;Acme Help&#34;,&#34;company_name&#34;:&#34;Acme Ltd&#34;,&#34;primary_color&#34;:&#34;#3F51B5&#34;},&#34;smtp&#34;:{&#34;host&#34;:&#34;smtp.example.com&#34;,&#34;port&#34;:587,&#34;security&#34;:&#34;none&#34;,&#34;username&#34;:&#34;support@example.com&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;,&#34;auth&#34;:&#34;none&#34;,&#34;helo&#34;:&#34;help.example.com&#34;,&#34;timeout_seconds&#34;:1,&#34;allow_insecure_tls&#34;:false},&#34;senders&#34;:{&#34;customer&#34;:{&#34;from_name&#34;:&#34;Acme Support&#34;,&#34;from_address&#34;:&#34;ada@example.com&#34;,&#34;reply_to&#34;:&#34;ada@example.com&#34;},&#34;staff&#34;:{&#34;from_name&#34;:&#34;Acme Support&#34;,&#34;from_address&#34;:&#34;ada@example.com&#34;,&#34;reply_to&#34;:&#34;ada@example.com&#34;}},&#34;locale&#34;:&#34;en&#34;}&#39;</pre>
+  -d &#39;{&#34;setup_token&#34;:&#34;tok_…&#34;,&#34;admin&#34;:{&#34;email&#34;:&#34;ada@example.com&#34;,&#34;name&#34;:&#34;Ada Lovelace&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;},&#34;branding&#34;:{&#34;product_name&#34;:&#34;Acme Help&#34;,&#34;company_name&#34;:&#34;Acme Ltd&#34;,&#34;primary_color&#34;:&#34;#3F51B5&#34;},&#34;smtp&#34;:{&#34;host&#34;:&#34;smtp.example.com&#34;,&#34;port&#34;:587,&#34;security&#34;:&#34;none&#34;,&#34;username&#34;:&#34;support@example.com&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;,&#34;auth&#34;:&#34;none&#34;,&#34;helo&#34;:&#34;help.example.com&#34;,&#34;timeout_seconds&#34;:1,&#34;allow_insecure_tls&#34;:false},&#34;senders&#34;:{&#34;customer&#34;:{&#34;from_name&#34;:&#34;Acme Support&#34;,&#34;from_address&#34;:&#34;ada@example.com&#34;,&#34;reply_to&#34;:&#34;ada@example.com&#34;},&#34;staff&#34;:{&#34;from_name&#34;:&#34;Acme Support&#34;,&#34;from_address&#34;:&#34;ada@example.com&#34;,&#34;reply_to&#34;:&#34;ada@example.com&#34;}},&#34;locale&#34;:&#34;en&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
-  &#34;setup_token&#34;: &#34;tok_7Kq2vW9xYzR3&#34;,
+  &#34;setup_token&#34;: &#34;tok_…&#34;,
   &#34;admin&#34;: {
     &#34;email&#34;: &#34;ada@example.com&#34;,
     &#34;name&#34;: &#34;Ada Lovelace&#34;,
@@ -1745,7 +1745,7 @@ Retry-After: 5
   -H &#39;Authorization: Bearer fd_pat_…&#39;</pre>
 
 <p class="lbl">Response · 200 · application/json</p><pre>{
-  &#34;secret&#34;: &#34;whsec_5f0c2b8e9d1a&#34;,
+  &#34;secret&#34;: &#34;whsec_…&#34;,
   &#34;otpauth_uri&#34;: &#34;otpauth://totp/Acme:ada@example.com?secret=JBSWY3DPEHPK3PXP&amp;issuer=Acme&#34;
 }</pre>
 </div></div></article>
@@ -3133,11 +3133,11 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/portal/tickets/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f/csat&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;score&#34;:4,&#34;comment&#34;:&#34;Quick and friendly.&#34;,&#34;csat_token&#34;:&#34;tok_7Kq2vW9xYzR3&#34;}&#39;</pre>
+  -d &#39;{&#34;score&#34;:4,&#34;comment&#34;:&#34;Quick and friendly.&#34;,&#34;csat_token&#34;:&#34;tok_…&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;score&#34;: 4,
   &#34;comment&#34;: &#34;Quick and friendly.&#34;,
-  &#34;csat_token&#34;: &#34;tok_7Kq2vW9xYzR3&#34;
+  &#34;csat_token&#34;: &#34;tok_…&#34;
 }</pre>
 <p class="lbl">Response · 200 · application/json</p><pre>{
   &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -8372,7 +8372,7 @@ Retry-After: 5
 <div class="resp"><span class="code client">422</span><div><p>Validation failed (<code>validation</code>, <code>field-required</code>, <code>idempotency-mismatch</code>)</p><div class="c">application/problem&#43;json · <span class="t">Problem</span></div><div class="c"><a href="#error-422">Error format and example</a></div></div></div>
 
 </div><div class="opr">
-<p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/inbound/mime/tok_7Kq2vW9xYzR3&#39; \
+<p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/inbound/mime/tok_%E2%80%A6&#39; \
   -H &#39;Content-Type: message/rfc822&#39; \
   --data-binary @./message.eml</pre>
 
@@ -11705,7 +11705,7 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/admin/inbound/mailboxes&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;name&#34;:&#34;Ada Lovelace&#34;,&#34;kind&#34;:&#34;imap&#34;,&#34;team_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;project_id&#34;:&#34;0192f0c4-7a1e-7c3e-9a10-4b5f0e2d8a11&#34;,&#34;address&#34;:&#34;ada@example.com&#34;,&#34;active&#34;:true,&#34;imap&#34;:{&#34;host&#34;:&#34;smtp.example.com&#34;,&#34;port&#34;:587,&#34;security&#34;:&#34;none&#34;,&#34;username&#34;:&#34;support@example.com&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;,&#34;folder&#34;:&#34;INBOX&#34;,&#34;processed_action&#34;:&#34;move&#34;,&#34;processed_folder&#34;:&#34;Processed&#34;,&#34;auth&#34;:&#34;password&#34;},&#34;webhook_hmac_secret&#34;:&#34;whsec_5f0c2b8e9d1a&#34;}&#39;</pre>
+  -d &#39;{&#34;name&#34;:&#34;Ada Lovelace&#34;,&#34;kind&#34;:&#34;imap&#34;,&#34;team_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;project_id&#34;:&#34;0192f0c4-7a1e-7c3e-9a10-4b5f0e2d8a11&#34;,&#34;address&#34;:&#34;ada@example.com&#34;,&#34;active&#34;:true,&#34;imap&#34;:{&#34;host&#34;:&#34;smtp.example.com&#34;,&#34;port&#34;:587,&#34;security&#34;:&#34;none&#34;,&#34;username&#34;:&#34;support@example.com&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;,&#34;folder&#34;:&#34;INBOX&#34;,&#34;processed_action&#34;:&#34;move&#34;,&#34;processed_folder&#34;:&#34;Processed&#34;,&#34;auth&#34;:&#34;password&#34;},&#34;webhook_hmac_secret&#34;:&#34;whsec_…&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;name&#34;: &#34;Ada Lovelace&#34;,
   &#34;kind&#34;: &#34;imap&#34;,
@@ -11724,7 +11724,7 @@ Retry-After: 5
     &#34;processed_folder&#34;: &#34;Processed&#34;,
     &#34;auth&#34;: &#34;password&#34;
   },
-  &#34;webhook_hmac_secret&#34;: &#34;whsec_5f0c2b8e9d1a&#34;
+  &#34;webhook_hmac_secret&#34;: &#34;whsec_…&#34;
 }</pre>
 <p class="lbl">Response · 201 · application/json</p><pre>{
   &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -11833,7 +11833,7 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X PATCH &#39;https://help.example.com/api/v1/admin/inbound/mailboxes/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;name&#34;:&#34;Ada Lovelace&#34;,&#34;kind&#34;:&#34;imap&#34;,&#34;team_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;project_id&#34;:&#34;0192f0c4-7a1e-7c3e-9a10-4b5f0e2d8a11&#34;,&#34;address&#34;:&#34;ada@example.com&#34;,&#34;active&#34;:true,&#34;imap&#34;:{&#34;host&#34;:&#34;smtp.example.com&#34;,&#34;port&#34;:587,&#34;security&#34;:&#34;none&#34;,&#34;username&#34;:&#34;support@example.com&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;,&#34;folder&#34;:&#34;INBOX&#34;,&#34;processed_action&#34;:&#34;move&#34;,&#34;processed_folder&#34;:&#34;Processed&#34;,&#34;auth&#34;:&#34;password&#34;},&#34;webhook_hmac_secret&#34;:&#34;whsec_5f0c2b8e9d1a&#34;}&#39;</pre>
+  -d &#39;{&#34;name&#34;:&#34;Ada Lovelace&#34;,&#34;kind&#34;:&#34;imap&#34;,&#34;team_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;project_id&#34;:&#34;0192f0c4-7a1e-7c3e-9a10-4b5f0e2d8a11&#34;,&#34;address&#34;:&#34;ada@example.com&#34;,&#34;active&#34;:true,&#34;imap&#34;:{&#34;host&#34;:&#34;smtp.example.com&#34;,&#34;port&#34;:587,&#34;security&#34;:&#34;none&#34;,&#34;username&#34;:&#34;support@example.com&#34;,&#34;password&#34;:&#34;correct-horse-battery-staple&#34;,&#34;folder&#34;:&#34;INBOX&#34;,&#34;processed_action&#34;:&#34;move&#34;,&#34;processed_folder&#34;:&#34;Processed&#34;,&#34;auth&#34;:&#34;password&#34;},&#34;webhook_hmac_secret&#34;:&#34;whsec_…&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;name&#34;: &#34;Ada Lovelace&#34;,
   &#34;kind&#34;: &#34;imap&#34;,
@@ -11852,7 +11852,7 @@ Retry-After: 5
     &#34;processed_folder&#34;: &#34;Processed&#34;,
     &#34;auth&#34;: &#34;password&#34;
   },
-  &#34;webhook_hmac_secret&#34;: &#34;whsec_5f0c2b8e9d1a&#34;
+  &#34;webhook_hmac_secret&#34;: &#34;whsec_…&#34;
 }</pre>
 <p class="lbl">Response · 200 · application/json</p><pre>{
   &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -12096,7 +12096,7 @@ Retry-After: 5
   &#34;project_ids&#34;: [
     &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;
   ],
-  &#34;secret&#34;: &#34;whsec_5f0c2b8e9d1a&#34;
+  &#34;secret&#34;: &#34;whsec_…&#34;
 }</pre>
 </div></div></article>
 <article class="op" id="getWebhook">
@@ -13572,10 +13572,10 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X PATCH &#39;https://help.example.com/api/v1/admin/integrations/slack&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;client_id&#34;:&#34;1234567890.1234567890&#34;,&#34;client_secret&#34;:&#34;whsec_5f0c2b8e9d1a&#34;}&#39;</pre>
+  -d &#39;{&#34;client_id&#34;:&#34;1234567890.1234567890&#34;,&#34;client_secret&#34;:&#34;whsec_…&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;client_id&#34;: &#34;1234567890.1234567890&#34;,
-  &#34;client_secret&#34;: &#34;whsec_5f0c2b8e9d1a&#34;
+  &#34;client_secret&#34;: &#34;whsec_…&#34;
 }</pre>
 <p class="lbl">Response · 200 · application/json</p><pre>{
   &#34;state&#34;: &#34;not_configured&#34;,

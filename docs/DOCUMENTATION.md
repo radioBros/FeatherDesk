@@ -757,7 +757,7 @@ The [Branding](#78-branding-system--branding-admin) privacy policy URL (`legal.p
 | Variable | Default | Notes |
 |---|---|---|
 | `FD_IMAGE` | `ghcr.io/radiobros/featherdesk` | Image repository |
-| `FD_VERSION` | `latest` | Image tag; pin a release, e.g. `1.1.0` |
+| `FD_VERSION` | `latest` | Image tag; pin a release, e.g. `1.1.1` |
 | `FD_BIND` / `FD_PORT` | `127.0.0.1` / `8080` | Host address and port to publish |
 | `FD_ENV_FILE` | `.env` | Environment file, relative to `deploy/` |
 | `FD_PG_USER`, `FD_PG_PASSWORD`, `FD_PG_DB` | `featherdesk`, — (required), `featherdesk` | PostgreSQL overlay credentials |
