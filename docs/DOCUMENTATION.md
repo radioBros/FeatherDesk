@@ -2629,6 +2629,7 @@ The overlay adds two containers:
 **Restoring after a disaster** needs no extra command. Start the same three files on a host with an empty volume: the restore step pulls the replica, then the app boots on it. To restore to an earlier point in time instead of the latest state, start from an empty volume and run `docker compose -f deploy/compose.yml -f deploy/compose.litestream.yml run --rm litestream-restore "litestream restore -config /etc/litestream.yml -timestamp 2026-10-21T09:00:00Z /data/featherdesk.db && chown -R 65532:65532 /data"` before `up` (the drill below covers only the latest-state restore).
 
 Things to know:
+- **CA bundle.** The overlay runs a small local build of `litestream/litestream:0.5.17` with FeatherDesk's own fixed CA bundle, because the upstream image still trusts the compromised eMudhra CAs (October 2026). `up -d --build` builds it; nothing to configure.
 - **Attachments are not replicated.** Litestream copies the database only. Keep files safe with `featherdesk backup` (`blobs.tar.gz`), or use S3 storage (`FD_BLOB_URL`) with bucket versioning.
 - **Keep `FD_SECRET_KEY`.** A restored database still needs the same key to read the encrypted SMTP, IMAP and webhook secrets.
 - **Checkpoints.** FeatherDesk opens SQLite in WAL mode with a single writer connection, the default auto-checkpoint and a `PASSIVE` checkpoint every 5 minutes. A passive checkpoint never blocks or truncates the WAL past an open reader, and Litestream holds its own read transaction to pace checkpoints, so no app setting changes. Don't run a second writer on the file, and don't run `wal_checkpoint(TRUNCATE)` by hand.
@@ -2890,7 +2891,7 @@ The contributor contract (package map, wiring, events, migrations, testing rules
 
 ### 15.2 Running locally
 
-You need Go 1.27, Node.js 24 with corepack (the repo uses pnpm 11), and optionally Docker.
+You need Go 1.27.3 or later, Node.js 24.22.1 or later with corepack (the repo uses pnpm 11), and optionally Docker.
 
 The shortest path from a clean clone to a signed-in agent panel (6 commands) is [docs/dev/getting-started.md](dev/getting-started.md).
 
@@ -3002,7 +3003,7 @@ make e2e           # builds the SPA, installs chromium, runs Playwright against 
 ### 15.4 Conventions
 
 - **Lightweight is a requirement.**
-  - Go 1.27, `CGO_ENABLED=0`.
+  - Go 1.27.3 or later (`go.mod` requires it: earlier releases still trust the compromised eMudhra intermediates), `CGO_ENABLED=0`.
   - At most 15 runtime Go dependencies, listed in `tools/deps.go`. Don't add modules.
   - No polling loop under one second, and bounded buffers everywhere.
 - **The spec comes first.** Change `api/openapi.yaml` together with the handler. Tests fail on undocumented routes and on responses that don't match the spec.

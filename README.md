@@ -428,7 +428,7 @@ In Compose, run them as `docker compose -f deploy/compose.yml exec app /featherd
 ## Development
 
 **Requirements**
-- Go 1.27 (`CGO_ENABLED=0`; no C toolchain needed).
+- Go 1.27.3 or later (`CGO_ENABLED=0`; no C toolchain needed). Earlier 1.27 releases still trust the compromised eMudhra CAs.
 - Node.js 24 with corepack (`corepack enable`; the repo uses pnpm 11).
 - Docker, optional, for PostgreSQL and the Authentik/Mailpit dev stack.
 

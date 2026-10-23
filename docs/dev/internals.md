@@ -4,7 +4,7 @@ This is the contract that lets the backend, frontend and tooling be built in par
 
 ## Ground rules
 
-- **Go 1.27, `CGO_ENABLED=0`.** `go.mod` is pinned through `tools/deps.go`. **Do not run `go get`, and do not add modules.** Runtime dependencies are capped at 15; the current set is listed in `tools/deps.go`.
+- **Go 1.27.3+, `CGO_ENABLED=0`.** `go.mod` is pinned through `tools/deps.go`. **Do not run `go get`, and do not add modules.** Runtime dependencies are capped at 15; the current set is listed in `tools/deps.go`.
 - **Lightest possible** (see `development/CONVENTIONS.md` §10):
   - No polling loop shorter than 1 s.
   - Buffers are always bounded.

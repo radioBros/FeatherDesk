@@ -9,15 +9,16 @@
 # The node and Go stages run on the BUILD platform and cross-compile
 # (CGO_ENABLED=0), so an arm64 image never runs pnpm or go under QEMU.
 #
-# Base digests resolved from the registries on 2026-10-21 (bump in a reviewed PR):
-#   node:24-alpine                          sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f
+# Base digests resolved from the registries on 2026-10-21; node (24.22.1) and distroless
+# (ca-certificates 20250419+deb13u1, eMudhra roots removed) bumped 2026-10-23 (bump in a reviewed PR):
+#   node:24-alpine                          sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53
 #   golang:1.27-alpine                      sha256:f2c872bcee949b7be9c490efd02b48a8a2fbf947cdf533f1c58525ec9d8170fd
-#   gcr.io/distroless/static-debian13:nonroot sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
+#   gcr.io/distroless/static-debian13:nonroot sha256:d62067879de890a1def9da0e7766b7d20810a5e5555cef8506b752437d7a3e88
 
 ARG PNPM_VERSION=11.0.8
 
 # ---------------------------------------------------------------- 1. web ----
-FROM --platform=$BUILDPLATFORM node:24-alpine@sha256:44fce696f38ba8c987c4db89954051000bbd05ffd8d8659ba15ed4a8602e937f AS web
+FROM --platform=$BUILDPLATFORM node:24-alpine@sha256:06d7adf3e0ef61a13f1d28682726366f97a15aa1888c934d3ecec86c33918b53 AS web
 ARG PNPM_VERSION
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PNPM_HOME=/pnpm \
@@ -56,7 +57,7 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
 RUN mkdir -p /out/data && chmod 0750 /out/data
 
 # ---------------------------------------------------------------- 3. run ----
-FROM gcr.io/distroless/static-debian13:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:d62067879de890a1def9da0e7766b7d20810a5e5555cef8506b752437d7a3e88
 ARG VERSION=dev
 ARG COMMIT=unknown
 LABEL org.opencontainers.image.title="FeatherDesk" \

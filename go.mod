@@ -2,7 +2,8 @@
 
 module github.com/radioBros/FeatherDesk
 
-go 1.27
+// 1.27.3: crypto/x509 distrusts the compromised eMudhra intermediates (CVE-2026-111943).
+go 1.27.3
 
 require (
 	github.com/coder/websocket v1.8.15

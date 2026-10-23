@@ -25,6 +25,13 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 - **Footprint gate:** on Linux (CI) idle CPU is measured from the app process's own CPU time and must stay under 0.10% of a core; a 500 ms polling loop (0.15%) now fails the gate. Elsewhere the `docker stats` check with its 1% limit stays.
 
+### Security
+- **Compromised eMudhra CA keys** ([advisory](https://emudhra.we-have-a-problem.com/), 2026-10-20): the private keys of eight eMudhra intermediate CAs can be recovered from their public certificates, so non-browser TLS clients that still trust them can be intercepted. FeatherDesk images were already protected twice over (Go 1.27.3 distrusts these keys; the distroless base already had the fixed CA bundle). Hardening:
+  - `go.mod` now requires **Go 1.27.3** (CVE-2026-111943), so a source build with an older toolchain cannot ship; CI pins Node 24.22.1.
+  - Base images bumped: distroless `static-debian13` (Debian `ca-certificates 20250419+deb13u1`, both roots removed) and `node:24-alpine` 24.22.1.
+  - **The optional Litestream overlay was exposed**: the upstream `litestream/litestream:0.5.17` image (Go 1.25, Debian 12) accepted all 14 test chains of the advisory, so the database replica in transit could be read or altered. `deploy/compose.litestream.yml` now builds a local image with the fixed CA bundle (0 of 14 accepted). **Operators using it:** run `docker compose … -f deploy/compose.litestream.yml up -d --build`.
+  - If you built FeatherDesk from source with Go 1.27.2 or older **and** ran it on a host whose CA store still trusts these roots, rotate the secrets it sent over TLS: SMTP and IMAP passwords, IMAP OAuth refresh tokens and client secrets, the OIDC client secret, the Slack bot token, and the Postgres password. Keep Postgres on `sslmode=verify-full`.
+
 ### Fixed
 - **Upgrading from SimpleTickets 1.0.0** works without configuration changes: `ST_*` variables, `simpletickets.db`, SimpleTickets backups, `st_pat_` tokens, the `st_session` cookie, the `simpletickets.v1` WebSocket subprotocol and the `X-SimpleTickets-*` webhook and inbound headers keep working (see *Upgrading from SimpleTickets* in the documentation).
 - **Secrets sealed by SimpleTickets 1.0.0 open again after the upgrade.** The key derivation was renamed with the product, so SMTP and IMAP passwords, IMAP refresh tokens, webhook secrets and TOTP secrets no longer decrypted (mail stopped silently, TOTP sign-in failed), and reply links and satisfaction links in emails sent before the upgrade no longer verified. Both names are accepted now; new values use the FeatherDesk one.
