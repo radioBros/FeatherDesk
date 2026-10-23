@@ -49,6 +49,14 @@ export const agentRoutes: RouteRecordRaw[] = [
     beforeEnter: () => loadAgentMessages(),
   },
   {
+    // D-21: the OAuth popup's last page, shared by every OAuth integration (no layout; reports to the admin page and closes).
+    path: '/agent/oauth/complete',
+    name: 'agent-oauth-complete',
+    component: () => import('@/areas/agent/integrations/oauth/OAuthCompletePage.vue'),
+    meta: { area: 'agent', public: true, title: 'agent.integrations.oauth.title' },
+    beforeEnter: () => loadAgentMessages(),
+  },
+  {
     path: '/agent',
     component: () => import('@/areas/agent/AgentLayout.vue'),
     meta: { area: 'agent' },
@@ -91,6 +99,10 @@ export const agentRoutes: RouteRecordRaw[] = [
       page('admin-storage', 'admin/storage', () => import('@/areas/agent/settings/StoragePage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.storage' }),
       page('admin-audit', 'admin/audit', () => import('@/areas/agent/settings/AuditLogPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.audit' }),
       page('admin-jobs', 'admin/jobs', () => import('@/areas/agent/settings/JobsPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.jobs' }),
+      // Integrations (D-21, INT-012…INT-014)
+      page('admin-integrations', 'admin/integrations', () => import('@/areas/agent/integrations/IntegrationsPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.integrations' }),
+      page('admin-integrations-slack', 'admin/integrations/slack', () => import('@/areas/agent/integrations/slack/SlackPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.integrations' }),
+      page('admin-integrations-ai', 'admin/integrations/ai-assistants', () => import('@/areas/agent/integrations/AiAssistantsPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.integrations' }),
       page('admin-webhooks', 'admin/webhooks', () => import('@/areas/agent/config/WebhooksPage.vue'), { roles: [...ADMIN], title: 'agent.admin.nav.webhooks' }),
       page('admin-sla', 'admin/sla', () => import('@/areas/agent/config/SlaPage.vue'), { roles: [...SUPPORT], title: 'agent.admin.nav.sla' }),
       page('admin-canned', 'admin/canned', () => import('@/areas/agent/config/CannedPage.vue'), { roles: [...SUPPORT], orArea: 'project_admin', title: 'agent.admin.nav.canned' }),
@@ -126,6 +138,7 @@ export const adminNav: { to: string; title: string; group: 'support' | 'people' 
   { to: '/agent/admin/kb-categories', title: 'agent.admin.nav.kbCategories', group: 'support' },
   { to: '/agent/admin/email', title: 'agent.admin.nav.email', group: 'channels' },
   { to: '/agent/admin/inbound', title: 'agent.admin.nav.inbound', group: 'channels' },
+  { to: '/agent/admin/integrations', title: 'agent.admin.nav.integrations', group: 'channels' },
   { to: '/agent/admin/webhooks', title: 'agent.admin.nav.webhooks', group: 'channels' },
   { to: '/agent/admin/branding', title: 'agent.admin.nav.branding', group: 'system' },
   { to: '/agent/admin/settings', title: 'agent.admin.nav.settings', group: 'system' },

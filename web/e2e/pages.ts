@@ -112,6 +112,11 @@ export const PAGES: Record<string, PageSpec | { skip: string }> = {
   'agent-macros': { who: 'admin', path: () => '/agent/macros' },
   'admin-automation': { who: 'admin', path: () => '/agent/admin/automation' },
   'admin-macros': { who: 'admin', path: () => '/agent/admin/macros' },
+  // Integrations (D-21): card page, Slack (setup or connected), AI assistants, the OAuth popup's last page
+  'admin-integrations': { who: 'admin', path: () => '/agent/admin/integrations', ready: '[data-testid="integration-slack"]' },
+  'admin-integrations-slack': { who: 'admin', path: () => '/agent/admin/integrations/slack', ready: '[data-testid="slack-setup"], [data-testid="slack-connection"]' },
+  'admin-integrations-ai': { who: 'admin', path: () => '/agent/admin/integrations/ai-assistants', ready: '[data-testid="integrations-card"]' },
+  'agent-oauth-complete': { who: 'admin', path: () => '/agent/oauth/complete?provider=slack&state=a11y&result=error&reason=access_denied', ready: '[data-testid="oauth-complete"]' },
   'agent-not-found': { who: 'admin', path: () => '/agent/no-such-page', ready: '.v-container' },
   // Standalone first-run wizard: only reachable on an instance without an admin; its steps are
   // scanned in portal/setup-wizard.spec.ts against such an instance (E2E_SETUP_BASE_URL).

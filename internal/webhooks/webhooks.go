@@ -64,6 +64,7 @@ type Deps struct {
 
 // Module is the webhooks feature module.
 type Module struct {
+	*Renderer
 	db       *store.DB
 	log      *slog.Logger
 	q        *queue.Queue
@@ -139,6 +140,7 @@ func New(d Deps) (*Module, error) {
 	if d.Cfg != nil {
 		m.baseURL = d.Cfg.PublicURL
 	}
+	m.Renderer = NewRenderer(d.DB, m.baseURL)
 	m.FirstRetry = func() time.Duration {
 		return time.Duration(float64(30*time.Second) * (0.8 + 0.4*rand.Float64()))
 	}

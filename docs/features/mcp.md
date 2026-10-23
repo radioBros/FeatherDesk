@@ -1,20 +1,20 @@
 # AI assistants (MCP)
 
-> Part of the [FeatherDesk manual](../DOCUMENTATION.md). The overview is in [Admin guide → AI assistants](../DOCUMENTATION.md#720-ai-assistants-mcp-system--support-settings-admin) and [REST API → AI assistants (MCP)](../DOCUMENTATION.md#1010-ai-assistants-mcp); this page has every detail.
+> Part of the [FeatherDesk manual](../DOCUMENTATION.md). The overview is in [Admin guide → AI assistants](../DOCUMENTATION.md#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin) and [REST API → AI assistants (MCP)](../DOCUMENTATION.md#1010-ai-assistants-mcp); this page has every detail.
 
 FeatherDesk has a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server. AI assistants such as
 **Claude Code**, **Claude Desktop** and **Cursor** connect to it with a user's personal access token and can then search,
 read, open and work tickets and read the knowledge base, in the conversation.
 
 - **One endpoint:** `POST https://<your host>/mcp` (the *Streamable HTTP* transport). Nothing extra to run or install on the server.
-- **Off by default.** An admin turns it on under *System → Support settings → Integrations*.
+- **Off by default.** An admin turns it on under *Channels → Integrations → AI assistants (MCP)*.
 - **The assistant is the token owner.** Every tool call runs as that user, limited by the token's scopes, through the same
   permission checks as the REST API. An assistant can never see or do more than the user could with the same token, and a
   customer's assistant never sees internal notes or staff-only fields.
 
 ## 1. Turning it on
 
-*System → Support settings → Integrations → AI assistants (MCP)* (admins). The switch saves immediately; the change is
+*Channels → Integrations → AI assistants (MCP)* (admins). The switch saves immediately; the change is
 written to the audit log as `integrations.updated`. While it is off, every method on `/mcp` answers **404**, including
 sessions that were open before.
 

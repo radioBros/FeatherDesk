@@ -9,6 +9,7 @@ import (
 	"github.com/radioBros/FeatherDesk/internal/authn"
 	"github.com/radioBros/FeatherDesk/internal/directory"
 	"github.com/radioBros/FeatherDesk/internal/domain"
+	"github.com/radioBros/FeatherDesk/internal/integrations/slack"
 	"github.com/radioBros/FeatherDesk/internal/kb"
 	"github.com/radioBros/FeatherDesk/internal/mailin"
 	"github.com/radioBros/FeatherDesk/internal/mcp"
@@ -38,6 +39,7 @@ var Registry = []Factory{
 	webhooksModule,
 	privacyModule, // D-19 §C (privacy_module.go); after tickets: wires the search reindex
 	mcpModule,     // POST /mcp (MCP-001): tools run in-process through the REST router
+	slackModule,   // D-21: Slack app install (OAuth popup) and channel routes
 	// mailinModule is appended last by init (see "Notifications wiring").
 }
 
@@ -45,6 +47,12 @@ var Registry = []Factory{
 // no other module: every tool is a REST call through d.Server's router.
 func mcpModule(d *Deps) (Module, error) {
 	return mcp.NewModule(mcp.Deps{Cfg: d.Cfg, DB: d.DB, Log: d.Log, Settings: d.Settings, Server: d.Server, Version: d.Version})
+}
+
+// slackModule adapts Deps for the Slack integration (D-21).
+func slackModule(d *Deps) (Module, error) {
+	return slack.New(slack.Deps{DB: d.DB, Log: d.Log, Queue: d.Queue, Settings: d.Settings, Secrets: d.Secrets, Server: d.Server,
+		Cfg: d.Cfg, Getenv: d.Getenv})
 }
 
 // kbModule adapts Deps for the knowledge base (kb cannot import app).

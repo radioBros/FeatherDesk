@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
 /**
- * Integrations card of /agent/admin/settings (MCP-011): the
+ * MCP switch card (MCP-011), on /agent/admin/integrations/ai-assistants (D-21): the
  * `integrations.mcp_enabled` switch (`GET`/`PATCH /admin/integrations`). It is
  * a single on/off setting, so it saves on toggle like the availability switch;
  * there is no form to validate.

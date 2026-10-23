@@ -31,7 +31,8 @@ var copyOrder = []string{
 	"automation_rules", "automation_runs", "automation_time_runs", "macros", // 0100 (D-19 §A)
 	"user_mfa", "mfa_recovery_codes", "mfa_challenges", // 0110 (D-19 §B)
 	"privacy_requests", "user_consents", // 0120 (D-19 §C)
-	"notifications", // 0130 (D-19 §D)
+	"notifications",                 // 0130 (D-19 §D)
+	"slack_routes", "slack_threads", // 0170 (D-21)
 }
 
 // selfRefs are columns referencing their own table; they are copied as NULL and

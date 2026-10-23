@@ -32,6 +32,7 @@ const (
 	KeySMTP     = "smtp"
 	KeyEmail    = "email"
 	KeySetup    = "setup"
+	KeySlack    = "slack" // Slack app credentials + workspace connection (D-21)
 )
 
 // Secret purposes for crypto.Box.
@@ -41,6 +42,8 @@ const (
 	PurposeIMAPRefresh  = "imap-oauth-refresh"
 	PurposeWebhook      = "webhook-secret"
 	PurposeMFA          = "mfa-totp" // user_mfa TOTP secrets (D-19 §B)
+	PurposeSlackSecret  = "slack-client-secret"
+	PurposeSlackToken   = "slack-bot-token"
 )
 
 // Service caches documents in memory; writes invalidate and fire OnChange hooks.

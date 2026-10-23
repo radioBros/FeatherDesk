@@ -127,6 +127,8 @@ const DOMAIN = /^(?=.{1,253}$)((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$/
 const HEX = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/
 /** Project keys (D-20): 2-10 characters, an upper-case letter, then upper-case letters or digits. The form upper-cases first, like the server. */
 const PROJECT_KEY = /^[A-Z][A-Z0-9]{1,9}$/
+/** Slack app client IDs (D-21): `<digits>.<digits>`, as the API checks. */
+const SLACK_CLIENT_ID = /^[0-9]{3,20}\.[0-9]{3,20}$/
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 /** Custom-field keys, as the API defines them (`CustomFieldDef.key`): used in `cf.<key>` filters. */
 const FIELD_KEY = /^[a-z][a-z0-9_]{0,62}$/
@@ -284,6 +286,8 @@ export const validations = {
   httpsUrl: optional((v) => isUrl(v) && str(v).startsWith('https://'), msg('https_url')),
   /** Project key (`WEB`, `IT2`): checked after upper-casing, as the server does. */
   projectKey: optional((v) => PROJECT_KEY.test(str(v).toUpperCase()), msg('project_key')),
+  /** Slack app client ID (`1234567890.1234567890`), checked after trimming like the server. */
+  slackClientId: optional((v) => SLACK_CLIENT_ID.test(str(v).trim()), msg('pattern')),
   /** KB article / category slugs: a slug of at most 100 characters. */
   kbSlug: optional((v) => SLUG.test(str(v)) && str(v).length <= 100, msg('slug')),
   /** Custom-field keys: a lowercase letter, then letters, digits or `_` (63 max), as the API requires. */

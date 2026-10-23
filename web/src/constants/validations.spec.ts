@@ -119,6 +119,13 @@ describe('validations (FE-004)', () => {
     expect(validations.projectKey('1AB')).toBe(en('validation.projectKey'))
     expect(validations.projectKey('A'.repeat(11))).toBe(en('validation.projectKey'))
   })
+  it('slackClientId accepts <digits>.<digits> (D-21)', () => {
+    expect(validations.slackClientId('1234567890.1234567890')).toBe(true)
+    expect(validations.slackClientId(' 123.456 ')).toBe(true)
+    expect(validations.slackClientId('')).toBe(true)
+    expect(validations.slackClientId('abc.123')).toBe(en('validation.pattern'))
+    expect(validations.slackClientId('1234567890')).toBe(en('validation.pattern'))
+  })
   it('forField builds rules from a custom field definition', () => {
     const num = validations.forField({ key: 'n', type: 'number', required: true, min: 1, max: 10 })
     const run = (rules: ReturnType<typeof validations.forField>, v: unknown) => rules.map((r) => r(v)).find((x) => x !== true) ?? true

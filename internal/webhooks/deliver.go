@@ -278,6 +278,24 @@ func (m *Module) recordErr(ctx context.Context, h *hook, eventID, typ string, at
 
 // ---- envelope (events_spec §3) ----
 
+// Renderer builds the webhook envelope of an event. Slack (D-21) renders its
+// posts from the same envelope, so both share the visibility rules (I-7, I-9).
+type Renderer struct {
+	db      *store.DB
+	baseURL string
+}
+
+// NewRenderer returns a renderer reading db; baseURL is FD_PUBLIC_URL.
+func NewRenderer(db *store.DB, baseURL string) *Renderer {
+	return &Renderer{db: db, baseURL: baseURL}
+}
+
+// Envelope is the JSON body a webhook receives for e. internal includes
+// notes and staff-only fields (include_internal).
+func (m *Renderer) Envelope(ctx context.Context, e events.Event, internal bool) ([]byte, error) {
+	return m.envelope(ctx, e, internal)
+}
+
 type userRef struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -298,7 +316,7 @@ type envData struct {
 	Message map[string]any `json:"message,omitempty"`
 }
 
-func (m *Module) userRef(ctx context.Context, id string) (*userRef, error) {
+func (m *Renderer) userRef(ctx context.Context, id string) (*userRef, error) {
 	if id == "" {
 		return nil, nil
 	}
@@ -329,7 +347,7 @@ func nullStr(s string) any {
 
 // ticketSummary builds a TicketSummary: state fields from the event snapshot
 // (state at event time), timestamps and names from the DB.
-func (m *Module) ticketSummary(ctx context.Context, e events.Event) (map[string]any, error) {
+func (m *Renderer) ticketSummary(ctx context.Context, e events.Event) (map[string]any, error) {
 	s := e.Snapshot
 	t := map[string]any{
 		"id": e.TicketID, "number": s.Number, "subject": s.Subject, "status": s.Status, "priority": s.Priority,
@@ -416,7 +434,7 @@ func (m *Module) ticketSummary(ctx context.Context, e events.Event) (map[string]
 }
 
 // changes returns the event data filtered for the webhook scope (I-7, I-9).
-func (m *Module) changes(ctx context.Context, e events.Event, internal bool) (map[string]any, error) {
+func (m *Renderer) changes(ctx context.Context, e events.Event, internal bool) (map[string]any, error) {
 	ch := map[string]any{}
 	if len(e.Data) > 0 {
 		if err := json.Unmarshal(e.Data, &ch); err != nil {
@@ -467,7 +485,7 @@ func (m *Module) changes(ctx context.Context, e events.Event, internal bool) (ma
 	return ch, nil
 }
 
-func (m *Module) customerVisibleFields(ctx context.Context) (map[string]bool, error) {
+func (m *Renderer) customerVisibleFields(ctx context.Context) (map[string]bool, error) {
 	rows, err := m.db.Read().QueryContext(ctx, `SELECT key FROM custom_field_defs WHERE customer_visible`)
 	if err != nil {
 		return nil, err
@@ -485,7 +503,7 @@ func (m *Module) customerVisibleFields(ctx context.Context) (map[string]bool, er
 }
 
 // message loads the message referenced by a message.created / note.created event.
-func (m *Module) message(ctx context.Context, e events.Event, internal bool) (map[string]any, error) {
+func (m *Renderer) message(ctx context.Context, e events.Event, internal bool) (map[string]any, error) {
 	var ref events.MessageRef
 	if err := e.Decode(&ref); err != nil || ref.MessageID == "" {
 		return nil, nil
@@ -538,7 +556,7 @@ func (m *Module) message(ctx context.Context, e events.Event, internal bool) (ma
 }
 
 // envelope renders the JSON body for one scope (include_internal or not).
-func (m *Module) envelope(ctx context.Context, e events.Event, internal bool) ([]byte, error) {
+func (m *Renderer) envelope(ctx context.Context, e events.Event, internal bool) ([]byte, error) {
 	env := envelope{ID: e.ID, Type: e.Type, CreatedAt: e.CreatedAt.UTC()}
 	var err error
 	if env.Data.Ticket, err = m.ticketSummary(ctx, e); err != nil {

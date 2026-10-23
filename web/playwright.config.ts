@@ -16,6 +16,8 @@ import { join } from 'node:path'
  *                      (e.g. an empty Postgres database)
  *   E2E_MAILPIT_URL    Mailpit API; the server then sends SMTP to
  *                      E2E_SMTP_HOST:E2E_SMTP_PORT (default 127.0.0.1:1025)
+ * A fake Slack (e2e/fake-slack.mjs, D-21) runs beside it on E2E_FAKE_SLACK_PORT
+ * (default 18090); the server reaches it through FD_SLACK_BASE_URL.
  */
 const external = process.env.E2E_BASE_URL
 const port = Number(process.env.E2E_PORT ?? 18080)
@@ -23,6 +25,7 @@ const baseURL = external ?? `http://127.0.0.1:${port}`
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 const dataDir = external ? '' : mkdtempSync(join(tmpdir(), 'fd-e2e-'))
 const serverBin = process.env.E2E_SERVER_BIN || ''
+const fakeSlackPort = Number(process.env.E2E_FAKE_SLACK_PORT ?? 18090)
 const smtp: Record<string, string> = process.env.E2E_MAILPIT_URL?.trim()
   ? {
       FD_SMTP_HOST: process.env.E2E_SMTP_HOST ?? '127.0.0.1',
@@ -69,7 +72,13 @@ export default defineConfig({
   ],
   webServer: external
     ? undefined
-    : {
+    : [
+      {
+        command: `node e2e/fake-slack.mjs ${fakeSlackPort}`,
+        url: `http://127.0.0.1:${fakeSlackPort}/health`,
+        reuseExistingServer: !process.env.CI,
+      },
+      {
         command: serverBin ? `${serverBin} serve` : 'go run ./cmd/featherdesk serve',
         cwd: repoRoot,
         url: `${baseURL}/readyz`,
@@ -87,7 +96,9 @@ export default defineConfig({
           // e2e/fixtures.ts gives every test its own X-Forwarded-For client IP.
           FD_TRUSTED_PROXIES: '127.0.0.1/32,::1/128',
           FD_LOG_LEVEL: process.env.E2E_LOG_LEVEL ?? 'warn',
+          FD_SLACK_BASE_URL: `http://127.0.0.1:${fakeSlackPort}`,
           ...smtp,
         },
       },
+    ],
 })
