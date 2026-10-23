@@ -75,6 +75,8 @@ tags:
     description: "GDPR tooling: data export, erasure, retention, consent"
   - name: MCP
     description: "Model Context Protocol endpoint for AI assistants (`/mcp`)"
+  - name: Integrations
+    description: "Chat integrations (Slack): app install through an OAuth popup, channel routes"
 paths:
   /healthz:
     servers:
@@ -7585,6 +7587,337 @@ paths:
           $ref: "#/components/responses/Unauthenticated"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /admin/integrations/slack:
+    get:
+      operationId: getSlackIntegration
+      summary: Slack integration status
+      tags:
+        - Integrations
+      description: |-
+        The app credentials (secret never returned), the workspace connection, the pre-filled app manifest (`manifest`, `manifest_url` opens Slack's "create app" page with it) and the OAuth redirect URL. `https` is false when `FD_PUBLIC_URL` is not HTTPS: Slack refuses such redirect URLs. Guide: `docs/features/slack.md`.
+
+        Phase: V1.
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackStatus"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateSlackApp
+      summary: Save the Slack app credentials
+      tags:
+        - Integrations
+      description: |-
+        Client ID and client secret of the admin's Slack app (the secret is sealed and write-only; an empty or absent secret keeps the stored one). Audited (`slack.app_updated`).
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlackAppUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackStatus"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+  /admin/integrations/slack/oauth/start:
+    post:
+      operationId: startSlackOAuth
+      summary: Start the Slack install (OAuth popup)
+      tags:
+        - Integrations
+      description: |-
+        Returns Slack's consent URL with a single-use `state` (10 minutes, bound to the caller). The SPA opens it in a popup; Slack then redirects to `GET /integrations/slack/oauth/callback`. 409 `conflict` until the app credentials are saved.
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackOAuthStart"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /integrations/slack/oauth/callback:
+    get:
+      operationId: slackOAuthCallback
+      summary: Slack OAuth redirect target
+      tags:
+        - Integrations
+      description: |-
+        The redirect URL registered in the Slack app. Authenticated by `state` alone (single use), not by a session. Exchanges `code` for the bot token (`oauth.v2.access`), stores it sealed and audits `slack.connected`. Always answers 302 to `<FD_AGENT_URL>/oauth/complete?provider=slack&state=…&result=ok|error[&reason=<code>]`, the page that tells the admin's window and closes the popup. Reasons include `invalid_state`, `access_denied`, `no_bot_token`, `enterprise_install_unsupported` and Slack error codes such as `bad_client_secret`.
+
+        Phase: V1.
+      security: []
+      parameters:
+        - name: code
+          in: query
+          schema:
+            type: string
+        - name: state
+          in: query
+          schema:
+            type: string
+        - name: error
+          in: query
+          schema:
+            type: string
+      x-phase: V1
+      responses:
+        "302":
+          description: "Redirect to the SPA completion page"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+  /admin/integrations/slack/connection:
+    delete:
+      operationId: disconnectSlack
+      summary: Disconnect the Slack workspace
+      tags:
+        - Integrations
+      description: |-
+        Revokes the bot token (`auth.revoke`, best effort) and forgets it. App credentials and routes stay, so reconnecting resumes delivery. Audited (`slack.disconnected`).
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "204":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/integrations/slack/channels:
+    get:
+      operationId: listSlackChannels
+      summary: Slack channels (channel picker)
+      tags:
+        - Integrations
+      description: |-
+        Public channels, and private channels the bot was invited to, not archived, sorted by name. Cached for 60 seconds; `refresh=true` reloads. 409 `conflict` while not connected (or when Slack rejects the token, which also puts the connection in the `error` state); 503 `unavailable` for other Slack errors.
+
+        Phase: V1.
+      parameters:
+        - name: refresh
+          in: query
+          schema:
+            type: boolean
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SlackChannel"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /admin/integrations/slack/routes:
+    get:
+      operationId: listSlackRoutes
+      summary: Slack routes
+      tags:
+        - Integrations
+      description: "Every route (channel + triggers + filters), oldest first. Phase: V1."
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SlackRoute"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: createSlackRoute
+      summary: Create a Slack route
+      tags:
+        - Integrations
+      description: |-
+        `note.created` requires `include_internal`. Project keys are accepted in `project_ids`. Audited (`slack.route_created`).
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlackRouteInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackRoute"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+  /admin/integrations/slack/routes/{id}:
+    patch:
+      operationId: updateSlackRoute
+      summary: Update a Slack route
+      tags:
+        - Integrations
+      description: |-
+        Changing the channel forgets the route's ticket threads. A new channel or `active: true` clears `last_error`. Audited (`slack.route_updated`).
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SlackRouteInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackRoute"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/Validation"
+    delete:
+      operationId: deleteSlackRoute
+      summary: Delete a Slack route
+      tags:
+        - Integrations
+      description: "Audited (`slack.route_deleted`). Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "204":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /admin/integrations/slack/routes/{id}/test:
+    post:
+      operationId: testSlackRoute
+      summary: Post a test message to the route's channel
+      tags:
+        - Integrations
+      description: |-
+        `ok: false` carries Slack's error code (e.g. `not_in_channel`: invite the bot to the private channel). The outcome updates the route's `last_error`. 409 `conflict` while not connected. Audited (`slack.route_tested`).
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlackTestResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /admin/users/{id}/mfa:
     get:
       operationId: getUserMfa
@@ -15126,3 +15459,274 @@ components:
         - expired_exports
         - erasure_auto_approvals
         - as_of
+    SlackState:
+      type: string
+      enum:
+        - not_configured
+        - configured
+        - connected
+        - error
+      description: "`configured`: app credentials saved, workspace not connected. `error`: Slack rejected the bot token; delivery stopped until reconnected."
+    SlackTrigger:
+      type: string
+      enum:
+        - ticket.created
+        - ticket.status_changed
+        - ticket.assigned
+        - ticket.priority_changed
+        - ticket.escalated
+        - message.customer
+        - message.staff
+        - note.created
+        - sla.warning
+        - sla.breached
+        - ticket.csat
+      description: "What a Slack route posts. `ticket.escalated` covers de-escalations too; `message.customer` / `message.staff` split `message.created` by author; `note.created` needs `include_internal`."
+    SlackStatus:
+      type: object
+      properties:
+        state:
+          $ref: "#/components/schemas/SlackState"
+        client_id:
+          type: string
+        client_secret_set:
+          type: boolean
+        team_id:
+          type:
+            - string
+            - "null"
+        team_name:
+          type:
+            - string
+            - "null"
+        team_url:
+          type:
+            - string
+            - "null"
+        bot_user_id:
+          type:
+            - string
+            - "null"
+        bot_name:
+          type:
+            - string
+            - "null"
+        scopes:
+          type: array
+          items:
+            type: string
+        connected_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        connected_by:
+          oneOf:
+            - type: object
+              properties:
+                id:
+                  $ref: "#/components/schemas/Id"
+                name:
+                  type: string
+              required:
+                - id
+                - name
+            - type: "null"
+        error:
+          type:
+            - string
+            - "null"
+          description: "Slack error code that broke the connection (e.g. `token_revoked`)"
+        redirect_url:
+          type: string
+          format: uri
+        https:
+          type: boolean
+        manifest:
+          type: object
+          additionalProperties: true
+        manifest_url:
+          type: string
+          format: uri
+        routes:
+          type: integer
+          minimum: 0
+        active_routes:
+          type: integer
+          minimum: 0
+      required:
+        - state
+        - client_id
+        - client_secret_set
+        - team_id
+        - team_name
+        - team_url
+        - bot_user_id
+        - bot_name
+        - scopes
+        - connected_at
+        - connected_by
+        - error
+        - redirect_url
+        - https
+        - manifest
+        - manifest_url
+        - routes
+        - active_routes
+    SlackAppUpdate:
+      type: object
+      properties:
+        client_id:
+          type: string
+          pattern: "^[0-9]{3,20}\\.[0-9]{3,20}$"
+        client_secret:
+          type: string
+          writeOnly: true
+          maxLength: 200
+    SlackOAuthStart:
+      type: object
+      properties:
+        authorize_url:
+          type: string
+          format: uri
+        state:
+          type: string
+        expires_at:
+          $ref: "#/components/schemas/Timestamp"
+      required:
+        - authorize_url
+        - state
+        - expires_at
+    SlackChannel:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        is_private:
+          type: boolean
+        is_member:
+          type: boolean
+        num_members:
+          type: integer
+      required:
+        - id
+        - name
+        - is_private
+        - is_member
+        - num_members
+    SlackRoute:
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Id"
+        channel_id:
+          type: string
+        channel_name:
+          type: string
+        channel_private:
+          type: boolean
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SlackTrigger"
+        project_ids:
+          type: array
+          items:
+            $ref: "#/components/schemas/Id"
+          description: "[] = every project"
+        priorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Priority"
+          description: "[] = every priority"
+        threads:
+          type: boolean
+          description: "Updates reply in the thread of the ticket's first post"
+        include_body:
+          type: boolean
+          description: "Quote the message text (first 600 characters)"
+        include_internal:
+          type: boolean
+          description: "Internal notes and staff-only details (the channel must be staff-only)"
+        active:
+          type: boolean
+        last_error:
+          type:
+            - string
+            - "null"
+          description: "Slack error of the last failed post to this channel (e.g. `not_in_channel`)"
+        last_error_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        last_posted_at:
+          oneOf:
+            - $ref: "#/components/schemas/Timestamp"
+            - type: "null"
+        created_at:
+          $ref: "#/components/schemas/Timestamp"
+        updated_at:
+          $ref: "#/components/schemas/Timestamp"
+      required:
+        - id
+        - channel_id
+        - channel_name
+        - channel_private
+        - events
+        - project_ids
+        - priorities
+        - threads
+        - include_body
+        - include_internal
+        - active
+        - last_error
+        - last_error_at
+        - last_posted_at
+        - created_at
+        - updated_at
+    SlackRouteInput:
+      type: object
+      description: "Create: `channel_id` and `events` required; defaults threads, include_body and active true, include_internal false."
+      properties:
+        channel_id:
+          type: string
+          pattern: "^[CG][A-Z0-9]{2,30}$"
+        channel_name:
+          type: string
+          maxLength: 80
+        channel_private:
+          type: boolean
+        events:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SlackTrigger"
+        project_ids:
+          type: array
+          items:
+            type: string
+        priorities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Priority"
+        threads:
+          type: boolean
+        include_body:
+          type: boolean
+        include_internal:
+          type: boolean
+        active:
+          type: boolean
+    SlackTestResult:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        error:
+          type:
+            - string
+            - "null"
+      required:
+        - ok
+        - error

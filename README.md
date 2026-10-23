@@ -35,6 +35,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 - [Privacy and GDPR](#privacy-and-gdpr)
 - [Notification centre](#notification-centre)
 - [AI assistants (MCP)](#ai-assistants-mcp)
+- [Slack](#slack)
 - [API and WebSocket](#api-and-websocket)
 - [Operations at a glance](#operations-at-a-glance)
 - [Development](#development)
@@ -358,7 +359,7 @@ Guide: [docs/features/notifications.md](docs/features/notifications.md) · manua
 
 A built-in [Model Context Protocol](https://modelcontextprotocol.io) server at `POST /mcp` lets AI assistants such as Claude Code, Claude Desktop and Cursor search, read and work tickets and read the knowledge base.
 
-- **Off by default:** an admin turns it on under *System → Support settings → Integrations* (setting `integrations.mcp_enabled`, also `PATCH /api/v1/admin/integrations`); while off, `/mcp` answers 404.
+- **Off by default:** an admin turns it on under *Channels → Integrations → AI assistants (MCP)* (setting `integrations.mcp_enabled`, also `PATCH /api/v1/admin/integrations`); while off, `/mcp` answers 404.
 - **The assistant is the user:** it connects with that user's personal access token and can never see or do more than the user could through the REST API with the same token. Customers' assistants get customer tools only and never see internal notes.
 - **Tools:** `search_tickets`, `list_my_tickets`, `get_ticket`, `create_ticket`, `reply_to_ticket`, `update_ticket`, `search_kb`, `get_kb_article`, `list_categories`, and for staff `add_internal_note`, `escalate_ticket`, `deescalate_ticket`, `apply_macro`, `list_teams`. Resources `ticket://{ref}` (e.g. `ticket://WEB-12`) and `kb://{slug}`.
 - **Protocol:** Streamable HTTP, revisions 2026-07-28 (stateless) and 2025-11-25/06-18/03-26 (sessions). No extra dependency or process.
@@ -369,6 +370,16 @@ claude mcp add --transport http featherdesk https://help.example.com/mcp \
 ```
 
 The *API tokens* page shows the endpoint and ready-to-copy configs for Claude Code, Claude Desktop and Cursor. Guide: [docs/features/mcp.md](docs/features/mcp.md) · manual: [AI assistants (MCP)](docs/DOCUMENTATION.md#1010-ai-assistants-mcp).
+
+## Slack
+
+*Administration → Channels → Integrations* lists every integration as a card. **Slack** posts ticket activity to your channels, one thread per ticket:
+
+- **Set up in three steps:** create your own Slack app from a pre-filled manifest (one click), paste its Client ID and Secret, and connect the workspace in a **popup** (OAuth). `FD_PUBLIC_URL` must be HTTPS.
+- **Rules:** a channel (picker with public and private channels), the events (new tickets, status, assignment, priority, escalation, customer and agent replies, internal notes on request, SLA warnings and breaches, satisfaction ratings), project and priority filters, and a live preview of the posts.
+- **Reliable:** retries with back-off on the built-in queue, channel problems shown on the rule, a revoked token shown with *Reconnect*. No extra process, no inbound endpoint.
+
+Guide: [docs/features/slack.md](docs/features/slack.md) · manual: [Integrations](docs/DOCUMENTATION.md#722-integrations-channels--integrations-admin).
 
 ## API and WebSocket
 
@@ -500,6 +511,7 @@ make e2e           # Playwright (chromium) against a fresh binary
 | Privacy and GDPR tools | [docs/features/gdpr.md](docs/features/gdpr.md) |
 | Notification centre and browser notifications | [docs/features/notifications.md](docs/features/notifications.md) |
 | AI assistants over MCP (Claude Code, Claude Desktop, Cursor) | [docs/features/mcp.md](docs/features/mcp.md) |
+| Slack: app setup, popup sign-in, channel rules, threads | [docs/features/slack.md](docs/features/slack.md) |
 | Backend internals for contributors | [docs/dev/internals.md](docs/dev/internals.md) |
 | Changing a contract (API, events, schema, permissions) | [docs/dev/contract-changes.md](docs/dev/contract-changes.md) |
 | Security reports | [SECURITY.md](SECURITY.md) |

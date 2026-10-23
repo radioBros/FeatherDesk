@@ -66,7 +66,7 @@ Examples use `https://help.example.com` as the public address of the help desk a
    - [Two-step verification](#717-two-step-verification-system--support-settings-admin)
    - [Privacy and GDPR](#718-privacy-and-gdpr-people--privacy-admin)
    - [Notification centre](#719-notification-centre)
-   - [AI assistants (MCP)](#720-ai-assistants-mcp-system--support-settings-admin)
+   - [AI assistants (MCP)](#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin)
    - [Projects](#721-projects-administration--projects-supervisor)
 8. [Agent guide](#8-agent-guide)
    - [Layout](#81-layout)
@@ -744,7 +744,8 @@ These settings have no environment variable. They are edited in the admin UI or 
 | Automation rules, shared macros | their own tables | **Administration → Support setup → Automation rules** / **Shared macros** (supervisor+) | `/api/v1/admin/automation/rules`, `/api/v1/admin/macros` | [automation.md](features/automation.md#2-automation-rules) |
 | Away | per agent (`users.away_since`) | User menu (top right) → **Away** | `GET`/`PATCH /api/v1/me/availability` | [automation.md](features/automation.md#away) |
 | Notification preferences | per user, `notification_prefs` | **Profile → Notifications** card | `PATCH /api/v1/me` | [notifications.md](features/notifications.md#preferences) |
-| MCP endpoint switch | settings key `integrations`, field `mcp_enabled` (default `false`) | **Administration → System → Support settings**, card **Integrations** (admin) | `GET`/`PATCH /api/v1/admin/integrations` | [mcp.md](features/mcp.md), [§7.20](#720-ai-assistants-mcp-system--support-settings-admin) |
+| MCP endpoint switch | settings key `integrations`, field `mcp_enabled` (default `false`) | **Administration → Channels → Integrations → AI assistants** (admin) | `GET`/`PATCH /api/v1/admin/integrations` | [mcp.md](features/mcp.md), [§7.20](#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin) |
+| Slack app and workspace | settings key `slack` (client ID, encrypted client secret and bot token, workspace); rules in `slack_routes` | **Administration → Channels → Integrations → Slack** (admin) | `/api/v1/admin/integrations/slack…` | [slack.md](features/slack.md), [§7.22](#722-integrations-channels--integrations-admin) |
 | Projects, members, team mapping, per-project SLA and portal branding | their own tables (`projects`, `project_members`, `project_teams`, `organization_projects`); each user's switcher choice in `users.current_project_id` | **Administration → Projects** (supervisor+, project admins for their projects); the project menu in the top bar | `/api/v1/admin/projects`, `PATCH /api/v1/me` (`current_project_id`) | [projects.md](features/projects.md), [§7.21](#721-projects-administration--projects-supervisor) |
 
 The [Branding](#78-branding-system--branding-admin) privacy policy URL (`legal.privacy_url`) also switches on the consent checkbox at registration (see [Consent at registration](features/gdpr.md#consent-at-registration)).
@@ -1524,15 +1525,29 @@ The bell in the top bar of the agent panel and the customer portal lists ticket 
 - Each notification names the ticket by its reference (`WEB-123`) and, when the user works with more than one project, shows the [project chip](#721-projects-administration--projects-supervisor) (colour dot and key).
 - **Retention:** notifications are kept for 90 days, and at most the 500 newest per user. They store no message text; names, subjects, refs and projects are looked up when the list is shown, so an erasure, a deleted ticket or a ticket moved to another project is reflected at once.
 
-### 7.20 AI assistants (MCP) (System → Support settings, admin)
+### 7.20 AI assistants (MCP) (Channels → Integrations → AI assistants, admin)
 
-The **Integrations** card has one switch, **AI assistants (MCP)**. It turns on the built-in Model Context Protocol endpoint `/mcp`, which AI assistants (Claude Code, Claude Desktop, Cursor and other MCP clients) use to work with the help desk. It is **off by default**; while off, `/mcp` answers 404. The change is audited as `integrations.updated`.
+The **AI assistants (MCP)** integration has one switch. It turns on the built-in Model Context Protocol endpoint `/mcp`, which AI assistants (Claude Code, Claude Desktop, Cursor and other MCP clients) use to work with the help desk. It is **off by default**; while off, `/mcp` answers 404. The change is audited as `integrations.updated`.
 
 - Users connect their own assistant with their own personal access token; the *API tokens* page then shows a **Connect an AI assistant** panel with the endpoint and ready-to-copy configurations.
 - An assistant has exactly the permissions of the token: the user's role, limited by the token's scopes. Customers' assistants get customer tools only and never see internal notes or staff-only fields.
 - To cut off one assistant, revoke its token (*System → All API tokens*). To cut off all of them, turn the switch off.
 
 Details, tools and client setup: [features/mcp.md](features/mcp.md).
+
+### 7.22 Integrations (Channels → Integrations, admin)
+
+One page lists every integration as a card with its status: **Slack**, **AI assistants (MCP)** ([7.20](#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin)), **Outgoing webhooks** ([7.11](#711-webhooks-channels--webhooks-admin)) and the **REST API** reference. Each card opens its own settings. Integrations that sign in to another service do it in a **popup window**; the page you are on never navigates away.
+
+**Slack** posts ticket activity to channels, one thread per ticket:
+
+1. *Create app in Slack* creates your own Slack app from a pre-filled manifest (FeatherDesk is self-hosted, so the app is yours).
+2. Paste its *Client ID* and *Client Secret*.
+3. *Connect to Slack* opens Slack's permission screen in a popup; *Allow* and it closes. `FD_PUBLIC_URL` must be HTTPS (Slack's rule).
+
+Then add **rules**: a channel, the events (new tickets, status, assignment, priority, escalation, customer and agent replies, internal notes, SLA warnings and breaches, satisfaction ratings), optional project and priority filters, threads, message text and internal details, with a live preview. Channel problems show on the rule; a revoked token shows *Reconnect*. Every change is audited (`slack.*`).
+
+Details: [features/slack.md](features/slack.md).
 
 ### 7.21 Projects (Administration → Projects, supervisor+)
 
@@ -2116,7 +2131,7 @@ Things to know:
 
 ### 10.10 AI assistants (MCP)
 
-`POST /mcp` (at the site root, not under `/api/v1`) is a [Model Context Protocol](https://modelcontextprotocol.io) server over the Streamable HTTP transport. An admin turns it on first ([§7.20](#720-ai-assistants-mcp-system--support-settings-admin)); until then every method answers 404.
+`POST /mcp` (at the site root, not under `/api/v1`) is a [Model Context Protocol](https://modelcontextprotocol.io) server over the Streamable HTTP transport. An admin turns it on first ([§7.20](#720-ai-assistants-mcp-channels--integrations--ai-assistants-admin)); until then every method answers 404.
 
 - **Authentication:** `Authorization: Bearer fd_pat_…` only; no cookie, no CSRF token. Recommended scopes: staff `tickets:read tickets:write directory:read kb:read`, customers `tickets:read tickets:write kb:read` (drop `tickets:write` for read-only use).
 - **Same rules as REST:** each tool runs the matching REST operation in-process with the token, so scopes, visibility, the lifecycle, `allowed_actions` and the customer views apply unchanged. Changes are ticket events by the token owner with the channel `api`.

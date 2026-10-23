@@ -14,5 +14,6 @@ import { forms as content } from '@/areas/agent/content/forms.registry'
 import { forms as automation } from '@/areas/agent/automation/forms.registry'
 import { forms as privacy } from '@/areas/agent/privacy/forms.registry'
 import { forms as projects } from '@/areas/agent/projects/forms.registry'
+import { forms as integrations } from '@/areas/agent/integrations/forms.registry'
 
-export const agentFormRegistry: FormEntry[] = [...tickets, ...ticketList, ...directory, ...settings, ...config, ...content, ...automation, ...privacy, ...projects]
+export const agentFormRegistry: FormEntry[] = [...tickets, ...ticketList, ...directory, ...settings, ...config, ...content, ...automation, ...privacy, ...projects, ...integrations]

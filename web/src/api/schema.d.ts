@@ -583,6 +583,174 @@ export interface paths {
         patch: operations["updateIntegrationsSettings"];
         trace?: never;
     };
+    "/admin/integrations/slack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slack integration status
+         * @description The app credentials (secret never returned), the workspace connection, the pre-filled app manifest (`manifest`, `manifest_url` opens Slack's "create app" page with it) and the OAuth redirect URL. `https` is false when `FD_PUBLIC_URL` is not HTTPS: Slack refuses such redirect URLs. Guide: `docs/features/slack.md`.
+         *
+         *     Phase: V1.
+         */
+        get: operations["getSlackIntegration"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Save the Slack app credentials
+         * @description Client ID and client secret of the admin's Slack app (the secret is sealed and write-only; an empty or absent secret keeps the stored one). Audited (`slack.app_updated`).
+         *
+         *     Phase: V1.
+         */
+        patch: operations["updateSlackApp"];
+        trace?: never;
+    };
+    "/admin/integrations/slack/channels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slack channels (channel picker)
+         * @description Public channels, and private channels the bot was invited to, not archived, sorted by name. Cached for 60 seconds; `refresh=true` reloads. 409 `conflict` while not connected (or when Slack rejects the token, which also puts the connection in the `error` state); 503 `unavailable` for other Slack errors.
+         *
+         *     Phase: V1.
+         */
+        get: operations["listSlackChannels"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/slack/connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Disconnect the Slack workspace
+         * @description Revokes the bot token (`auth.revoke`, best effort) and forgets it. App credentials and routes stay, so reconnecting resumes delivery. Audited (`slack.disconnected`).
+         *
+         *     Phase: V1.
+         */
+        delete: operations["disconnectSlack"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/slack/oauth/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start the Slack install (OAuth popup)
+         * @description Returns Slack's consent URL with a single-use `state` (10 minutes, bound to the caller). The SPA opens it in a popup; Slack then redirects to `GET /integrations/slack/oauth/callback`. 409 `conflict` until the app credentials are saved.
+         *
+         *     Phase: V1.
+         */
+        post: operations["startSlackOAuth"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/slack/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slack routes
+         * @description Every route (channel + triggers + filters), oldest first. Phase: V1.
+         */
+        get: operations["listSlackRoutes"];
+        put?: never;
+        /**
+         * Create a Slack route
+         * @description `note.created` requires `include_internal`. Project keys are accepted in `project_ids`. Audited (`slack.route_created`).
+         *
+         *     Phase: V1.
+         */
+        post: operations["createSlackRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/integrations/slack/routes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete a Slack route
+         * @description Audited (`slack.route_deleted`). Phase: V1.
+         */
+        delete: operations["deleteSlackRoute"];
+        options?: never;
+        head?: never;
+        /**
+         * Update a Slack route
+         * @description Changing the channel forgets the route's ticket threads. A new channel or `active: true` clears `last_error`. Audited (`slack.route_updated`).
+         *
+         *     Phase: V1.
+         */
+        patch: operations["updateSlackRoute"];
+        trace?: never;
+    };
+    "/admin/integrations/slack/routes/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post a test message to the route's channel
+         * @description `ok: false` carries Slack's error code (e.g. `not_in_channel`: invite the bot to the private channel). The outcome updates the route's `last_error`. 409 `conflict` while not connected. Audited (`slack.route_tested`).
+         *
+         *     Phase: V1.
+         */
+        post: operations["testSlackRoute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/jobs": {
         parameters: {
             query?: never;
@@ -2950,6 +3118,28 @@ export interface paths {
          * @description What the "Connect an AI assistant" helper on the API tokens page shows: whether MCP is on, the endpoint URL, the protocol revisions and the recommended token scopes for the caller's kind. Phase: V1.
          */
         get: operations["getMcpInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/integrations/slack/oauth/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Slack OAuth redirect target
+         * @description The redirect URL registered in the Slack app. Authenticated by `state` alone (single use), not by a session. Exchanges `code` for the bot token (`oauth.v2.access`), stores it sealed and audits `slack.connected`. Always answers 302 to `<FD_AGENT_URL>/oauth/complete?provider=slack&state=…&result=ok|error[&reason=<code>]`, the page that tells the admin's window and closes the popup. Reasons include `invalid_state`, `access_denied`, `no_bot_token`, `enterprise_install_unsupported` and Slack error codes such as `bad_client_secret`.
+         *
+         *     Phase: V1.
+         */
+        get: operations["slackOAuthCallback"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6161,6 +6351,102 @@ export interface components {
         SignaturePut: {
             signature_md: string;
         };
+        SlackAppUpdate: {
+            client_id?: string;
+            client_secret?: string;
+        };
+        SlackChannel: {
+            id: string;
+            is_member: boolean;
+            is_private: boolean;
+            name: string;
+            num_members: number;
+        };
+        SlackOAuthStart: {
+            /** Format: uri */
+            authorize_url: string;
+            expires_at: components["schemas"]["Timestamp"];
+            state: string;
+        };
+        SlackRoute: {
+            active: boolean;
+            channel_id: string;
+            channel_name: string;
+            channel_private: boolean;
+            created_at: components["schemas"]["Timestamp"];
+            events: components["schemas"]["SlackTrigger"][];
+            id: components["schemas"]["Id"];
+            /** @description Quote the message text (first 600 characters) */
+            include_body: boolean;
+            /** @description Internal notes and staff-only details (the channel must be staff-only) */
+            include_internal: boolean;
+            /** @description Slack error of the last failed post to this channel (e.g. `not_in_channel`) */
+            last_error: string | null;
+            last_error_at: components["schemas"]["Timestamp"] | null;
+            last_posted_at: components["schemas"]["Timestamp"] | null;
+            /** @description [] = every priority */
+            priorities: components["schemas"]["Priority"][];
+            /** @description [] = every project */
+            project_ids: components["schemas"]["Id"][];
+            /** @description Updates reply in the thread of the ticket's first post */
+            threads: boolean;
+            updated_at: components["schemas"]["Timestamp"];
+        };
+        /** @description Create: `channel_id` and `events` required; defaults threads, include_body and active true, include_internal false. */
+        SlackRouteInput: {
+            active?: boolean;
+            channel_id?: string;
+            channel_name?: string;
+            channel_private?: boolean;
+            events?: components["schemas"]["SlackTrigger"][];
+            include_body?: boolean;
+            include_internal?: boolean;
+            priorities?: components["schemas"]["Priority"][];
+            project_ids?: string[];
+            threads?: boolean;
+        };
+        /**
+         * @description `configured`: app credentials saved, workspace not connected. `error`: Slack rejected the bot token; delivery stopped until reconnected.
+         * @enum {string}
+         */
+        SlackState: "not_configured" | "configured" | "connected" | "error";
+        SlackStatus: {
+            active_routes: number;
+            bot_name: string | null;
+            bot_user_id: string | null;
+            client_id: string;
+            client_secret_set: boolean;
+            connected_at: components["schemas"]["Timestamp"] | null;
+            connected_by: {
+                id: components["schemas"]["Id"];
+                name: string;
+            } | null;
+            /** @description Slack error code that broke the connection (e.g. `token_revoked`) */
+            error: string | null;
+            https: boolean;
+            manifest: {
+                [key: string]: unknown;
+            };
+            /** Format: uri */
+            manifest_url: string;
+            /** Format: uri */
+            redirect_url: string;
+            routes: number;
+            scopes: string[];
+            state: components["schemas"]["SlackState"];
+            team_id: string | null;
+            team_name: string | null;
+            team_url: string | null;
+        };
+        SlackTestResult: {
+            error: string | null;
+            ok: boolean;
+        };
+        /**
+         * @description What a Slack route posts. `ticket.escalated` covers de-escalations too; `message.customer` / `message.staff` split `message.created` by author; `note.created` needs `include_internal`.
+         * @enum {string}
+         */
+        SlackTrigger: "ticket.created" | "ticket.status_changed" | "ticket.assigned" | "ticket.priority_changed" | "ticket.escalated" | "message.customer" | "message.staff" | "note.created" | "sla.warning" | "sla.breached" | "ticket.csat";
         SlaPoliciesPut: {
             policies: components["schemas"]["SlaPolicy"][];
         };
@@ -7013,6 +7299,15 @@ export type SchemaSession = components['schemas']['Session'];
 export type SchemaSetupRequest = components['schemas']['SetupRequest'];
 export type SchemaSetupStatus = components['schemas']['SetupStatus'];
 export type SchemaSignaturePut = components['schemas']['SignaturePut'];
+export type SchemaSlackAppUpdate = components['schemas']['SlackAppUpdate'];
+export type SchemaSlackChannel = components['schemas']['SlackChannel'];
+export type SchemaSlackOAuthStart = components['schemas']['SlackOAuthStart'];
+export type SchemaSlackRoute = components['schemas']['SlackRoute'];
+export type SchemaSlackRouteInput = components['schemas']['SlackRouteInput'];
+export type SchemaSlackState = components['schemas']['SlackState'];
+export type SchemaSlackStatus = components['schemas']['SlackStatus'];
+export type SchemaSlackTestResult = components['schemas']['SlackTestResult'];
+export type SchemaSlackTrigger = components['schemas']['SlackTrigger'];
 export type SchemaSlaPoliciesPut = components['schemas']['SlaPoliciesPut'];
 export type SchemaSlaPolicy = components['schemas']['SlaPolicy'];
 export type SchemaSmtpAuth = components['schemas']['SmtpAuth'];
@@ -8293,6 +8588,280 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["Validation"];
+        };
+    };
+    getSlackIntegration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackStatus"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSlackApp: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlackAppUpdate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackStatus"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    listSlackChannels: {
+        parameters: {
+            query?: {
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackChannel"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            503: components["responses"]["Unavailable"];
+        };
+    };
+    disconnectSlack: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    startSlackOAuth: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackOAuthStart"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listSlackRoutes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackRoute"][];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createSlackRoute: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlackRouteInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackRoute"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    deleteSlackRoute: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateSlackRoute: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SlackRouteInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackRoute"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    testSlackRoute: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackTestResult"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listDeferredJobs: {
@@ -12609,6 +13178,29 @@ export interface operations {
             };
             401: components["responses"]["Unauthenticated"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    slackOAuthCallback: {
+        parameters: {
+            query?: {
+                code?: string;
+                error?: string;
+                state?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the SPA completion page */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            429: components["responses"]["RateLimited"];
         };
     };
     listKbArticles: {

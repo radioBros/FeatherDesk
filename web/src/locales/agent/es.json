@@ -383,7 +383,8 @@
         "calendars": "Horario laboral",
         "kbCategories": "Categorías de la base de conocimiento",
         "inbound": "Correo entrante",
-        "inboundLog": "Registro de correo entrante"
+        "inboundLog": "Registro de correo entrante",
+        "integrations": "Integraciones"
       }
     },
     "emailBanner": {
@@ -1059,7 +1060,187 @@
       "mcpHint": "Permite que asistentes de IA como Claude Code, Claude Desktop y Cursor trabajen con el help desk a través del punto de conexión Model Context Protocol. Cada usuario se conecta con su propio token de API, así que un asistente nunca puede hacer más de lo que permiten ese usuario y los ámbitos del token. Desactivado por defecto; mientras está apagado, el punto de conexión responde 404.",
       "mcpOn": "Acceso de asistentes de IA (MCP) activado",
       "mcpOff": "Acceso de asistentes de IA (MCP) desactivado",
-      "endpoint": "Punto de conexión:"
+      "endpoint": "Punto de conexión:",
+      "subtitle": "Conecta el centro de ayuda con las herramientas que tu equipo ya usa.",
+      "groups": {
+        "chat": "Chat y notificaciones",
+        "ai": "IA",
+        "developer": "Desarrolladores"
+      },
+      "status": {
+        "connected": "Conectado",
+        "notConnected": "Sin conectar",
+        "needsAttention": "Requiere atención",
+        "setupStarted": "Configuración iniciada",
+        "on": "Activado",
+        "off": "Desactivado",
+        "activeCount": "{n} activas",
+        "noneActive": "Ninguna activa"
+      },
+      "configure": "Configurar",
+      "connect": "Conectar",
+      "manage": "Gestionar",
+      "breadcrumb": "Integraciones",
+      "cards": {
+        "slack": {
+          "description": "Publica tickets nuevos, respuestas y alertas de SLA en canales de Slack, con un hilo por ticket.",
+          "connectedTo": "{team} · {n} reglas activas"
+        },
+        "ai": {
+          "name": "Asistentes de IA (MCP)",
+          "description": "Permite que Claude, Cursor y otros clientes MCP trabajen con los tickets, cada uno con el token de API de la persona."
+        },
+        "webhooks": {
+          "name": "Webhooks salientes",
+          "description": "Envía eventos firmados de tickets a tus propios servicios o a Zapier, Make y n8n."
+        },
+        "api": {
+          "name": "API REST y tokens",
+          "description": "Automatiza lo que quieras con la API REST documentada y los tokens de acceso personales.",
+          "docs": "Referencia de la API"
+        }
+      },
+      "ai": {
+        "subtitle": "El endpoint Model Context Protocol para asistentes de IA.",
+        "connectHint": "Cuando esté activado, cada persona conecta su asistente desde su página de tokens de API, que muestra ajustes listos para Claude Code, Claude Desktop y Cursor.",
+        "tokensLink": "Abrir mis tokens de API"
+      },
+      "slack": {
+        "subtitle": "Notificaciones de tickets en tus canales de Slack.",
+        "setup": {
+          "title": "Configurar Slack",
+          "intro": "Tres pasos, unos dos minutos. El centro de ayuda es autoalojado, así que publica mediante una app de Slack que te pertenece.",
+          "step1": "Crear la app de Slack",
+          "step1Body": "Abre Slack con todo ya rellenado: el nombre de la app, los permisos del bot y la URL de redirección de este servidor. Elige tu espacio de trabajo y haz clic en Create.",
+          "createApp": "Crear la app en Slack",
+          "copyManifest": "Copiar el manifiesto",
+          "redirectUrl": "URL de redirección",
+          "step2": "Pegar las credenciales de la app",
+          "step2Body": "En la nueva app, abre Basic Information y luego App Credentials, y copia el Client ID y el Client Secret.",
+          "clientId": "ID de cliente",
+          "clientIdHint": "Tiene la forma 1234567890.1234567890",
+          "clientSecret": "Secreto de cliente",
+          "saveCredentials": "Guardar las credenciales",
+          "credentialsSaved": "Credenciales de la app guardadas",
+          "step3": "Conectar tu espacio de trabajo",
+          "step3Body": "Se abre una ventana de Slack: revisa los permisos y haz clic en Allow. La ventana se cierra sola.",
+          "httpsWarning": "Slack solo acepta URL de redirección HTTPS, y la URL pública de este servidor ({url}) no es HTTPS. Configura FD_PUBLIC_URL con una dirección https:// antes de conectar."
+        },
+        "connect": "Conectar con Slack",
+        "reconnect": "Volver a conectar",
+        "disconnect": "Desconectar",
+        "editCredentials": "Credenciales de la app",
+        "connected": "Conectado a {team}",
+        "reasons": {
+          "no_bot_token": "Slack no devolvió ningún token de bot",
+          "enterprise_install_unsupported": "no se admiten las instalaciones para toda la organización (Enterprise Grid)"
+        },
+        "disconnectConfirm": "¿Desconectar Slack? No se publicará nada hasta que vuelvas a conectar. Tus reglas se conservan.",
+        "disconnected": "Slack desconectado",
+        "workspace": "Espacio de trabajo",
+        "bot": "Usuario bot",
+        "connectedBy": "Conectado por {name}",
+        "permissions": "Permisos",
+        "brokenTitle": "Slack rechazó la conexión",
+        "brokenBody": "Slack respondió «{code}»: la app se eliminó o su token se revocó. No se publicará nada hasta que vuelvas a conectar.",
+        "rules": {
+          "title": "Reglas de notificación",
+          "subtitle": "Cada regla publica los eventos que elijas en un canal.",
+          "add": "Añadir regla",
+          "empty": "Aún no hay reglas",
+          "emptyBody": "Empieza con los tickets nuevos en tu canal de soporte y luego añade canales para tickets urgentes o alertas de SLA.",
+          "quickStart": "Publicar los tickets nuevos en un canal",
+          "edit": "Editar regla",
+          "new": "Nueva regla",
+          "deleteConfirm": "¿Eliminar la regla de #{channel}?",
+          "test": "Enviar un mensaje de prueba",
+          "testOk": "Mensaje de prueba publicado en #{channel}",
+          "testFailed": "Slack rechazó el mensaje de prueba: {reason}",
+          "paused": "En pausa",
+          "resumed": "Regla activada",
+          "pausedToast": "Regla en pausa",
+          "allProjects": "Todos los proyectos",
+          "allPriorities": "Todas las prioridades",
+          "threaded": "Un hilo por ticket",
+          "internal": "Notas internas",
+          "lastPost": "Última publicación {when}",
+          "noPostYet": "Aún no se ha publicado nada"
+        },
+        "channelErrors": {
+          "not_in_channel": "El bot no está en este canal privado. En Slack, escribe /invite {'@'}{bot} en el canal.",
+          "channel_not_found": "El canal ya no existe o el bot no puede verlo.",
+          "is_archived": "El canal está archivado.",
+          "other": "Slack rechazó la última publicación: {code}"
+        },
+        "form": {
+          "channel": "Canal",
+          "channelHint": "Los canales públicos funcionan al momento. En los privados hay que invitar antes al bot.",
+          "refresh": "Recargar los canales",
+          "members": "{n} miembros",
+          "inviteBot": "invita al bot",
+          "channelsFailed": "No se pudieron cargar los canales de Slack.",
+          "events": "Qué publicar",
+          "presets": {
+            "newTickets": "Tickets nuevos",
+            "updates": "Cambios en los tickets",
+            "conversation": "Conversación",
+            "sla": "Alertas de SLA",
+            "everything": "Todo"
+          },
+          "groups": {
+            "tickets": "Tickets",
+            "conversation": "Conversación",
+            "sla": "SLA y valoraciones"
+          },
+          "filters": "Filtros",
+          "priorities": "Prioridades",
+          "prioritiesHint": "Sin selección significa todas las prioridades.",
+          "projectsHint": "Sin selección significa todos los proyectos.",
+          "options": "Opciones",
+          "threads": "Publicar los cambios en el hilo del primer mensaje del ticket",
+          "threadsHint": "Mantiene el canal en una línea por ticket.",
+          "includeBody": "Incluir el texto del mensaje",
+          "includeBodyHint": "Cita los primeros 600 caracteres.",
+          "includeInternal": "Incluir notas internas y detalles solo para el personal",
+          "includeInternalWarning": "Solo para canales exclusivos del personal: cualquiera en el canal puede leer las notas internas.",
+          "noteNeedsInternal": "Activa las notas internas más abajo para publicarlas.",
+          "preview": "Vista previa",
+          "previewThread": "Respuesta en el hilo"
+        },
+        "triggers": {
+          "created": "Ticket nuevo",
+          "status": "Estado cambiado",
+          "assigned": "Asignado",
+          "priority": "Prioridad cambiada",
+          "escalated": "Escalado o desescalado",
+          "customer": "El cliente respondió",
+          "staff": "El agente respondió",
+          "note": "Nota interna",
+          "slaWarning": "SLA a punto de vencer",
+          "slaBreach": "SLA incumplido",
+          "csat": "Valoración de satisfacción"
+        }
+      },
+      "oauth": {
+        "title": "Conectando",
+        "ok": "Conectado. Puedes cerrar esta ventana.",
+        "error": "La conexión falló ({reason}). Cierra esta ventana e inténtalo de nuevo.",
+        "back": "Volver a la integración",
+        "waiting": "Esperando a {provider}: termina en la ventana emergente.",
+        "blocked": "Tu navegador bloqueó la ventana emergente de {provider}. Permite las ventanas emergentes para este sitio y vuelve a hacer clic.",
+        "failed": "La conexión con {provider} falló: {reason}",
+        "reasons": {
+          "access_denied": "cancelaste en la página del proveedor",
+          "invalid_state": "la solicitud caducó, inténtalo de nuevo",
+          "bad_client_secret": "el secreto de cliente es incorrecto",
+          "invalid_client_id": "el ID de cliente es incorrecto",
+          "bad_redirect_uri": "la URL de redirección registrada en la app no coincide con este servidor",
+          "not_configured": "faltan las credenciales de la app",
+          "exchange_failed": "el proveedor no aceptó la autorización",
+          "server_error": "se produjo un error del servidor",
+          "other": "código de error {code}"
+        }
+      }
     }
   },
   "automation": {

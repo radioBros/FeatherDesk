@@ -6,7 +6,6 @@ import { useI18n } from 'vue-i18n'
 import PageHeader from '@/components/PageHeader.vue'
 import SupportSettingsForm from './SupportSettingsForm.vue'
 import SecurityPolicyCard from './SecurityPolicyCard.vue'
-import IntegrationsCard from './IntegrationsCard.vue'
 import { api, unwrap } from '@/api/client'
 import { useConfigStore } from '@/stores/config'
 import { useUiStore } from '@/stores/ui'
@@ -54,6 +53,5 @@ async function onSaved(s: components['schemas']['SupportSettings']) {
       <SupportSettingsForm :key="formKey" :settings="settings" @saved="onSaved" />
     </v-card>
     <SecurityPolicyCard />
-    <IntegrationsCard />
   </v-container>
 </template>

@@ -26,6 +26,7 @@ func TestRotationReencryptsAll(t *testing.T) {
 		oldBox, _ := crypto.NewBox(oldKey)
 		plain := map[string]string{
 			"smtp": "smtp-pw-123", "hook": "whsec-456", "hmac": "hmac-789", "imap": "imap-pw-000", "refresh": "refresh-tok-111",
+			"slack-secret": "slack-secret-222", "slack-token": "xoxb-slack-333",
 		}
 		// Written by a server that ran with the old key.
 		old := New(db, oldBox, func(string) string { return "" })
@@ -46,7 +47,13 @@ func TestRotationReencryptsAll(t *testing.T) {
 		}
 		imapDoc, _ := json.Marshal(map[string]any{"host": "imap.example.test", "port": 993, "username": "support",
 			"password_enc": seal(PurposeIMAPPassword, plain["imap"]), "oauth_refresh_token_enc": seal(PurposeIMAPRefresh, plain["refresh"])})
+		// D-21: the Slack document carries two sealed fields.
+		slackDoc, _ := json.Marshal(map[string]any{"client_id": "123.456", "team_name": "Acme",
+			"client_secret_enc": seal(PurposeSlackSecret, plain["slack-secret"]), "bot_token_enc": seal(PurposeSlackToken, plain["slack-token"])})
 		err = db.Tx(ctx, func(tx *store.Tx) error {
+			if _, err := tx.ExecContext(ctx, `INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?)`, KeySlack, string(slackDoc), store.Now()); err != nil {
+				return err
+			}
 			if _, err := tx.ExecContext(ctx, `INSERT INTO webhooks (id, url, secret_enc) VALUES (?, ?, ?)`,
 				store.NewID(), "https://hooks.example.test/x", seal(PurposeWebhook, plain["hook"])); err != nil {
 				return err
@@ -77,8 +84,8 @@ func TestRotationReencryptsAll(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if rep.Settings != 1 || rep.Webhooks != 1 || rep.Mailboxes != 3 || rep.Total != 5 {
-			t.Fatalf("report %+v, want settings 1, webhooks 1, mailboxes 3", rep)
+		if rep.Settings != 3 || rep.Webhooks != 1 || rep.Mailboxes != 3 || rep.Total != 7 {
+			t.Fatalf("report %+v, want settings 3, webhooks 1, mailboxes 3", rep)
 		}
 
 		// Read everything back with the new key only.
@@ -130,6 +137,16 @@ func TestRotationReencryptsAll(t *testing.T) {
 		}
 		open("imap", PurposeIMAPPassword, imap["password_enc"].(string))
 		open("refresh", PurposeIMAPRefresh, imap["oauth_refresh_token_enc"].(string))
+		var slackRaw []byte
+		if err := db.Read().QueryRowContext(ctx, `SELECT value FROM settings WHERE key = 'slack'`).Scan(&slackRaw); err != nil {
+			t.Fatal(err)
+		}
+		var sd map[string]any
+		if err := json.Unmarshal(slackRaw, &sd); err != nil || sd["team_name"] != "Acme" {
+			t.Fatalf("slack document damaged by rotation: %s (%v)", slackRaw, err)
+		}
+		open("slack-secret", PurposeSlackSecret, sd["client_secret_enc"].(string))
+		open("slack-token", PurposeSlackToken, sd["bot_token_enc"].(string))
 		delete(got, "smtp-at-rest")
 		for k, want := range plain {
 			if got[k] != want {
@@ -137,7 +154,7 @@ func TestRotationReencryptsAll(t *testing.T) {
 			}
 		}
 		// No plaintext anywhere in the rotated rows.
-		dump := string(raw) + hook + hmac + string(imapRaw)
+		dump := string(raw) + hook + hmac + string(imapRaw) + string(slackRaw)
 		for _, p := range plain {
 			if strings.Contains(dump, p) {
 				t.Fatalf("plaintext %q stored at rest", p)

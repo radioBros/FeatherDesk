@@ -383,7 +383,8 @@
         "calendars": "Horaires d'ouverture",
         "kbCategories": "Catégories de la base de connaissances",
         "inbound": "E-mails entrants",
-        "inboundLog": "Journal des e-mails entrants"
+        "inboundLog": "Journal des e-mails entrants",
+        "integrations": "Intégrations"
       }
     },
     "emailBanner": {
@@ -1059,7 +1060,187 @@
       "mcpHint": "Permet à des assistants IA comme Claude Code, Claude Desktop et Cursor de travailler avec le help desk via le point de terminaison Model Context Protocol. Chaque utilisateur se connecte avec son propre jeton d'API : un assistant ne peut jamais faire plus que cet utilisateur et les portées du jeton. Désactivé par défaut ; tant qu'il est désactivé, le point de terminaison répond 404.",
       "mcpOn": "Accès des assistants IA (MCP) activé",
       "mcpOff": "Accès des assistants IA (MCP) désactivé",
-      "endpoint": "Point de terminaison :"
+      "endpoint": "Point de terminaison :",
+      "subtitle": "Reliez le centre d'assistance aux outils que votre équipe utilise déjà.",
+      "groups": {
+        "chat": "Messagerie et notifications",
+        "ai": "IA",
+        "developer": "Développeurs"
+      },
+      "status": {
+        "connected": "Connecté",
+        "notConnected": "Non connecté",
+        "needsAttention": "Action requise",
+        "setupStarted": "Configuration commencée",
+        "on": "Activé",
+        "off": "Désactivé",
+        "activeCount": "{n} actives",
+        "noneActive": "Aucune active"
+      },
+      "configure": "Configurer",
+      "connect": "Connecter",
+      "manage": "Gérer",
+      "breadcrumb": "Intégrations",
+      "cards": {
+        "slack": {
+          "description": "Publiez les nouveaux tickets, les réponses et les alertes SLA dans des canaux Slack, avec un fil par ticket.",
+          "connectedTo": "{team} · {n} règles actives"
+        },
+        "ai": {
+          "name": "Assistants IA (MCP)",
+          "description": "Laissez Claude, Cursor et d'autres clients MCP travailler sur les tickets, chacun avec le jeton d'API de la personne."
+        },
+        "webhooks": {
+          "name": "Webhooks sortants",
+          "description": "Envoyez des événements de tickets signés à vos propres services ou à Zapier, Make et n8n."
+        },
+        "api": {
+          "name": "API REST et jetons",
+          "description": "Automatisez tout avec l'API REST documentée et les jetons d'accès personnels.",
+          "docs": "Référence de l'API"
+        }
+      },
+      "ai": {
+        "subtitle": "Le point d'accès Model Context Protocol pour les assistants IA.",
+        "connectHint": "Une fois activé, chaque personne connecte son assistant depuis sa page de jetons d'API, qui propose des réglages prêts pour Claude Code, Claude Desktop et Cursor.",
+        "tokensLink": "Ouvrir mes jetons d'API"
+      },
+      "slack": {
+        "subtitle": "Les notifications de tickets dans vos canaux Slack.",
+        "setup": {
+          "title": "Configurer Slack",
+          "intro": "Trois étapes, environ deux minutes. Le centre d'assistance est auto-hébergé : il publie donc via une application Slack qui vous appartient.",
+          "step1": "Créer l'application Slack",
+          "step1Body": "Ouvre Slack avec tout pré-rempli : le nom de l'application, les autorisations du bot et l'URL de redirection de ce serveur. Choisissez votre espace de travail et cliquez sur Create.",
+          "createApp": "Créer l'application dans Slack",
+          "copyManifest": "Copier le manifeste",
+          "redirectUrl": "URL de redirection",
+          "step2": "Coller les identifiants de l'application",
+          "step2Body": "Dans la nouvelle application, ouvrez Basic Information, puis App Credentials, et copiez le Client ID et le Client Secret.",
+          "clientId": "Identifiant client",
+          "clientIdHint": "Ressemble à 1234567890.1234567890",
+          "clientSecret": "Secret client",
+          "saveCredentials": "Enregistrer les identifiants",
+          "credentialsSaved": "Identifiants de l'application enregistrés",
+          "step3": "Connecter votre espace de travail",
+          "step3Body": "Une fenêtre Slack s'ouvre : vérifiez les autorisations et cliquez sur Allow. La fenêtre se ferme toute seule.",
+          "httpsWarning": "Slack n'accepte que des URL de redirection HTTPS, et l'URL publique de ce serveur ({url}) n'est pas en HTTPS. Définissez FD_PUBLIC_URL sur une adresse https:// avant de vous connecter."
+        },
+        "connect": "Se connecter à Slack",
+        "reconnect": "Reconnecter",
+        "disconnect": "Déconnecter",
+        "editCredentials": "Identifiants de l'application",
+        "connected": "Connecté à {team}",
+        "reasons": {
+          "no_bot_token": "Slack n'a renvoyé aucun jeton de bot",
+          "enterprise_install_unsupported": "les installations à l'échelle de l'organisation (Enterprise Grid) ne sont pas prises en charge"
+        },
+        "disconnectConfirm": "Déconnecter Slack ? Rien ne sera publié tant que vous ne vous reconnectez pas. Vos règles sont conservées.",
+        "disconnected": "Slack déconnecté",
+        "workspace": "Espace de travail",
+        "bot": "Utilisateur bot",
+        "connectedBy": "Connecté par {name}",
+        "permissions": "Autorisations",
+        "brokenTitle": "Slack a refusé la connexion",
+        "brokenBody": "Slack a répondu « {code} » : l'application a été supprimée ou son jeton révoqué. Rien ne sera publié tant que vous ne vous reconnectez pas.",
+        "rules": {
+          "title": "Règles de notification",
+          "subtitle": "Chaque règle publie les événements choisis dans un canal.",
+          "add": "Ajouter une règle",
+          "empty": "Aucune règle pour l'instant",
+          "emptyBody": "Commencez par les nouveaux tickets dans votre canal d'assistance, puis ajoutez des canaux pour les tickets urgents ou les alertes SLA.",
+          "quickStart": "Publier les nouveaux tickets dans un canal",
+          "edit": "Modifier la règle",
+          "new": "Nouvelle règle",
+          "deleteConfirm": "Supprimer la règle de #{channel} ?",
+          "test": "Envoyer un message de test",
+          "testOk": "Message de test publié dans #{channel}",
+          "testFailed": "Slack a refusé le message de test : {reason}",
+          "paused": "En pause",
+          "resumed": "Règle activée",
+          "pausedToast": "Règle mise en pause",
+          "allProjects": "Tous les projets",
+          "allPriorities": "Toutes les priorités",
+          "threaded": "Un fil par ticket",
+          "internal": "Notes internes",
+          "lastPost": "Dernière publication {when}",
+          "noPostYet": "Rien de publié pour l'instant"
+        },
+        "channelErrors": {
+          "not_in_channel": "Le bot n'est pas dans ce canal privé. Dans Slack, tapez /invite {'@'}{bot} dans le canal.",
+          "channel_not_found": "Le canal n'existe plus, ou le bot ne peut pas le voir.",
+          "is_archived": "Le canal est archivé.",
+          "other": "Slack a refusé la dernière publication : {code}"
+        },
+        "form": {
+          "channel": "Canal",
+          "channelHint": "Les canaux publics fonctionnent tout de suite. Pour les canaux privés, invitez d'abord le bot.",
+          "refresh": "Recharger les canaux",
+          "members": "{n} membres",
+          "inviteBot": "inviter le bot",
+          "channelsFailed": "Impossible de charger les canaux depuis Slack.",
+          "events": "Quoi publier",
+          "presets": {
+            "newTickets": "Nouveaux tickets",
+            "updates": "Mises à jour des tickets",
+            "conversation": "Conversation",
+            "sla": "Alertes SLA",
+            "everything": "Tout"
+          },
+          "groups": {
+            "tickets": "Tickets",
+            "conversation": "Conversation",
+            "sla": "SLA et avis"
+          },
+          "filters": "Filtres",
+          "priorities": "Priorités",
+          "prioritiesHint": "Aucune sélection signifie toutes les priorités.",
+          "projectsHint": "Aucune sélection signifie tous les projets.",
+          "options": "Options",
+          "threads": "Publier les mises à jour dans le fil du premier message du ticket",
+          "threadsHint": "Garde le canal à une ligne par ticket.",
+          "includeBody": "Inclure le texte du message",
+          "includeBodyHint": "Cite les 600 premiers caractères.",
+          "includeInternal": "Inclure les notes internes et les détails réservés à l'équipe",
+          "includeInternalWarning": "Uniquement pour les canaux réservés à l'équipe : toute personne du canal peut lire les notes internes.",
+          "noteNeedsInternal": "Activez les notes internes ci-dessous pour les publier.",
+          "preview": "Aperçu",
+          "previewThread": "Réponse dans le fil"
+        },
+        "triggers": {
+          "created": "Nouveau ticket",
+          "status": "Statut modifié",
+          "assigned": "Attribué",
+          "priority": "Priorité modifiée",
+          "escalated": "Escaladé ou désescaladé",
+          "customer": "Le client a répondu",
+          "staff": "L'agent a répondu",
+          "note": "Note interne",
+          "slaWarning": "SLA bientôt dépassé",
+          "slaBreach": "SLA dépassé",
+          "csat": "Note de satisfaction"
+        }
+      },
+      "oauth": {
+        "title": "Connexion en cours",
+        "ok": "Connecté. Vous pouvez fermer cette fenêtre.",
+        "error": "La connexion a échoué ({reason}). Fermez cette fenêtre et réessayez.",
+        "back": "Retour à l'intégration",
+        "waiting": "En attente de {provider} : terminez dans la fenêtre contextuelle.",
+        "blocked": "Votre navigateur a bloqué la fenêtre contextuelle de {provider}. Autorisez les fenêtres contextuelles pour ce site, puis cliquez à nouveau.",
+        "failed": "La connexion à {provider} a échoué : {reason}",
+        "reasons": {
+          "access_denied": "vous avez annulé sur la page du fournisseur",
+          "invalid_state": "la demande a expiré, veuillez réessayer",
+          "bad_client_secret": "le secret client est incorrect",
+          "invalid_client_id": "l'identifiant client est incorrect",
+          "bad_redirect_uri": "l'URL de redirection enregistrée dans l'application ne correspond pas à ce serveur",
+          "not_configured": "les identifiants de l'application manquent",
+          "exchange_failed": "le fournisseur n'a pas accepté l'autorisation",
+          "server_error": "une erreur serveur est survenue",
+          "other": "code d'erreur {code}"
+        }
+      }
     }
   },
   "automation": {

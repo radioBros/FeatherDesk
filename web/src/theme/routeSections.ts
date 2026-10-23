@@ -38,6 +38,7 @@ import {
   mdiTicketOutline,
   mdiMonitorCellphone,
   mdiFolderMultipleOutline,
+  mdiPuzzleOutline,
 } from '@mdi/js'
 import type { Section } from './palette'
 
@@ -59,6 +60,7 @@ export const ADMIN_META: Record<string, SectionMeta> = {
   '/agent/admin/kb-categories': { icon: mdiBookOpenPageVariantOutline, section: 'kb' },
   '/agent/admin/email': { icon: mdiEmailOutline, section: 'email' },
   '/agent/admin/inbound': { icon: mdiEmailFastOutline, section: 'email' },
+  '/agent/admin/integrations': { icon: mdiPuzzleOutline, section: 'email' },
   '/agent/admin/webhooks': { icon: mdiWebhook, section: 'email' },
   '/agent/admin/branding': { icon: mdiPaletteOutline, section: 'branding' },
   '/agent/admin/settings': { icon: mdiCogOutline, section: 'settings' },

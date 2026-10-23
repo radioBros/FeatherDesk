@@ -22,8 +22,9 @@ type RotateReport struct {
 
 // sealedJSONFields maps a JSON field holding ciphertext to its Box purpose.
 var (
-	smtpFields = map[string]string{"password_enc": PurposeSMTPPassword}
-	imapFields = map[string]string{"password_enc": PurposeIMAPPassword, "oauth_refresh_token_enc": PurposeIMAPRefresh}
+	smtpFields  = map[string]string{"password_enc": PurposeSMTPPassword}
+	slackFields = map[string]string{"client_secret_enc": PurposeSlackSecret, "bot_token_enc": PurposeSlackToken}
+	imapFields  = map[string]string{"password_enc": PurposeIMAPPassword, "oauth_refresh_token_enc": PurposeIMAPRefresh}
 )
 
 // RotateSecrets re-encrypts every stored secret with the current FD_SECRET_KEY
@@ -70,22 +71,27 @@ func RotateSecrets(ctx context.Context, db *store.DB, box *crypto.Box) (RotateRe
 	}
 	err := db.Tx(ctx, func(tx *store.Tx) error {
 		rep = RotateReport{}
-		// settings.smtp
-		var raw []byte
-		switch err := tx.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = ?`, KeySMTP).Scan(&raw); {
-		case err == nil:
-			out, n, err := resealJSON(raw, smtpFields, "settings.smtp")
-			if err != nil {
-				return err
-			}
-			if n > 0 {
-				if _, err := tx.ExecContext(ctx, `UPDATE settings SET value = ? WHERE key = ?`, string(out), KeySMTP); err != nil {
+		// settings.smtp, settings.slack
+		for _, doc := range []struct {
+			key    string
+			fields map[string]string
+		}{{KeySMTP, smtpFields}, {KeySlack, slackFields}} {
+			var raw []byte
+			switch err := tx.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = ?`, doc.key).Scan(&raw); {
+			case err == nil:
+				out, n, err := resealJSON(raw, doc.fields, "settings."+doc.key)
+				if err != nil {
 					return err
 				}
-				rep.Settings += n
+				if n > 0 {
+					if _, err := tx.ExecContext(ctx, `UPDATE settings SET value = ? WHERE key = ?`, string(out), doc.key); err != nil {
+						return err
+					}
+					rep.Settings += n
+				}
+			case store.NotFound(err) != store.ErrNotFound:
+				return err
 			}
-		case store.NotFound(err) != store.ErrNotFound:
-			return err
 		}
 
 		// webhooks.secret_enc

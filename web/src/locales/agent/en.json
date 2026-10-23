@@ -383,7 +383,8 @@
         "calendars": "Business hours",
         "kbCategories": "Knowledge base categories",
         "inbound": "Inbound email",
-        "inboundLog": "Inbound log"
+        "inboundLog": "Inbound log",
+        "integrations": "Integrations"
       }
     },
     "emailBanner": {
@@ -1059,7 +1060,187 @@
       "mcpHint": "Lets AI assistants such as Claude Code, Claude Desktop and Cursor work with the help desk through the Model Context Protocol endpoint. Each user connects with their own API token, so an assistant can never do more than that user and the token's scopes allow. Off by default; while off, the endpoint answers 404.",
       "mcpOn": "AI assistant access (MCP) turned on",
       "mcpOff": "AI assistant access (MCP) turned off",
-      "endpoint": "Endpoint:"
+      "endpoint": "Endpoint:",
+      "subtitle": "Connect the help desk to the tools your team already uses.",
+      "groups": {
+        "chat": "Chat and notifications",
+        "ai": "AI",
+        "developer": "Developers"
+      },
+      "status": {
+        "connected": "Connected",
+        "notConnected": "Not connected",
+        "needsAttention": "Needs attention",
+        "setupStarted": "Setup started",
+        "on": "On",
+        "off": "Off",
+        "activeCount": "{n} active",
+        "noneActive": "None active"
+      },
+      "configure": "Configure",
+      "connect": "Connect",
+      "manage": "Manage",
+      "breadcrumb": "Integrations",
+      "cards": {
+        "slack": {
+          "description": "Post new tickets, replies and SLA alerts to Slack channels, one thread per ticket.",
+          "connectedTo": "{team} · {n} active rules"
+        },
+        "ai": {
+          "name": "AI assistants (MCP)",
+          "description": "Let Claude, Cursor and other MCP clients work with tickets, each through the user's own API token."
+        },
+        "webhooks": {
+          "name": "Outgoing webhooks",
+          "description": "Send signed ticket events to your own services or to Zapier, Make and n8n."
+        },
+        "api": {
+          "name": "REST API and tokens",
+          "description": "Automate anything with the documented REST API and personal access tokens.",
+          "docs": "API reference"
+        }
+      },
+      "ai": {
+        "subtitle": "The Model Context Protocol endpoint for AI assistants.",
+        "connectHint": "Once it is on, each person connects their assistant from their API tokens page, which shows ready-made settings for Claude Code, Claude Desktop and Cursor.",
+        "tokensLink": "Open my API tokens"
+      },
+      "slack": {
+        "subtitle": "Ticket notifications in your Slack channels.",
+        "setup": {
+          "title": "Set up Slack",
+          "intro": "Three steps, about two minutes. The help desk is self-hosted, so it posts through a Slack app that you own.",
+          "step1": "Create the Slack app",
+          "step1Body": "Opens Slack with everything filled in: the app name, the bot permissions and this server's redirect URL. Choose your workspace and click Create.",
+          "createApp": "Create app in Slack",
+          "copyManifest": "Copy manifest",
+          "redirectUrl": "Redirect URL",
+          "step2": "Paste the app credentials",
+          "step2Body": "In the new app, open Basic Information, then App Credentials, and copy the Client ID and the Client Secret.",
+          "clientId": "Client ID",
+          "clientIdHint": "Looks like 1234567890.1234567890",
+          "clientSecret": "Client secret",
+          "saveCredentials": "Save credentials",
+          "credentialsSaved": "App credentials saved",
+          "step3": "Connect your workspace",
+          "step3Body": "A Slack window opens: check the permissions and click Allow. The window closes by itself.",
+          "httpsWarning": "Slack only accepts HTTPS redirect URLs, and this server's public URL ({url}) is not HTTPS. Set FD_PUBLIC_URL to an https:// address before connecting."
+        },
+        "connect": "Connect to Slack",
+        "reconnect": "Reconnect",
+        "disconnect": "Disconnect",
+        "editCredentials": "App credentials",
+        "connected": "Connected to {team}",
+        "reasons": {
+          "no_bot_token": "Slack returned no bot token",
+          "enterprise_install_unsupported": "organisation-wide (Enterprise Grid) installs are not supported"
+        },
+        "disconnectConfirm": "Disconnect Slack? Nothing is posted until you reconnect. Your rules are kept.",
+        "disconnected": "Slack disconnected",
+        "workspace": "Workspace",
+        "bot": "Bot user",
+        "connectedBy": "Connected by {name}",
+        "permissions": "Permissions",
+        "brokenTitle": "Slack rejected the connection",
+        "brokenBody": "Slack answered “{code}”: the app was removed or its token was revoked. Nothing is posted until you reconnect.",
+        "rules": {
+          "title": "Notification rules",
+          "subtitle": "Each rule posts the events you choose to one channel.",
+          "add": "Add rule",
+          "empty": "No rules yet",
+          "emptyBody": "Start with new tickets in your support channel, then add channels for urgent tickets or SLA alerts.",
+          "quickStart": "Post new tickets to a channel",
+          "edit": "Edit rule",
+          "new": "New rule",
+          "deleteConfirm": "Delete the rule for #{channel}?",
+          "test": "Send a test message",
+          "testOk": "Test message posted to #{channel}",
+          "testFailed": "Slack refused the test message: {reason}",
+          "paused": "Paused",
+          "resumed": "Rule turned on",
+          "pausedToast": "Rule paused",
+          "allProjects": "All projects",
+          "allPriorities": "All priorities",
+          "threaded": "One thread per ticket",
+          "internal": "Internal notes",
+          "lastPost": "Last post {when}",
+          "noPostYet": "Nothing posted yet"
+        },
+        "channelErrors": {
+          "not_in_channel": "The bot is not in this private channel. In Slack, type /invite {'@'}{bot} in the channel.",
+          "channel_not_found": "The channel no longer exists, or the bot cannot see it.",
+          "is_archived": "The channel is archived.",
+          "other": "Slack refused the last post: {code}"
+        },
+        "form": {
+          "channel": "Channel",
+          "channelHint": "Public channels work right away. Private channels need the bot invited first.",
+          "refresh": "Reload channels",
+          "members": "{n} members",
+          "inviteBot": "invite the bot",
+          "channelsFailed": "The channels could not be loaded from Slack.",
+          "events": "What to post",
+          "presets": {
+            "newTickets": "New tickets",
+            "updates": "Ticket updates",
+            "conversation": "Conversation",
+            "sla": "SLA alerts",
+            "everything": "Everything"
+          },
+          "groups": {
+            "tickets": "Tickets",
+            "conversation": "Conversation",
+            "sla": "SLA and feedback"
+          },
+          "filters": "Filters",
+          "priorities": "Priorities",
+          "prioritiesHint": "None selected means every priority.",
+          "projectsHint": "None selected means every project.",
+          "options": "Options",
+          "threads": "Post updates in the thread of the ticket's first message",
+          "threadsHint": "Keeps the channel to one line per ticket.",
+          "includeBody": "Include the message text",
+          "includeBodyHint": "Quotes the first 600 characters.",
+          "includeInternal": "Include internal notes and staff-only details",
+          "includeInternalWarning": "Only for staff-only channels: everyone in the channel can read internal notes.",
+          "noteNeedsInternal": "Turn on internal notes below to post them.",
+          "preview": "Preview",
+          "previewThread": "Reply in thread"
+        },
+        "triggers": {
+          "created": "New ticket",
+          "status": "Status changed",
+          "assigned": "Assigned",
+          "priority": "Priority changed",
+          "escalated": "Escalated or de-escalated",
+          "customer": "Customer replied",
+          "staff": "Agent replied",
+          "note": "Internal note",
+          "slaWarning": "SLA about to breach",
+          "slaBreach": "SLA breached",
+          "csat": "Satisfaction rating"
+        }
+      },
+      "oauth": {
+        "title": "Connecting",
+        "ok": "Connected. You can close this window.",
+        "error": "The connection failed ({reason}). Close this window and try again.",
+        "back": "Back to the integration",
+        "waiting": "Waiting for {provider}: finish in the popup window.",
+        "blocked": "Your browser blocked the {provider} popup. Allow popups for this site, then click again.",
+        "failed": "Connection to {provider} failed: {reason}",
+        "reasons": {
+          "access_denied": "you cancelled on the provider's page",
+          "invalid_state": "the request expired, please try again",
+          "bad_client_secret": "the client secret is wrong",
+          "invalid_client_id": "the client ID is wrong",
+          "bad_redirect_uri": "the redirect URL registered in the app does not match this server",
+          "not_configured": "the app credentials are missing",
+          "exchange_failed": "the provider did not accept the authorization",
+          "server_error": "a server error occurred",
+          "other": "error code {code}"
+        }
+      }
     }
   },
   "automation": {
