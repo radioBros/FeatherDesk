@@ -13,7 +13,10 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-23
+
 ### Added
+- **A real API reference at `/api/docs`.** Every operation now shows its parameters, request body fields (types, required, limits, allowed values), every response, the scopes it needs, a copy-ready `curl` command and request and response examples; the errors section has an example problem document per status plus the list of field error codes; every webhook event shows its payload with the right `type` and `changes`. Every example is generated from the spec and checked against its schema, so it cannot drift. A *Download openapi.yaml* button sits at the top. The page stays static and script-free, with a sidebar, light and dark themes and a phone layout.
 - **Integrations page.** *Administration → Channels → Integrations* lists every integration as a card with its live status (Slack, AI assistants, outgoing webhooks, REST API), each with its own settings view. The AI assistants (MCP) switch moved here from *Support settings*.
 - **Slack integration.** Create your own Slack app in one click from a pre-filled manifest, paste its credentials and connect the workspace in a popup window (OAuth; the page never navigates away). Rules post new tickets, status, assignment, priority and escalation changes, customer and agent replies, internal notes (opt-in), SLA warnings and breaches and satisfaction ratings to the channels you pick, filtered by project and priority, one thread per ticket, with a channel picker and a live preview. Retries with back-off, channel problems shown on the rule, a revoked token shown with *Reconnect*, every change audited. See `docs/features/slack.md`.
 - **Table columns can be reordered and resized.** In the *Columns* menu, drag a column by its handle (or press ↑/↓ on it); drag a column header's right edge (or press ←/→ on it) to resize. Order and widths are remembered per user and per table, and *Reset to default* restores them. The selection column of the agent ticket list stays pinned on the left when the table scrolls sideways.
@@ -220,5 +223,6 @@ pre-release builds.
   `api_tokens`, `ON DELETE SET NULL`) and a partial index on it. Additive and fast; no
   operator action.
 
-[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/radioBros/FeatherDesk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/radioBros/FeatherDesk/releases/tag/v1.0.0

@@ -757,7 +757,7 @@ The [Branding](#78-branding-system--branding-admin) privacy policy URL (`legal.p
 | Variable | Default | Notes |
 |---|---|---|
 | `FD_IMAGE` | `ghcr.io/radiobros/featherdesk` | Image repository |
-| `FD_VERSION` | `latest` | Image tag; pin a release, e.g. `1.0.0` |
+| `FD_VERSION` | `latest` | Image tag; pin a release, e.g. `1.1.0` |
 | `FD_BIND` / `FD_PORT` | `127.0.0.1` / `8080` | Host address and port to publish |
 | `FD_ENV_FILE` | `.env` | Environment file, relative to `deploy/` |
 | `FD_PG_USER`, `FD_PG_PASSWORD`, `FD_PG_DB` | `featherdesk`, — (required), `featherdesk` | PostgreSQL overlay credentials |
@@ -1827,7 +1827,7 @@ The web app uses exactly the same API that integrations use, so anything the UI 
 
 - **Specification:** [`api/openapi.yaml`](../api/openapi.yaml), OpenAPI 3.1.
   - A running instance serves it at `GET /api/v1/openapi.yaml`.
-  - A static, script-free reference page listing every operation and its scopes is at `GET /api/docs`.
+  - The **API reference** is at `GET /api/docs`: every operation with its parameters, request body fields, responses, scopes, a copy-ready `curl` command and request/response examples (each checked against the spec), the error format with an example per status, and every webhook event with its payload. It has a *Download openapi.yaml* button; the page itself is static and script-free.
 - **Base path:** `/api/v1`. Bodies are JSON (`application/json`), except uploads (`multipart/form-data`) and downloads.
 - **Timestamps:** RFC 3339 in UTC, e.g. `2026-10-20T10:00:00Z`.
 - **Ids:** UUIDv7 strings. A ticket can also be fetched by its reference, `GET /api/v1/agent/tickets/by-ref/WEB-12` (customers: `/portal/tickets/by-ref/…`), or by its global number, `GET /api/v1/agent/tickets/by-number/1042`.

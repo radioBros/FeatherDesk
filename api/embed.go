@@ -9,5 +9,12 @@ import _ "embed"
 //go:embed openapi.yaml
 var Spec []byte
 
+// Docs is the API reference served at /api/docs, generated from Spec by
+// `go test ./internal/apispec -run TestAPIDocsGenerated -update` (the OpenAPI
+// libraries are test-only, D-01).
+//
+//go:embed docs.html
+var Docs []byte
+
 // BasePath is the server URL every non-root path in the spec is relative to.
 const BasePath = "/api/v1"

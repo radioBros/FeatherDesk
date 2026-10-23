@@ -73,7 +73,8 @@ The binding rules live in `docs/dev/internals.md`. The essentials:
 ## Changing the API contract
 
 1. Edit `api/openapi.yaml` first.
-2. Regenerate the frontend types with `cd web && pnpm gen:api`.
+2. Regenerate the frontend types with `cd web && pnpm gen:api`, and the API reference page with
+   `go test ./internal/apispec -run TestAPIDocsGenerated -update` (CI fails on a stale `api/docs.html`).
 3. Update handlers and tests. Responses must validate against the spec.
 4. Mention the contract change in the pull request (see the PR template checklist).
 
