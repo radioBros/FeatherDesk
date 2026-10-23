@@ -3,7 +3,9 @@
 #
 # Which parts of CI a change needs, as `name=true|false` lines (for
 # $GITHUB_OUTPUT). Reads the changed files (scripts/ci-changed-files.sh) on
-# stdin; the line ALL, or a change to CI itself, turns everything on.
+# stdin; only the line ALL (a manual or nightly run, or the `ci:full` PR
+# label) turns everything on. Editing CI itself does not: owner rule, CI tests
+# only the affected parts (a CI change shows its effect on the jobs it gates).
 #
 #   go      Go code, migrations, the API spec, go.mod     → go, golangci, openapi
 #   web     the SPA                                       → web, e2e
@@ -17,7 +19,7 @@ files=$(cat)
 has() { printf '%s\n' "$files" | grep -qE "$1"; }
 
 all=false
-if has '^ALL$' || has '^\.github/workflows/ci\.yml$' || has '^scripts/ci-'; then all=true; fi
+if has '^ALL$'; then all=true; fi
 
 flag() { # name regex
   if [ "$all" = true ] || has "$2"; then echo "$1=true"; else echo "$1=false"; fi
