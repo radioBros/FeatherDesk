@@ -1,7 +1,7 @@
 # Getting started (development)
 
 From a clean clone to a signed-in agent panel on `http://localhost:5173/agent` in
-**6 commands**. You need Go 1.27, Node.js 24 (with corepack) and GNU make. Docker is
+**6 commands**. You need Go 1.27.3+, Node.js 24.22.1+ (with corepack) and GNU make. Docker is
 optional (only for SSO, email and PostgreSQL).
 
 ## The 6 commands

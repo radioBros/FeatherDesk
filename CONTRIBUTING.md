@@ -6,7 +6,7 @@ By contributing, you agree that your contribution is licensed under the **GNU AG
 
 ## Prerequisites
 
-- Go 1.27
+- Go 1.27.3 or later
 - Node 24 with corepack (`corepack enable`; the repo uses pnpm 11)
 - Docker (for Postgres tests, the image, and the dev Authentik/Mailpit stack)
 
