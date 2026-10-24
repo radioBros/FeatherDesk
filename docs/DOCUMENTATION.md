@@ -1365,6 +1365,7 @@ Changes are previewed live for the login page, the portal and the agent panel be
 |---|---|
 | Identity | Product name (`product_name`; replaces "FeatherDesk" in the UI, page titles and emails), company name (`company_name`), support website (`support_url`) |
 | Logos and images | Logo for the light theme (`logo_light`), logo for the dark theme (`logo_dark`), icon (`icon`), browser icon (`favicon`), email logo (`email_logo`, PNG or JPEG only), login background (`login_background`). Upload PNG, JPEG, WebP or SVG up to 1 MB; SVG is sanitised. *Use default* resets a slot |
+| Installable app | People can install the portal and the agent panel as an app from the browser (phone or desktop; HTTPS needed). The **App icons** card makes the install icons from the current icon (or light logo): *Generate app icons from the current logo*; *Reset to default icons* goes back to the built-in ones. It warns when the logo changed after the icons were made. The API keeps what was generated in `pwa_icons` (`icon_192`, `icon_512`, `maskable_512`, `apple_180`, `source`, `generated_at`; `POST`/`DELETE /api/v1/admin/branding/pwa-icons`); the app manifest is `GET /manifest.webmanifest?area=portal\|agent` |
 | Colours | Primary, secondary and accent (`colors`), with a contrast check against white text. Optional different colours for the customer portal (`portal_colors`) and for the agent panel (`agent_colors`) |
 | Look | Default theme (`default_theme`: light, dark, system), corners (`radius`: sharp, default, rounded), font (`font`: system, inter, roboto, source-sans, noto-sans; all self-hosted, with no calls to external font services) |
 | Login page | Title, subtitle, background colour (`login.title`, `login.subtitle`, `login.background_color`) |
@@ -1828,6 +1829,7 @@ The web app uses exactly the same API that integrations use, so anything the UI 
 - **Specification:** [`api/openapi.yaml`](../api/openapi.yaml), OpenAPI 3.1.
   - A running instance serves it at `GET /api/v1/openapi.yaml`.
   - The **API reference** is at `GET /api/docs`: every operation with its parameters, request body fields, responses, scopes, a copy-ready `curl` command and request/response examples (each checked against the spec), the error format with an example per status, and every webhook event with its payload. It has a *Download openapi.yaml* button; the page itself is static and script-free.
+  - The **PWA manifest** is at `GET /manifest.webmanifest` (site root, not under `/api/v1`).
 - **Base path:** `/api/v1`. Bodies are JSON (`application/json`), except uploads (`multipart/form-data`) and downloads.
 - **Timestamps:** RFC 3339 in UTC, e.g. `2026-10-20T10:00:00Z`.
 - **Ids:** UUIDv7 strings. A ticket can also be fetched by its reference, `GET /api/v1/agent/tickets/by-ref/WEB-12` (customers: `/portal/tickets/by-ref/…`), or by its global number, `GET /api/v1/agent/tickets/by-number/1042`.

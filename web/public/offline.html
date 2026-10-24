@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f5f5f5;
+        --fg: #1a1a1a;
+        --muted: #5f6368;
+        --link: #3f51b5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #121212;
+          --fg: #e8eaed;
+          --muted: #9aa0a6;
+          --link: #8c9eff;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        font-family: system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 12px;
+      }
+      p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        max-width: 22rem;
+        line-height: 1.5;
+      }
+      a {
+        color: var(--link);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>You are offline</h1>
+      <p>FeatherDesk needs a connection. This page reloads when you try again.</p>
+      <a href="/">Retry</a>
+    </div>
+  </body>
+</html>

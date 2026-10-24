@@ -559,16 +559,21 @@ func TestPortalGate(t *testing.T) {
 }
 
 func TestSPA_PageMeta(t *testing.T) {
-	page := `<html><head><link rel="icon" id="fd-favicon" href="/featherdesk-logo.svg" type="image/svg+xml" /><title>FeatherDesk</title></head><body></body></html>`
+	page := `<html><head><link rel="icon" id="fd-favicon" href="/featherdesk-logo.svg" type="image/svg+xml" /><link rel="manifest" id="fd-manifest" href="/manifest.webmanifest?area=portal" /><title>FeatherDesk</title></head><body></body></html>`
 	fsys := fstest.MapFS{"index.html": {Data: []byte(page)}, "index.html.gz": {Data: gz([]byte(page))}}
 	s := newTestServer(t, Options{SPA: fsys})
 	if body := do(s, "GET", "/", nil).Body.String(); body != page {
 		t.Fatalf("without SetPageMeta index.html is served as built: %q", body)
 	}
 	s.SetPageMeta(func(r *http.Request) PageMeta {
-		return PageMeta{Title: `Acme <Help> & "Co"`, SiteName: "Acme", Description: "We help", ImageURL: "https://help.example.com/branding/a.png", IconURL: "/branding/f.ico"}
+		area := "portal"
+		if strings.HasPrefix(r.URL.Path, "/agent") {
+			area = "agent"
+		}
+		return PageMeta{Title: `Acme <Help> & "Co"`, SiteName: "Acme", Description: "We help", ImageURL: "https://help.example.com/branding/a.png", IconURL: "/branding/f.ico",
+			ManifestArea: area, ThemeColor: "#2E7D32", AppleTouchIcon: "/branding/b.png", ShortName: "Acme"}
 	})
-	for _, path := range []string{"/", "/p/ACME", "/index.html"} {
+	for _, path := range []string{"/", "/p/ACME", "/index.html", "/agent/tickets"} {
 		rec := do(s, "GET", path, func(r *http.Request) { r.Header.Set("Accept-Encoding", "gzip") })
 		body := rec.Body.String()
 		if rec.Header().Get("Content-Encoding") == "gzip" {
@@ -586,10 +591,21 @@ func TestSPA_PageMeta(t *testing.T) {
 			`<meta name="description" content="We help" />`,
 			`<meta property="og:image" content="https://help.example.com/branding/a.png" />`,
 			`<link rel="icon" id="fd-favicon" href="/branding/f.ico" />`,
+			`<meta name="theme-color" content="#2E7D32" />`,
+			`<link rel="apple-touch-icon" href="/branding/b.png" />`,
+			`<meta name="apple-mobile-web-app-title" content="Acme" />`,
 		} {
 			if !strings.Contains(body, want) {
 				t.Errorf("%s: missing %s in %s", path, want, body)
 			}
+		}
+		// Exactly one manifest link, for the area of the path (the static one is replaced, not duplicated).
+		area := "portal"
+		if strings.HasPrefix(path, "/agent") {
+			area = "agent"
+		}
+		if strings.Count(body, `rel="manifest"`) != 1 || !strings.Contains(body, `href="/manifest.webmanifest?area=`+area+`"`) {
+			t.Errorf("%s: want one %s manifest link in %s", path, area, body)
 		}
 		if strings.Contains(body, "FeatherDesk") || rec.Header().Get("Cache-Control") != "no-cache" {
 			t.Errorf("%s: static title left or cacheable: %s", path, body)

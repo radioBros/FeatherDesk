@@ -126,6 +126,7 @@ export default defineConfig({
       '/branding': { target: backend, changeOrigin: false },
       '/inbound': { target: backend, changeOrigin: false },
       '/kb/sitemap.xml': { target: backend, changeOrigin: false },
+      '/manifest.webmanifest': { target: backend },
       '/healthz': { target: backend },
       '/readyz': { target: backend },
     },

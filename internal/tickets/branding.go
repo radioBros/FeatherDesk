@@ -59,6 +59,9 @@ func (m *Module) mountBranding(g server.Groups) {
 	up := g.Admin.With(server.MaxBody(MaxBrandingAsset + 64<<10))
 	up.Method(http.MethodPost, "/branding/assets/{slot}", handler(m.uploadBrandingAsset))
 	g.Admin.Method(http.MethodDelete, "/branding/assets/{slot}", handler(m.resetBrandingAsset))
+	upPwa := g.Admin.With(server.MaxBody(MaxBrandingAsset*4 + 256<<10))
+	upPwa.Method(http.MethodPost, "/branding/pwa-icons", handler(m.uploadPwaIcons))
+	g.Admin.Method(http.MethodDelete, "/branding/pwa-icons", handler(m.deletePwaIcons))
 	// D-20: the portal logo of a project (/p/{key}), project admins too.
 	g.ProjectAdmin.With(server.MaxBody(MaxBrandingAsset+64<<10)).Method(http.MethodPost, "/projects/{id}/logo", handler(m.uploadProjectLogo))
 	g.ProjectAdmin.Method(http.MethodDelete, "/projects/{id}/logo", handler(m.deleteProjectLogo))
@@ -112,6 +115,16 @@ type brandingDTO struct {
 	PoweredBy        bool                         `json:"powered_by"`
 	CustomCSS        string                       `json:"custom_css"`
 	Assets           map[string]*brandingAssetDTO `json:"assets,omitempty"`
+	PwaIcons         *brandingPwaIconsDTO         `json:"pwa_icons,omitempty"`
+}
+
+type brandingPwaIconsDTO struct {
+	Icon192     string `json:"icon_192,omitempty"`
+	Icon512     string `json:"icon_512,omitempty"`
+	Maskable512 string `json:"maskable_512,omitempty"`
+	Apple180    string `json:"apple_180,omitempty"`
+	Source      string `json:"source,omitempty"`
+	GeneratedAt string `json:"generated_at,omitempty"`
 }
 
 func optURL(s string) *string {
@@ -152,6 +165,12 @@ func (s *Service) brandingDTO(ctx context.Context) (*brandingDTO, error) {
 		d.Email.HeaderColor = b.Colors.Primary
 	}
 	d.Legal.PrivacyURL, d.Legal.TermsURL, d.Legal.ImprintURL = optURL(b.Legal.PrivacyURL), optURL(b.Legal.TermsURL), optURL(b.Legal.ImprintURL)
+	if b.PwaIcons.Icon192 != "" || b.PwaIcons.Source != "" {
+		d.PwaIcons = &brandingPwaIconsDTO{
+			Icon192: b.PwaIcons.Icon192, Icon512: b.PwaIcons.Icon512, Maskable512: b.PwaIcons.Maskable512,
+			Apple180: b.PwaIcons.Apple180, Source: b.PwaIcons.Source, GeneratedAt: b.PwaIcons.GeneratedAt,
+		}
+	}
 	d.Assets = map[string]*brandingAssetDTO{}
 	for _, slot := range brandingSlots {
 		d.Assets[slot] = nil
@@ -645,7 +664,7 @@ func (s *Service) storeBrandingAsset(ctx context.Context, slot string, data []by
 	var main *brandingAssetDTO
 	var oldKeys []string
 	err = s.db.Tx(ctx, func(tx *store.Tx) error {
-		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%'`, slot)
+		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%' AND variant NOT LIKE 'pwa-%'`, slot)
 		if err != nil {
 			return err
 		}
@@ -721,7 +740,7 @@ func (m *Module) resetBrandingAsset(w http.ResponseWriter, r *http.Request) erro
 	s := m.svc
 	var keys []string
 	err := s.db.Tx(ctx, func(tx *store.Tx) error {
-		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%'`, slot)
+		rows, err := tx.QueryContext(ctx, `SELECT blob_key FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%' AND variant NOT LIKE 'pwa-%'`, slot)
 		if err != nil {
 			return err
 		}
@@ -731,7 +750,7 @@ func (m *Module) resetBrandingAsset(w http.ResponseWriter, r *http.Request) erro
 			keys = append(keys, k)
 		}
 		rows.Close()
-		_, err = tx.ExecContext(ctx, `DELETE FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%'`, slot)
+		_, err = tx.ExecContext(ctx, `DELETE FROM branding_assets WHERE slot = ? AND variant NOT LIKE 'project:%' AND variant NOT LIKE 'pwa-%'`, slot)
 		return err
 	})
 	if err != nil {

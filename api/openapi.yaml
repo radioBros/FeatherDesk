@@ -4,14 +4,14 @@
 openapi: "3.1.0"
 info:
   title: FeatherDesk API
-  version: "1.1.1"
+  version: "1.2.0"
   summary: "Self-hosted, lightweight help desk"
   description: |-
     FeatherDesk REST API (v1). One API serves the SPA and integrations.
 
     **Path convention.** Paths below are relative to the server URL `/api/v1` (e.g. `/auth/config` is `GET /api/v1/auth/config`).
     A few routes live at the site root and carry a path-level `servers: [{url: /}]` override: `/healthz`, `/readyz`, `/metrics`,
-    `/branding/{file}`, `/kb/sitemap.xml`, `/api/docs`, `/mcp`.
+    `/branding/{file}`, `/kb/sitemap.xml`, `/api/docs`, `/manifest.webmanifest`, `/mcp`.
 
     **Authentication.** Either the session cookie `fd_session` (browser; cookie-authenticated `POST/PUT/PATCH/DELETE` must send
     `X-CSRF-Token` with the value from `GET /me`) or `Authorization: Bearer fd_pat_…` (personal access token). Required PAT scopes are
@@ -255,6 +255,37 @@ paths:
             text/html:
               schema:
                 type: string
+  /manifest.webmanifest:
+    servers:
+      - url: /
+        description: "Served at the site root, outside /api/v1"
+    get:
+      operationId: getWebAppManifest
+      summary: Progressive Web App manifest
+      tags:
+        - System
+      description: |-
+        Installable-app manifest for the portal (`?area=portal`, default) or the agent panel (`?area=agent`). Icons come from generated PWA assets when set, otherwise `/pwa/*` defaults.
+
+        Phase: V1.
+      security: []
+      parameters:
+        - name: area
+          in: query
+          schema:
+            type: string
+            enum:
+              - portal
+              - agent
+            default: portal
+      x-phase: V1
+      responses:
+        "200":
+          description: OK
+          content:
+            application/manifest+json:
+              schema:
+                $ref: "#/components/schemas/WebAppManifest"
   /mcp:
     servers:
       - url: /
@@ -6887,6 +6918,64 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+  /admin/branding/pwa-icons:
+    post:
+      operationId: uploadBrandingPwaIcons
+      summary: Store generated PWA app icons
+      tags:
+        - Administration
+      description: |-
+        Accepts four square PNGs (192, 512, 512 maskable, 180 apple-touch) generated from the current logo. Replaces any previous custom set.
+
+        Phase: V1.
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/BrandingPwaIconsUpload"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandingPwaIcons"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          $ref: "#/components/responses/TooLarge"
+        "422":
+          $ref: "#/components/responses/Validation"
+    delete:
+      operationId: resetBrandingPwaIcons
+      summary: Reset PWA app icons to defaults
+      tags:
+        - Administration
+      description: "Phase: V1."
+      parameters:
+        - $ref: "#/components/parameters/CsrfToken"
+      x-scopes:
+        - admin
+      x-phase: V1
+      responses:
+        "204":
+          description: Done
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /admin/email:
     get:
       operationId: getEmailSettings
@@ -12445,6 +12534,11 @@ components:
           type: string
           description: "Admin-only scoped CSS (V1), ≤ 20 KB"
           maxLength: 20480
+        pwa_icons:
+          oneOf:
+            - $ref: "#/components/schemas/BrandingPwaIcons"
+            - type: "null"
+          readOnly: true
         assets:
           type: object
           properties:
@@ -15117,6 +15211,84 @@ components:
           description: The file
       required:
         - file
+    BrandingPwaIcons:
+      type: object
+      readOnly: true
+      properties:
+        icon_192:
+          type: string
+          description: "`<sha>.png` served at `/branding/<sha>.png`"
+        icon_512:
+          type: string
+        maskable_512:
+          type: string
+        apple_180:
+          type: string
+        source:
+          type: string
+          description: "Source asset file name (`<sha>.<ext>`) or `default`"
+        generated_at:
+          type: string
+          format: date-time
+    BrandingPwaIconsUpload:
+      type: object
+      properties:
+        icon_192:
+          type: string
+          contentEncoding: binary
+        icon_512:
+          type: string
+          contentEncoding: binary
+        maskable_512:
+          type: string
+          contentEncoding: binary
+        apple_180:
+          type: string
+          contentEncoding: binary
+        source:
+          type: string
+          description: "Optional source asset file name or `default`"
+      required:
+        - icon_192
+        - icon_512
+        - maskable_512
+        - apple_180
+    WebAppManifest:
+      type: object
+      properties:
+        id:
+          type: string
+        start_url:
+          type: string
+        scope:
+          type: string
+        name:
+          type: string
+        short_name:
+          type: string
+        description:
+          type: string
+        lang:
+          type: string
+        display:
+          type: string
+        theme_color:
+          type: string
+        background_color:
+          type: string
+        icons:
+          type: array
+          items:
+            type: object
+            properties:
+              src:
+                type: string
+              sizes:
+                type: string
+              type:
+                type: string
+              purpose:
+                type: string
     PrivacyRequestType:
       type: string
       enum:

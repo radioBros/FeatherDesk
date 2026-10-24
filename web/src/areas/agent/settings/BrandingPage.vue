@@ -15,6 +15,7 @@ import TwoColumnLayout from '@/components/TwoColumnLayout.vue'
 import BrandingForm from './BrandingForm.vue'
 import BrandingPreview from './BrandingPreview.vue'
 import AssetSlot from './AssetSlot.vue'
+import PwaIconsCard from './PwaIconsCard.vue'
 import { api, unwrap } from '@/api/client'
 import { validations } from '@/constants/validations'
 import { useConfigStore } from '@/stores/config'
@@ -112,6 +113,10 @@ const warningText = (w: S['FieldError']) => w.message || validations.fromServer(
               </v-col>
             </v-row>
           </v-card>
+          <PwaIconsCard
+            :settings="settings"
+            @refreshed="(s) => { settings = s }"
+          />
           <v-card border flat class="pa-4">
             <BrandingForm :key="formKey" :settings="settings" @draft="(d) => (draft = { ...d })" @saved="onSaved" />
           </v-card>

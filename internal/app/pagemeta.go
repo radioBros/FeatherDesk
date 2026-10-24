@@ -29,7 +29,18 @@ func pageMeta(set *settings.Service, publicURL string, project func(ctx context.
 		if b.ProductName == "" {
 			b.ProductName = "FeatherDesk"
 		}
-		m := server.PageMeta{Title: b.ProductName, SiteName: b.ProductName, Description: b.Login.Subtitle, ImageURL: abs("/featherdesk-logo.png")}
+		area := "portal"
+		if strings.HasPrefix(r.URL.Path, "/agent") {
+			area = "agent"
+		}
+		appleTouch := "/pwa/apple-touch-icon.png"
+		if b.PwaIcons.Apple180 != "" {
+			appleTouch = "/branding/" + b.PwaIcons.Apple180
+		}
+		m := server.PageMeta{
+			Title: b.ProductName, SiteName: b.ProductName, Description: b.Login.Subtitle, ImageURL: abs("/featherdesk-logo.png"),
+			ManifestArea: area, ThemeColor: themeColor(b, area), AppleTouchIcon: appleTouch, ShortName: truncateRunes(b.ProductName, 12),
+		}
 		for _, slot := range []string{"logo_light", "logo_dark", "icon"} {
 			if a := brandAsset(b, slot); a != "" && !strings.HasSuffix(strings.ToLower(a), ".svg") {
 				m.ImageURL = abs("/branding/" + a)

@@ -36,16 +36,21 @@ func newSPA(fsys fs.FS, meta func(r *http.Request) (PageMeta, bool)) http.Handle
 // PageMeta is what a shared link shows in Slack, Teams, WhatsApp and the
 // like. Crawlers don't run the SPA, so it is written into index.html.
 type PageMeta struct {
-	Title       string
-	SiteName    string
-	Description string
-	ImageURL    string // absolute (og:image); "" leaves it out
-	IconURL     string // favicon; "" keeps the built-in one
+	Title          string
+	SiteName       string
+	Description    string
+	ImageURL       string // absolute (og:image); "" leaves it out
+	IconURL        string // favicon; "" keeps the built-in one
+	ManifestArea   string // agent | portal; "" skips the manifest link
+	ThemeColor     string
+	AppleTouchIcon string
+	ShortName      string // apple-mobile-web-app-title (≤12 runes)
 }
 
 var (
-	titleTag   = regexp.MustCompile(`<title>[^<]*</title>`)
-	faviconTag = regexp.MustCompile(`<link[^>]*id="fd-favicon"[^>]*>`)
+	titleTag    = regexp.MustCompile(`<title>[^<]*</title>`)
+	faviconTag  = regexp.MustCompile(`<link[^>]*id="fd-favicon"[^>]*>`)
+	manifestTag = regexp.MustCompile(`<link[^>]*id="fd-manifest"[^>]*>`)
 )
 
 // injectMeta replaces the static <title> with the branded one plus the
@@ -61,11 +66,32 @@ func injectMeta(page []byte, m PageMeta) []byte {
 		{"property", "og:description", m.Description},
 		{"property", "og:image", m.ImageURL},
 		{"name", "twitter:card", "summary"},
-		{"name", "apple-mobile-web-app-title", m.SiteName},
 	} {
 		if t[2] != "" {
 			fmt.Fprintf(&tags, "\n    <meta %s=\"%s\" content=\"%s\" />", t[0], t[1], html.EscapeString(t[2]))
 		}
+	}
+	shortTitle := m.ShortName
+	if shortTitle == "" {
+		shortTitle = m.SiteName
+	}
+	if shortTitle != "" {
+		fmt.Fprintf(&tags, "\n    <meta name=\"apple-mobile-web-app-title\" content=\"%s\" />", html.EscapeString(shortTitle))
+	}
+	if m.ManifestArea != "" {
+		fmt.Fprintf(&tags, "\n    <link rel=\"manifest\" id=\"fd-manifest\" href=\"/manifest.webmanifest?area=%s\" />", html.EscapeString(m.ManifestArea))
+	}
+	if m.ThemeColor != "" {
+		fmt.Fprintf(&tags, "\n    <meta name=\"theme-color\" content=\"%s\" />", html.EscapeString(m.ThemeColor))
+	}
+	if m.AppleTouchIcon != "" {
+		fmt.Fprintf(&tags, "\n    <link rel=\"apple-touch-icon\" href=\"%s\" />", html.EscapeString(m.AppleTouchIcon))
+	}
+	fmt.Fprintf(&tags, "\n    <meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />")
+	fmt.Fprintf(&tags, "\n    <meta name=\"mobile-web-app-capable\" content=\"yes\" />")
+	if m.ManifestArea != "" {
+		// The static link (index.html, for the Vite dev server) gives way to the per-area one written above.
+		page = manifestTag.ReplaceAllLiteral(page, nil)
 	}
 	out := titleTag.ReplaceAllLiteral(page, []byte(tags.String()))
 	if m.IconURL != "" {

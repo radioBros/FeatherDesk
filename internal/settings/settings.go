@@ -209,6 +209,17 @@ type Branding struct {
 	PoweredBy bool              `json:"powered_by"`
 	CustomCSS string            `json:"custom_css"`
 	Assets    map[string]string `json:"assets"` // slot → "<sha256>.<ext>"
+	PwaIcons  BrandingPwaIcons  `json:"pwa_icons,omitempty"`
+}
+
+// BrandingPwaIcons holds generated installable-app icon blobs (variant rows under slot icon).
+type BrandingPwaIcons struct {
+	Icon192     string `json:"icon_192,omitempty"`
+	Icon512     string `json:"icon_512,omitempty"`
+	Maskable512 string `json:"maskable_512,omitempty"`
+	Apple180    string `json:"apple_180,omitempty"`
+	Source      string `json:"source,omitempty"`
+	GeneratedAt string `json:"generated_at,omitempty"`
 }
 
 type Colors struct {

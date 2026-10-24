@@ -111,6 +111,13 @@ async function bootstrap() {
 
   await router.isReady().catch(() => null)
   app.mount('#app')
+
+  // Offline fallback only (public/sw.js). bootstrap awaits the network, so `load` has usually fired by now.
+  if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    const register = () => void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})
+    if (document.readyState === 'complete') register()
+    else window.addEventListener('load', register, { once: true })
+  }
 }
 
 void bootstrap()

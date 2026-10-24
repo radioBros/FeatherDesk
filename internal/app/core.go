@@ -42,6 +42,7 @@ func (m *coreModule) Mount(g server.Groups) {
 	g.Admin.Get("/audit-log", m.auditLog)
 	g.Admin.Get("/storage", m.storage)
 	g.Root.Get("/api/docs", serveAPIDocs)
+	g.Root.Get("/manifest.webmanifest", m.serveManifest)
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

@@ -182,6 +182,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/branding/pwa-icons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Store generated PWA app icons
+         * @description Accepts four square PNGs (192, 512, 512 maskable, 180 apple-touch) generated from the current logo. Replaces any previous custom set.
+         *
+         *     Phase: V1.
+         */
+        post: operations["uploadBrandingPwaIcons"];
+        /**
+         * Reset PWA app icons to defaults
+         * @description Phase: V1.
+         */
+        delete: operations["resetBrandingPwaIcons"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/calendars": {
         parameters: {
             query?: never;
@@ -3274,6 +3300,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/manifest.webmanifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Progressive Web App manifest
+         * @description Installable-app manifest for the portal (`?area=portal`, default) or the agent panel (`?area=agent`). Icons come from generated PWA assets when set, otherwise `/pwa/*` defaults.
+         *
+         *     Phase: V1.
+         */
+        get: operations["getWebAppManifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/mcp": {
         parameters: {
             query?: never;
@@ -5010,6 +5058,25 @@ export interface components {
             url: string;
             width?: number | null;
         };
+        BrandingPwaIcons: {
+            apple_180?: string;
+            /** Format: date-time */
+            generated_at?: string;
+            /** @description `<sha>.png` served at `/branding/<sha>.png` */
+            icon_192?: string;
+            icon_512?: string;
+            maskable_512?: string;
+            /** @description Source asset file name (`<sha>.<ext>`) or `default` */
+            source?: string;
+        };
+        BrandingPwaIconsUpload: {
+            apple_180: string;
+            icon_192: string;
+            icon_512: string;
+            maskable_512: string;
+            /** @description Optional source asset file name or `default` */
+            source?: string;
+        };
         BrandingSettings: {
             agent_colors?: components["schemas"]["ColorSet"] | null;
             readonly assets?: {
@@ -5055,6 +5122,7 @@ export interface components {
             /** @description Show "Powered by FeatherDesk" */
             powered_by?: boolean;
             product_name: string;
+            readonly pwa_icons?: components["schemas"]["BrandingPwaIcons"] | null;
             /** @enum {string} */
             radius?: "sharp" | "default" | "rounded";
             /** Format: uri */
@@ -6819,6 +6887,24 @@ export interface components {
             name: string;
             shared?: boolean;
         };
+        WebAppManifest: {
+            background_color?: string;
+            description?: string;
+            display?: string;
+            icons?: {
+                purpose?: string;
+                sizes?: string;
+                src?: string;
+                type?: string;
+            }[];
+            id?: string;
+            lang?: string;
+            name?: string;
+            scope?: string;
+            short_name?: string;
+            start_url?: string;
+            theme_color?: string;
+        };
         Webhook: {
             active: boolean;
             consecutive_failures?: number;
@@ -7136,6 +7222,8 @@ export type SchemaAutomationRulePatch = components['schemas']['AutomationRulePat
 export type SchemaAvailability = components['schemas']['Availability'];
 export type SchemaAvailabilityPatch = components['schemas']['AvailabilityPatch'];
 export type SchemaBrandingAsset = components['schemas']['BrandingAsset'];
+export type SchemaBrandingPwaIcons = components['schemas']['BrandingPwaIcons'];
+export type SchemaBrandingPwaIconsUpload = components['schemas']['BrandingPwaIconsUpload'];
 export type SchemaBrandingSettings = components['schemas']['BrandingSettings'];
 export type SchemaBrandingSlot = components['schemas']['BrandingSlot'];
 export type SchemaBrandingUpdateResult = components['schemas']['BrandingUpdateResult'];
@@ -7352,6 +7440,7 @@ export type SchemaUserPage = components['schemas']['UserPage'];
 export type SchemaUserRef = components['schemas']['UserRef'];
 export type SchemaUserStatus = components['schemas']['UserStatus'];
 export type SchemaViewCreate = components['schemas']['ViewCreate'];
+export type SchemaWebAppManifest = components['schemas']['WebAppManifest'];
 export type SchemaWebhook = components['schemas']['Webhook'];
 export type SchemaWebhookCreate = components['schemas']['WebhookCreate'];
 export type SchemaWebhookCreated = components['schemas']['WebhookCreated'];
@@ -7723,6 +7812,62 @@ export interface operations {
             path: {
                 slot: components["schemas"]["BrandingSlot"];
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Done */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    uploadBrandingPwaIcons: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["BrandingPwaIconsUpload"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrandingPwaIcons"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            413: components["responses"]["TooLarge"];
+            422: components["responses"]["Validation"];
+        };
+    };
+    resetBrandingPwaIcons: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required for cookie-authenticated mutations (value from `GET /me`). Not needed with a bearer token. */
+                "X-CSRF-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -13461,6 +13606,28 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
+        };
+    };
+    getWebAppManifest: {
+        parameters: {
+            query?: {
+                area?: "portal" | "agent";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/manifest+json": components["schemas"]["WebAppManifest"];
+                };
+            };
         };
     };
     getMcp: {

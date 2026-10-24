@@ -196,7 +196,7 @@ func TestRootPathsResolve(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"GET /healthz", "GET /readyz", "GET /metrics", "GET /branding/{}", "GET /kb/sitemap.xml",
+	for _, want := range []string{"GET /healthz", "GET /readyz", "GET /metrics", "GET /branding/{}", "GET /kb/sitemap.xml", "GET /manifest.webmanifest",
 		"GET /api/v1/kb/articles", "GET /api/v1/ws", "POST /api/v1/inbound/mime/{}", "GET /api/v1/openapi.yaml"} {
 		if !ops[want] {
 			t.Errorf("spec lacks %s", want)
