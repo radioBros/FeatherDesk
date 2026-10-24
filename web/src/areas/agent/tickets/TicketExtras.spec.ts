@@ -168,9 +168,9 @@ describe('Links, merge and split (FE-055)', () => {
     const t = fx.ticket({
       allowed_actions: ['reply', 'split'],
       messages: [
-        { id: 'm-1', ticket_id: 't-1', kind: 'public', body_md: 'one', created_at: fx.iso, attachments: [] },
-        { id: 'm-2', ticket_id: 't-1', kind: 'public', body_md: 'two', created_at: fx.iso, attachments: [] },
-        { id: 'm-3', ticket_id: 't-1', kind: 'internal', body_md: 'three', created_at: fx.iso, attachments: [] },
+        { id: 'm-1', ticket_id: 't-1', kind: 'public', body_md: 'one', body_html: '<p>one</p>', created_at: fx.iso, attachments: [] },
+        { id: 'm-2', ticket_id: 't-1', kind: 'public', body_md: 'two', body_html: '<p>two</p>', created_at: fx.iso, attachments: [] },
+        { id: 'm-3', ticket_id: 't-1', kind: 'internal', body_md: 'three', body_html: '<p>three</p>', created_at: fx.iso, attachments: [] },
       ],
     })
     const h = await openDetail(t, { 'POST /agent/tickets/t-1/split': () => json(fx.ticket({ id: 't-5', number: 1050 }), 201), 'GET /agent/tickets/t-1': t })

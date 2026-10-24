@@ -12,7 +12,7 @@ import { mkdtempSync, existsSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { test, expect, loginAs, watchConsole } from './fixtures'
+import { test, expect, loginAs, watchConsole, fillEditor } from './fixtures'
 
 const PORT = Number(process.env.E2E_PROJECTS_PORT ?? 18091)
 const BASE = `http://127.0.0.1:${PORT}`
@@ -142,7 +142,7 @@ test('the /p/WEB portal entry shows the WEB branding and opens a WEB-n ticket', 
   await page.getByTestId('nt-category').click()
   await page.getByRole('option', { name: 'Billing' }).click()
   await page.getByLabel('Order or invoice number').fill('INV-1001')
-  await page.getByTestId('md-input').locator('textarea').fill('Opened through the WEB entry.')
+  await fillEditor(page.getByTestId('md-input'), 'Opened through the WEB entry.')
   await page.getByTestId('nt-submit').click()
   await expect(page).toHaveURL(/\/tickets\/WEB-\d+$|\/tickets\/[0-9a-f-]{36}$/)
   await expect(page.getByTestId('ticket-ref').first()).toContainText(/WEB-\d+/)

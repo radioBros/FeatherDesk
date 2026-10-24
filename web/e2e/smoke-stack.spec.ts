@@ -20,7 +20,7 @@
  * and never retries (a retry would meet a closed /setup and hide the real error).
  */
 import type { Page } from '@playwright/test'
-import { test, expect, watchConsole } from './fixtures'
+import { test, expect, watchConsole, fillEditor } from './fixtures'
 import { uid } from './agent/helpers'
 import { MAILPIT, findInMail, linkFromMail, pathOf, uniqueEmail } from './portal/helpers'
 import { AK, authentik, freshPage, ssoLogin } from './sso-helpers'
@@ -114,7 +114,7 @@ test.describe('stack smoke: prod compose + dev overlay + SSO (DEP-022)', () => {
         await expect(p).toHaveURL(/\/tickets$/)
         await p.goto('/tickets/new')
         await p.getByTestId('nt-subject').locator('input').fill(subject)
-        await p.getByTestId('md-input').locator('textarea').fill(`CUSTOMER-${id} The 2nd floor printer smokes.`)
+        await fillEditor(p.getByTestId('md-input'), `CUSTOMER-${id} The 2nd floor printer smokes.`)
         await p.getByTestId('nt-submit').click()
         // The detail page is addressed by the ticket's project reference (D-20), e.g. HD-1001.
         await expect(p).toHaveURL(/\/tickets\/[A-Z][A-Z0-9]*-\d+$/)
@@ -129,7 +129,7 @@ test.describe('stack smoke: prod compose + dev overlay + SSO (DEP-022)', () => {
         await agent.page.goto(`/agent/tickets/${ticketRef}`)
         await expect(agent.page.getByTestId('ticket-subject')).toHaveText(subject)
         await expect(agent.page.getByTestId('message-thread')).toContainText(`CUSTOMER-${id}`)
-        await agent.page.getByTestId('composer-body').locator('textarea').fill(reply)
+        await fillEditor(agent.page.getByTestId('composer-body'), reply)
         await agent.page.getByTestId('composer-send').click()
         await expect(agent.page.getByTestId('message-thread')).toContainText(reply)
         await expect(customer.page.getByTestId('message-thread')).toContainText(reply)
@@ -150,7 +150,7 @@ test.describe('stack smoke: prod compose + dev overlay + SSO (DEP-022)', () => {
       // 6. Answer and resolve in one step; the portal shows the answer and Resolved live.
       const fix = `RESOLVED-${id} The technician replaced the fuser.`
       await phase('resolve → live in the portal', async () => {
-        await agent.page.getByTestId('composer-body').locator('textarea').fill(fix)
+        await fillEditor(agent.page.getByTestId('composer-body'), fix)
         await agent.page.getByTestId('composer-send-menu').click()
         await agent.page.getByTestId('send-status-resolved').click()
         await expect(agent.page.getByTestId('ticket-header').getByTestId('status-chip')).toHaveText('Resolved')

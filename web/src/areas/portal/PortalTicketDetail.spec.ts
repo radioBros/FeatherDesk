@@ -3,7 +3,7 @@
 import type { ServerEvent } from '@/realtime/client'
 import { ref } from 'vue'
 import TicketDetailPage from './pages/TicketDetailPage.vue'
-import { mockFetch, json } from '@/test/mount'
+import { mockFetch, json, fillMarkdownEditor } from '@/test/mount'
 import { settleConfirm } from '@/composables/useConfirm'
 import { mountPage, requests, settle } from './testing'
 import type { UseRealtimeOptions } from '@/composables/useRealtime'
@@ -19,7 +19,7 @@ vi.mock('@/composables/useRealtime', () => ({
 afterEach(() => vi.unstubAllGlobals())
 
 const msg = (id: string, body: string, extra = {}) => ({
-  id, ticket_id: 't1', kind: 'public' as const, body_md: body, attachments: [], created_at: '2026-10-20T10:00:00Z',
+  id, ticket_id: 't1', kind: 'public' as const, body_md: body, body_html: `<p>${body}</p>`, attachments: [], created_at: '2026-10-20T10:00:00Z',
   author: { id: 's1', name: 'Agent Smith', kind: 'staff' as const }, ...extra,
 })
 /** A server event frame, typed by the generated `WsServerFrame` (CON-013). */
@@ -103,7 +103,7 @@ describe('portal ticket detail (FE-017)', () => {
     const { wrapper, router } = await open()
     await settle(8)
     expect(wrapper.find('[data-testid="closed-notice"]').text()).toContain('Replying will open a follow-up ticket')
-    await wrapper.find('[data-testid="md-input"] textarea').setValue('It broke again')
+    await fillMarkdownEditor(wrapper, 'It broke again')
     await wrapper.find('[data-testid="reply-form"]').trigger('submit')
     await settle(8)
     expect(router.currentRoute.value.path).toBe(`/tickets/${FOLLOW}`)
@@ -113,7 +113,7 @@ describe('portal ticket detail (FE-017)', () => {
     const { fn } = server(() => ticket(), { 'POST /portal/tickets/t1/messages': () => json(msg('m2', 'Thanks!', { author: { id: 'u-cust', name: 'Carla', kind: 'customer' } }), 201) })
     const { wrapper } = await open()
     await settle(8)
-    await wrapper.find('[data-testid="md-input"] textarea').setValue('Thanks!')
+    await fillMarkdownEditor(wrapper, 'Thanks!')
     await wrapper.find('[data-testid="reply-form"]').trigger('submit')
     await settle(8)
     const post = (await requests(fn)).find((r) => r.method === 'POST')!

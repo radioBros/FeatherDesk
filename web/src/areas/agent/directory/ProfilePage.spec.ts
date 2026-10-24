@@ -5,6 +5,7 @@ import PasswordForm from './PasswordForm.vue'
 import SignatureForm from './SignatureForm.vue'
 import ProfileForm from './ProfileForm.vue'
 import { i18n, setLocale } from '@/i18n'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { mountAgent, fx, json, byTestId, typeInto } from '../testing'
 
 afterEach(async () => {
@@ -27,7 +28,7 @@ describe('ProfilePage (FE-059 signature, profile)', () => {
     })
     await h.flush()
     expect(h.wrapper.find('[data-testid="password-card"]').exists()).toBe(false)
-    expect((h.wrapper.find('[data-testid="signature-form"] textarea').element as HTMLTextAreaElement).value).toBe('— Alice')
+    expect(h.wrapper.findComponent(MarkdownEditor).props('modelValue')).toBe('— Alice')
     expect(h.wrapper.findAll('[data-testid="session-row"]')).toHaveLength(2)
     expect(h.wrapper.findAll('[data-testid="session-revoke"]')).toHaveLength(2) // the current one too: revoking it signs out (FE-037)
   })
@@ -47,7 +48,7 @@ describe('SignatureForm (FE-059)', () => {
       props: { signature: '' },
       api: { 'PUT /me/signature': (_u, init) => json(init.body) },
     })
-    await typeInto(h.wrapper.find('[data-testid="signature-form"] textarea').element, '**Alice** · Support')
+    await typeInto(h.wrapper.find('[data-testid="signature-form"]').element, '**Alice** · Support')
     await h.wrapper.find('form').trigger('submit')
     await h.flush()
     expect(h.calls('PUT /me/signature')[0]!.body).toEqual({ signature_md: '**Alice** · Support' })

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import NewTicketForm from './forms/NewTicketForm.vue'
+import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { mockFetch, json, mountApp } from '@/test/mount'
 import { requests } from './testing'
 
@@ -24,7 +25,7 @@ describe('KB suggestions while typing the subject (FE-051)', () => {
     await subject.setValue('pr')
     await subject.setValue('pri')
     await subject.setValue('printer')
-    await wrapper.find('[data-testid="md-input"] textarea').setValue('My draft text')
+    await wrapper.findComponent(MarkdownEditor).setValue('My draft text')
     await vi.advanceTimersByTimeAsync(299)
     expect(fn).not.toHaveBeenCalled()
     await vi.advanceTimersByTimeAsync(10)
@@ -41,7 +42,7 @@ describe('KB suggestions while typing the subject (FE-051)', () => {
     for (let i = 0; i < 5; i++) await vi.advanceTimersByTimeAsync(50)
     expect(document.body.querySelector('[data-testid="kb-sheet-body"]')?.innerHTML).toContain('<strong>reset</strong>')
     expect((wrapper.find('[data-testid="nt-subject"] input').element as HTMLInputElement).value).toBe('printer')
-    expect((wrapper.find('[data-testid="md-input"] textarea').element as HTMLTextAreaElement).value).toBe('My draft text')
+    expect(wrapper.findComponent(MarkdownEditor).props('modelValue')).toBe('My draft text')
     wrapper.unmount()
   })
 

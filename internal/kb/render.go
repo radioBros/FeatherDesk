@@ -3,52 +3,24 @@
 package kb
 
 import (
-	"bytes"
 	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
 
-	"github.com/microcosm-cc/bluemonday"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	"github.com/yuin/goldmark/extension"
-	"github.com/yuin/goldmark/parser"
-	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
+	"github.com/radioBros/FeatherDesk/internal/mdrender"
 )
 
-// AssetPathPrefix is the only image source the renderer keeps (KB-006).
-const AssetPathPrefix = "/api/v1/kb/assets/"
+// AssetPathPrefix is re-exported for KB callers and tests.
+const AssetPathPrefix = mdrender.AssetPathPrefix
 
-var assetSrc = regexp.MustCompile(`^/api/v1/kb/assets/[0-9a-fA-F-]{36}$`)
-
-// renderer turns article Markdown into sanitised HTML: goldmark (GFM tables,
-// autolinks, strikethrough, task lists, heading anchors; raw HTML dropped)
-// then bluemonday's UGC policy with images limited to KB assets. Output is
-// cached per (article, locale, updated_at) in a byte-capped LRU, so editing
-// an article invalidates its entry implicitly.
+// renderer turns article Markdown into sanitised HTML, cached per article revision.
 type renderer struct {
-	md     goldmark.Markdown
-	policy *bluemonday.Policy
-	cache  *lru[string]
+	cache *lru[string]
 }
 
 func newRenderer(cacheBytes int) *renderer {
-	md := goldmark.New(
-		goldmark.WithExtensions(extension.GFM),
-		goldmark.WithParserOptions(
-			parser.WithAutoHeadingID(),
-			parser.WithASTTransformers(util.Prioritized(imageFilter{}, 100)),
-		),
-	)
-	p := bluemonday.UGCPolicy()
-	// Overrides UGC's "any URL" image source: only uploaded KB assets.
-	p.AllowAttrs("src").Matching(assetSrc).OnElements("img")
-	p.AllowAttrs("id").Matching(regexp.MustCompile(`^[a-zA-Z0-9_-]{1,200}$`)).OnElements("h1", "h2", "h3", "h4", "h5", "h6")
-	p.RequireNoFollowOnLinks(true)
-	p.AddTargetBlankToFullyQualifiedLinks(true)
-	return &renderer{md: md, policy: p, cache: newLRU[string](cacheBytes)}
+	return &renderer{cache: newLRU[string](cacheBytes)}
 }
 
 // Render returns the sanitised HTML of body; key identifies the cache slot.
@@ -64,38 +36,7 @@ func (r *renderer) Render(articleID, locale string, updatedAt time.Time, body st
 
 // RenderString renders without caching.
 func (r *renderer) RenderString(body string) string {
-	var buf bytes.Buffer
-	if err := r.md.Convert([]byte(body), &buf); err != nil {
-		return ""
-	}
-	return r.policy.Sanitize(buf.String())
-}
-
-// imageFilter replaces images whose destination is not a KB asset with their
-// alt text, so external trackers and data: URLs never render.
-type imageFilter struct{}
-
-func (imageFilter) Transform(doc *ast.Document, _ text.Reader, _ parser.Context) {
-	var bad []*ast.Image
-	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if img, ok := n.(*ast.Image); ok && entering && !assetSrc.Match(img.Destination) {
-			bad = append(bad, img)
-		}
-		return ast.WalkContinue, nil
-	})
-	for _, img := range bad {
-		parent := img.Parent()
-		if parent == nil {
-			continue
-		}
-		for c := img.FirstChild(); c != nil; {
-			next := c.NextSibling()
-			img.RemoveChild(img, c)
-			parent.InsertBefore(parent, img, c)
-			c = next
-		}
-		parent.RemoveChild(parent, img)
-	}
+	return mdrender.Render(body)
 }
 
 var (

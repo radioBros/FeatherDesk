@@ -4787,9 +4787,11 @@ export interface components {
             recovery_codes_remaining: number;
             totp_enabled: boolean;
         };
+        /** @description Message body: see `MessageBodyWrite`. */
         AgentMessageCreate: {
             attachment_ids?: components["schemas"]["Id"][];
-            body_md: string;
+            body_html?: string;
+            body_md?: string;
             /** @enum {string} */
             kind: "public" | "internal";
             set_status?: components["schemas"]["TicketStatus"];
@@ -4801,11 +4803,12 @@ export interface components {
             /** @description The caller's membership role; null for supervisors and admins without a membership row (they see every project) */
             my_role: components["schemas"]["ProjectRole"] | null;
         };
-        /** @description Provide `requester_id`, or `requester_email` (+ `requester_name`) to find-or-create the customer. */
+        /** @description First message body: see `MessageBodyWrite`. Provide `requester_id`, or `requester_email` (+ `requester_name`) to find-or-create the customer. */
         AgentTicketCreate: {
             assignee_id?: components["schemas"]["Id"] | null;
             attachment_ids?: components["schemas"]["Id"][];
-            body_md: string;
+            body_html?: string;
+            body_md?: string;
             category_id?: components["schemas"]["Id"] | null;
             custom_fields?: components["schemas"]["CustomFieldValues"];
             priority?: components["schemas"]["Priority"];
@@ -5240,6 +5243,8 @@ export interface components {
         CustomerMessage: {
             attachments: components["schemas"]["Attachment"][];
             author?: components["schemas"]["UserRef"] | null;
+            /** @description Sanitised HTML rendered from `body_md`. */
+            readonly body_html: string;
             body_md: string;
             created_at: components["schemas"]["Timestamp"];
             id: components["schemas"]["Id"];
@@ -5247,10 +5252,11 @@ export interface components {
             kind: "public";
             ticket_id: components["schemas"]["Id"];
         };
-        /** @description A customer reply posted by a trusted integration (I-12). Always public: a `kind` other than `public` is 422. */
+        /** @description A customer reply posted by a trusted integration (I-12). Always public: a `kind` other than `public` is 422. Message body: see `MessageBodyWrite`. */
         CustomerMessageOnBehalfCreate: {
             attachment_ids?: components["schemas"]["Id"][];
-            body_md: string;
+            body_html?: string;
+            body_md?: string;
             on_behalf_of: components["schemas"]["Id"];
             /** @enum {string} */
             set_status?: "resolved";
@@ -5805,6 +5811,9 @@ export interface components {
         Message: {
             attachments: components["schemas"]["Attachment"][];
             author?: components["schemas"]["UserRef"] | null;
+            /** @description Sanitised HTML rendered from `body_md` (same renderer as the knowledge base). */
+            readonly body_html: string;
+            /** @description Message body in Markdown (canonical storage). */
             body_md: string;
             channel?: components["schemas"]["Channel"];
             created_at: components["schemas"]["Timestamp"];
@@ -5817,10 +5826,17 @@ export interface components {
             /** @description Staff only: the name of the integration token that posted the message (null when not posted on behalf, or the token was deleted). Webhooks omit it. */
             via_integration_name?: string | null;
         };
+        /** @description Send exactly one of `body_md` (Markdown) or `body_html` (HTML converted to Markdown with an allowlist). Both → `422 not_allowed` on `body_html`; neither → `422 required` on `body_md`. */
+        MessageBodyWrite: {
+            body_html?: string;
+            body_md?: string;
+        };
         /** @enum {string} */
         MessageKind: "public" | "internal" | "system";
+        /** @description Message body: see `MessageBodyWrite`. */
         MessagePatch: {
-            body_md: string;
+            body_html?: string;
+            body_md?: string;
         };
         /**
          * @description Answer of a successful first factor (password, magic link, verification or invitation link) when the user has a second factor or
@@ -6029,9 +6045,11 @@ export interface components {
             portal_title: string | null;
             primary_color: string | null;
         };
+        /** @description First message body: see `MessageBodyWrite` (exactly one of `body_md` or `body_html`). */
         PortalTicketCreate: {
             attachment_ids?: components["schemas"]["Id"][];
-            body_md: string;
+            body_html?: string;
+            body_md?: string;
             category_id?: components["schemas"]["Id"] | null;
             custom_fields?: components["schemas"]["CustomFieldValues"];
             priority?: components["schemas"]["Priority"];
@@ -6278,9 +6296,11 @@ export interface components {
             name: string;
             password: string;
         };
+        /** @description Message body: see `MessageBodyWrite`. */
         ReplyCreate: {
             attachment_ids?: components["schemas"]["Id"][];
-            body_md: string;
+            body_html?: string;
+            body_md?: string;
         };
         Report: {
             by_project?: {
@@ -7313,6 +7333,7 @@ export type SchemaMe = components['schemas']['Me'];
 export type SchemaMePatch = components['schemas']['MePatch'];
 export type SchemaMergeRequest = components['schemas']['MergeRequest'];
 export type SchemaMessage = components['schemas']['Message'];
+export type SchemaMessageBodyWrite = components['schemas']['MessageBodyWrite'];
 export type SchemaMessageKind = components['schemas']['MessageKind'];
 export type SchemaMessagePatch = components['schemas']['MessagePatch'];
 export type SchemaMfaChallenge = components['schemas']['MfaChallenge'];

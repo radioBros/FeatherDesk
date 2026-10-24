@@ -215,6 +215,7 @@ func scanStaffMsg(r scanner, m *staffMsg) error {
 		n := viaName.String
 		m.dto.ViaName = &n
 	}
+	enrichMessageDTO(&m.dto)
 	return nil
 }
 

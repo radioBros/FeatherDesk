@@ -2,7 +2,6 @@
 
 import { mountApp, flush, mockFetch, json } from '@/test/mount'
 import MessageThread from './MessageThread.vue'
-import MarkdownEditor from './MarkdownEditor.vue'
 import MarkdownView from './MarkdownView.vue'
 import AttachmentUploader from './AttachmentUploader.vue'
 import AttachmentList from './AttachmentList.vue'
@@ -64,17 +63,6 @@ describe('Markdown components (FE-010)', () => {
     const { wrapper } = mountApp(MarkdownView, { props: { source: '**hi** <img src=x onerror=alert(1)>' } })
     expect(wrapper.html()).toContain('<strong>hi</strong>')
     expect(wrapper.find('img').exists()).toBe(false) // escaped as text, never an element
-  })
-  it('MarkdownEditor emits input, submit on Ctrl+Enter, and previews', async () => {
-    const { wrapper } = mountApp(MarkdownEditor, { props: { modelValue: '**x**', required: true } })
-    const ta = wrapper.find('textarea')
-    await ta.setValue('new text')
-    expect(wrapper.emitted('update:modelValue')!.at(-1)).toEqual(['new text'])
-    await ta.trigger('keydown', { key: 'Enter', ctrlKey: true })
-    expect(wrapper.emitted('submit')).toHaveLength(1)
-    await wrapper.find('[data-testid="md-preview"]').trigger('click')
-    await flush()
-    expect(wrapper.find('[data-testid="md-preview-pane"]').html()).toContain('<strong>x</strong>')
   })
 })
 

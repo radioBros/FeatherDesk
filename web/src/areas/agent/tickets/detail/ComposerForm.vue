@@ -151,8 +151,8 @@ const mentionOptions = computed(() => {
 })
 function updateMention() {
   if (mode.value !== 'internal') return (mention.value = null)
-  const caret = editor.value?.cursor() ?? model.body.length
-  mention.value = mentionAt(model.body, caret)
+  const before = editor.value?.textBeforeCaret() ?? ''
+  mention.value = mentionAt(before, before.length)
   if (mention.value !== null) void lookups.ensure('staff')
 }
 function pickMention(name: string) {

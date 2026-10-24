@@ -51,7 +51,7 @@ describe('TicketDetailPage — thread and composer (FE-022, FE-045)', () => {
   })
 
   it('a note posts kind: internal with an Idempotency-Key and appends once', async () => {
-    const msg = { id: 'm-2', ticket_id: 't-1', kind: 'internal' as const, body_md: 'Checked the logs', created_at: fx.iso, attachments: [], author: { id: 'u-me', name: 'Alice Agent', kind: 'staff' as const } }
+    const msg = { id: 'm-2', ticket_id: 't-1', kind: 'internal' as const, body_md: 'Checked the logs', body_html: '<p>Checked the logs</p>', created_at: fx.iso, attachments: [], author: { id: 'u-me', name: 'Alice Agent', kind: 'staff' as const } }
     const h = await open(fx.ticket(), { 'POST /agent/tickets/t-1/messages': () => json(msg, 201) })
     await click(byTestId('mode-internal'))
     await typeInto(byTestId('composer-body'), 'Checked the logs')
@@ -258,7 +258,7 @@ describe('TicketDetailPage — escalation and realtime (FE-024, FE-044)', () => 
     const before = h.calls().length
     h.socket().push({
       type: 'event', at: fx.iso, topic: 'ticket:t-1', event: 'message.created', event_id: 'e5',
-      data: { message: { id: 'm-5', ticket_id: 't-1', kind: 'public', body_md: 'Any news?', created_at: fx.iso, attachments: [], author: { id: 'c-1', name: 'Ada Customer', kind: 'customer' } } },
+      data: { message: { id: 'm-5', ticket_id: 't-1', kind: 'public', body_md: 'Any news?', body_html: '<p>Any news?</p>', created_at: fx.iso, attachments: [], author: { id: 'c-1', name: 'Ada Customer', kind: 'customer' } } },
     })
     await h.flush()
     expect(h.wrapper.text()).toContain('Any news?')

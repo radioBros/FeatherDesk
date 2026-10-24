@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
-import MarkdownView from './MarkdownView.vue'
+import { computed, defineAsyncComponent, nextTick, ref } from 'vue'
 import { validations, type Rule } from '@/constants/validations'
 import { useConfigStore } from '@/stores/config'
+const TiptapSurface = defineAsyncComponent(() => import('./editor/TiptapSurface.vue'))
 
 const props = withDefaults(
   defineProps<{
@@ -13,9 +13,7 @@ const props = withDefaults(
     rows?: number
     disabled?: boolean
     errorMessages?: string[]
-    /** Additional rules from `validations.*` (e.g. no internal KB links in a public reply). */
     extraRules?: Rule[]
-    /** Overrides the length cap (defaults to the instance message max length). */
     maxLength?: number
     testid?: string
   }>(),
@@ -24,106 +22,114 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [string]
   submit: []
-  /** Pasted or dropped files; the parent uploads them (AttachmentUploader). */
   files: [File[]]
 }>()
 
 const config = useConfigStore()
-const tab = ref<'write' | 'preview'>('write')
 const maxLen = computed(() => props.maxLength ?? (config.config.message_max_length || 65536))
 const rules = computed<Rule[]>(() => [
   ...(props.required ? [validations.required.any, validations.maxLength(maxLen.value)] : [validations.maxLength(maxLen.value)]),
   ...(props.extraRules ?? []),
 ])
-const field = ref<{ $el?: HTMLElement; focus?: () => void } | null>(null)
-const textarea = (): HTMLTextAreaElement | null => field.value?.$el?.querySelector?.('textarea') ?? null
+const minHeightPx = computed(() => props.rows * 24)
+// Same corners as the text fields (radiusDefaults in plugins/branding.ts: sharp 0, default, rounded lg).
+const radiusClass = computed(() => ({ sharp: 'rounded-0', rounded: 'rounded-lg' })[config.branding.radius as string] ?? 'rounded')
 
-/** Caret position in the textarea (end of text when unknown). */
-function cursor(): number {
-  const el = textarea()
-  return el ? el.selectionStart ?? props.modelValue.length : props.modelValue.length
-}
+const surface = ref<{
+  insert: (text: string, replaceBefore?: number) => Promise<void>
+  focus: () => void
+  textBeforeCaret: () => string
+} | null>(null)
 
-/**
- * Inserts text at the caret, optionally replacing `replaceBefore` characters
- * before it (canned responses, KB links, @mentions), and keeps the caret after
- * the inserted text.
- */
 async function insert(text: string, replaceBefore = 0) {
-  tab.value = 'write'
-  const el = textarea()
-  const value = props.modelValue
-  const start = el ? el.selectionStart ?? value.length : value.length
-  const end = el ? el.selectionEnd ?? start : start
-  const from = Math.max(0, start - replaceBefore)
-  const next = value.slice(0, from) + text + value.slice(end)
-  emit('update:modelValue', next)
-  await nextTick()
-  const t = textarea()
-  if (t) {
-    const pos = from + text.length
-    t.focus()
-    t.setSelectionRange(pos, pos)
-  }
+  if (surface.value) return surface.value.insert(text, replaceBefore)
+  // The rich editor loads lazily: a pick (canned response, KB link) that comes first is appended, not lost.
+  const v = props.modelValue
+  emit('update:modelValue', (replaceBefore ? v.slice(0, Math.max(0, v.length - replaceBefore)) : v) + text)
 }
 
 function focus() {
-  tab.value = 'write'
-  void nextTick(() => textarea()?.focus())
+  void nextTick(() => surface.value?.focus())
 }
 
-defineExpose({ insert, cursor, focus })
+function textBeforeCaret(): string {
+  return surface.value?.textBeforeCaret() ?? ''
+}
 
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault()
-    emit('submit')
-  }
-}
-function onPaste(e: ClipboardEvent) {
-  const files = [...(e.clipboardData?.files ?? [])]
-  if (files.length) {
-    e.preventDefault()
-    emit('files', files)
-  }
-}
-function onDrop(e: DragEvent) {
-  const files = [...(e.dataTransfer?.files ?? [])]
-  if (files.length) {
-    e.preventDefault()
-    emit('files', files)
-  }
-}
+defineExpose({ insert, focus, textBeforeCaret })
 </script>
 
 <template>
-  <div class="fd-md-editor">
-    <v-tabs v-model="tab" density="compact" class="mb-1">
-      <v-tab value="write" data-testid="md-write">{{ $t('editor.write') }}</v-tab>
-      <v-tab value="preview" data-testid="md-preview">{{ $t('editor.preview') }}</v-tab>
-    </v-tabs>
-    <v-textarea
-      v-show="tab === 'write'"
-      ref="field"
-      :model-value="modelValue"
-      :label="label"
-      :rows="rows"
-      :rules="rules"
-      :disabled="disabled"
-      :error-messages="errorMessages"
-      :placeholder="$t('editor.placeholder')"
-      :hint="$t('editor.submitHint')"
-      auto-grow
-      variant="outlined"
-      :data-testid="testid ?? 'md-input'"
-      @update:model-value="(v: string) => emit('update:modelValue', v)"
-      @keydown="onKeydown"
-      @paste="onPaste"
-      @drop="onDrop"
-    />
-    <v-sheet v-if="tab === 'preview'" border rounded class="pa-3" min-height="120" data-testid="md-preview-pane">
-      <MarkdownView v-if="modelValue.trim()" :source="modelValue" />
-      <span v-else class="text-medium-emphasis">{{ $t('editor.nothingToPreview') }}</span>
-    </v-sheet>
-  </div>
+  <v-input
+    :model-value="modelValue"
+    :rules="rules"
+    :disabled="disabled"
+    :error-messages="errorMessages"
+    class="fd-md-editor"
+    :data-testid="testid ?? 'md-input'"
+  >
+    <template #default="{ isValid }">
+      <div class="fd-md-field w-100">
+        <div
+          v-if="label"
+          class="text-caption text-medium-emphasis fd-md-label"
+        >
+          {{ label }}
+        </div>
+        <div
+          :class="['fd-md-outline', radiusClass, { 'fd-md-outline--disabled': disabled, 'fd-md-outline--error': isValid.value === false || !!errorMessages?.length }]"
+        >
+          <TiptapSurface
+            ref="surface"
+            :model-value="modelValue"
+            :rows="rows"
+            :disabled="disabled"
+            :min-height-px="minHeightPx"
+            :aria-label="label"
+            @update:model-value="(v: string) => emit('update:modelValue', v)"
+            @submit="emit('submit')"
+            @files="(f: File[]) => emit('files', f)"
+          />
+        </div>
+        <div class="text-caption text-medium-emphasis fd-md-hint">
+          {{ $t('editor.submitHint') }}
+        </div>
+      </div>
+    </template>
+  </v-input>
 </template>
+
+<style scoped>
+.fd-md-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fd-md-label {
+  padding-inline-start: 12px;
+}
+.fd-md-outline {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  background: rgb(var(--v-theme-surface));
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.fd-md-outline:focus-within:not(.fd-md-outline--disabled) {
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 0 1px rgb(var(--v-theme-primary));
+}
+.fd-md-outline--error {
+  border-color: rgb(var(--v-theme-error));
+}
+.fd-md-outline--disabled {
+  opacity: var(--v-disabled-opacity);
+  pointer-events: none;
+}
+.fd-md-hint {
+  padding-inline: 12px 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fd-md-outline {
+    transition: none;
+  }
+}
+</style>

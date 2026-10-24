@@ -13,7 +13,7 @@
  * Needs SMTP → Mailpit (E2E_MAILPIT_URL). Staff sign in with local passwords
  * (FD_AUTH_STAFF_LOCAL); the SSO login itself is covered by sso.spec.ts.
  */
-import { test, expect, watchConsole } from './fixtures'
+import { test, expect, watchConsole, fillEditor } from './fixtures'
 import { seedTeam, signIn, uid } from './agent/helpers'
 import { MAILPIT, linkFromMail, pathOf, uniqueEmail } from './portal/helpers'
 
@@ -67,7 +67,7 @@ test.describe('M2 ticket loop', () => {
     await page.getByTestId('nt-subject').locator('input').fill(subject)
     await page.getByTestId('nt-category').click()
     await page.getByRole('option', { name: `M2 ${id}` }).click()
-    await page.getByTestId('md-input').locator('textarea').fill(`CUSTOMER-${id} The 2nd floor printer smokes.`)
+    await fillEditor(page.getByTestId('md-input'), `CUSTOMER-${id} The 2nd floor printer smokes.`)
     await page.getByTestId('file-input').setInputFiles({ name: `photo-${id}.png`, mimeType: 'image/png', buffer: PNG })
     await expect(page.getByTestId('upload-item')).toContainText(`photo-${id}.png`)
     await expect(page.getByTestId('upload-error')).toHaveCount(0)
@@ -97,14 +97,14 @@ test.describe('M2 ticket loop', () => {
     await expect(l1.page.getByTestId('message-thread')).toContainText(`CUSTOMER-${id}`)
     await expect(l1.page.getByTestId('attachment-list').first()).toContainText(`photo-${id}.png`)
     const reply = `PUBLIC-${id} We are sending a technician.`
-    await l1.page.getByTestId('composer-body').locator('textarea').fill(reply)
+    await fillEditor(l1.page.getByTestId('composer-body'), reply)
     await l1.page.getByTestId('composer-send').click()
     await expect(l1.page.getByTestId('message-thread')).toContainText(reply)
 
     const noteToken = `INTERNAL-${id}`
     const note = `${noteToken} the customer skipped the last two maintenance visits`
     await l1.page.getByTestId('mode-internal').click()
-    await l1.page.getByTestId('composer-body').locator('textarea').fill(note)
+    await fillEditor(l1.page.getByTestId('composer-body'), note)
     await l1.page.getByTestId('composer-send').click()
     await expect(l1.page.getByTestId('msg-internal')).toContainText(note)
 
@@ -126,7 +126,7 @@ test.describe('M2 ticket loop', () => {
 
     // 6. L2 answers and resolves in one step.
     const fix = `RESOLVED-${id} The technician replaced the fuser.`
-    await l2.page.getByTestId('composer-body').locator('textarea').fill(fix)
+    await fillEditor(l2.page.getByTestId('composer-body'), fix)
     await l2.page.getByTestId('composer-send-menu').click()
     await l2.page.getByTestId('send-status-resolved').click()
     await expect(l2.page.getByTestId('ticket-header').getByTestId('status-chip')).toHaveText('Resolved')

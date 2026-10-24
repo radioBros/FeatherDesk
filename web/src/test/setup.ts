@@ -40,3 +40,27 @@ if (isDom && !('IntersectionObserver' in globalThis)) {
 // MarkdownView loads markdown-it + DOMPurify lazily (FE-031); specs start warm
 // so rendered Markdown is in the DOM on the first tick, as after the first load.
 if (isDom) await (await import('@/utils/markdownLoader')).loadMarkdown()
+
+if (isDom && !document.elementFromPoint) {
+  document.elementFromPoint = () => null
+}
+if (isDom) {
+  const emptyDomRect = () =>
+    ({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      toJSON: () => ({}),
+    }) as DOMRect
+  Range.prototype.getClientRects = function getClientRects() {
+    return [emptyDomRect()] as unknown as DOMRectList
+  }
+  Range.prototype.getBoundingClientRect = function getBoundingClientRect() {
+    return emptyDomRect()
+  }
+}

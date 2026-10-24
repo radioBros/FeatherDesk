@@ -384,6 +384,7 @@ func (s *Service) portalMessageNoAuth(ctx context.Context, msgID string) (*custo
 	}
 	m.Kind = string(domain.MessagePublic)
 	m.CreatedAt = m.CreatedAt.UTC()
+	enrichCustomerMessageDTO(&m)
 	refs, err := loadUserRefs(ctx, q, []string{author.String})
 	if err != nil {
 		return nil, err

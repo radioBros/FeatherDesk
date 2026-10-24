@@ -5,7 +5,7 @@
  * already on the ticket, sees the reply and the new tier live (no reload).
  * Needs the full backend (runs during integration).
  */
-import { test, expect } from '../fixtures'
+import { test, expect, fillEditor } from '../fixtures'
 import { seedTeam, signIn } from './helpers'
 
 test.describe('L1 → L2 escalation, live', () => {
@@ -30,7 +30,7 @@ test.describe('L1 → L2 escalation, live', () => {
 
     await l1.page.goto(`/agent/tickets/${ticket.number}`)
     const reply = `We are on it ${seed.id}`
-    await l1.page.getByTestId('composer-body').locator('textarea').fill(reply)
+    await fillEditor(l1.page.getByTestId('composer-body'), reply)
     await l1.page.getByTestId('composer-send').click()
     await expect(l1.page.getByTestId('message-thread')).toContainText(reply)
 

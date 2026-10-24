@@ -5,7 +5,7 @@
  * in the page HTML, not in any WebSocket frame the customer receives.
  * Needs the full backend and a customer account (E2E_CUSTOMER_* or Mailpit).
  */
-import { test, expect } from '../fixtures'
+import { test, expect, fillEditor } from '../fixtures'
 import { customerAccount, seedTeam, signIn, uid } from './helpers'
 
 test.describe('internal notes stay internal', () => {
@@ -31,13 +31,13 @@ test.describe('internal notes stay internal', () => {
     await agent.page.goto(`/agent/tickets/${ticket.number}`)
     const secret = `INTERNAL-${id} customer is on the late-payers list`
     await agent.page.getByTestId('mode-internal').click()
-    await agent.page.getByTestId('composer-body').locator('textarea').fill(secret)
+    await fillEditor(agent.page.getByTestId('composer-body'), secret)
     await agent.page.getByTestId('composer-send').click()
     await expect(agent.page.getByTestId('msg-internal')).toContainText(secret)
 
     const reply = `PUBLIC-${id} Your invoice is attached.`
     await agent.page.getByTestId('mode-public').click()
-    await agent.page.getByTestId('composer-body').locator('textarea').fill(reply)
+    await fillEditor(agent.page.getByTestId('composer-body'), reply)
     await agent.page.getByTestId('composer-send').click()
 
     // Live on the customer's open page, without reload.

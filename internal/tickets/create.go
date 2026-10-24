@@ -21,6 +21,7 @@ import (
 type CreateInput struct {
 	Subject        string         `json:"subject"`
 	BodyMD         string         `json:"body_md"`
+	BodyHTML       string         `json:"body_html"`
 	CategoryID     *string        `json:"category_id"`
 	TeamID         *string        `json:"team_id"`
 	Priority       string         `json:"priority"`
@@ -95,10 +96,11 @@ func (s *Service) createTx(ctx context.Context, tx *store.Tx, p *domain.Principa
 	if err != nil {
 		return nil, err
 	}
-	body, err := validBody("body_md", in.BodyMD)
+	body, err := resolveBody(in.BodyMD, in.BodyHTML)
 	if err != nil {
 		return nil, err
 	}
+	in.BodyMD = body
 	pol := s.Policy(ctx)
 	now := s.clock()
 	t := &ticketRow{ID: store.NewID(), Subject: subject, Status: domain.StatusNew, Priority: domain.PriorityNormal, Tier: 1,

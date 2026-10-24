@@ -4,7 +4,7 @@
  * FE-013…FE-018 end to end: register → verify (link from Mailpit) → sign in →
  * open a ticket → reply → "my issue is solved". Needs SMTP → Mailpit.
  */
-import { test, expect, watchConsole } from '../fixtures'
+import { test, expect, watchConsole, fillEditor } from '../fixtures'
 import { MAILPIT, linkFromMail, pathOf, uniqueEmail } from './helpers'
 
 test.describe('customer portal: register to resolve', () => {
@@ -50,13 +50,13 @@ test.describe('customer portal: register to resolve', () => {
     await expect(page.getByText('This field is required').first()).toBeVisible()
     expect(posted).toBe(false)
     await page.getByTestId('nt-subject').locator('input').fill('E2E: printer offline')
-    await page.getByTestId('md-input').locator('textarea').fill('Since this morning nobody can print. Error **E-301**.')
+    await fillEditor(page.getByTestId('md-input'), 'Since this morning nobody can print. Error **E-301**.')
     await page.getByTestId('nt-submit').click()
     await expect(page).toHaveURL(/\/tickets\/[A-Z][A-Z0-9]*-\d+$/) // opened by ref (D-20)
     await expect(page.getByTestId('detail-subject')).toContainText('E2E: printer offline')
 
     // Reply
-    await page.getByTestId('md-input').locator('textarea').fill('Adding more details: it is the 2nd floor printer.')
+    await fillEditor(page.getByTestId('md-input'), 'Adding more details: it is the 2nd floor printer.')
     await page.getByTestId('reply-submit').click()
     await expect(page.getByTestId('message-thread')).toContainText('2nd floor printer')
 

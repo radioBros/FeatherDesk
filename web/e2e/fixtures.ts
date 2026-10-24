@@ -5,7 +5,7 @@
  * browser context), seed data with a personal access token, and collect
  * console/CSP problems.
  */
-import { test as base, expect, type APIRequestContext, type Frame, type Page } from '@playwright/test'
+import { test as base, expect, type APIRequestContext, type Frame, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 export const ADMIN = {
@@ -177,6 +177,14 @@ export function clientIp(workerIndex?: number): Record<string, string> {
  * of to the whole suite sharing 127.0.0.1. Ignored by servers that do not trust
  * the hop (E2E_BASE_URL deployments).
  */
+/** Fills a MarkdownEditor (WYSIWYG or source) identified by its field test id wrapper. */
+export async function fillEditor(locator: Locator, text: string) {
+  // The WYSIWYG surface loads lazily; type into it (not the Markdown source view), as a person would.
+  const editable = locator.locator('[contenteditable="true"]')
+  await editable.waitFor()
+  await editable.fill(text)
+}
+
 export const test = base.extend({
   extraHTTPHeaders: async ({ extraHTTPHeaders }, use, info) => {
     const n = (info.workerIndex * 2048 + ++seq) % 65_536

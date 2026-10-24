@@ -82,6 +82,7 @@ func (s *Service) customerDetail(ctx context.Context, p *domain.Principal, where
 		}
 		m.dto.Kind = string(domain.MessagePublic)
 		m.dto.CreatedAt = m.dto.CreatedAt.UTC()
+		enrichCustomerMessageDTO(&m.dto)
 		m.author = author.String
 		msgs = append(msgs, m)
 	}
@@ -165,6 +166,7 @@ func (s *Service) CustomerMessage(ctx context.Context, p *domain.Principal, msgI
 	}
 	m.Kind = string(domain.MessagePublic)
 	m.CreatedAt = m.CreatedAt.UTC()
+	enrichCustomerMessageDTO(&m)
 	refs, err := loadUserRefs(ctx, q, []string{author.String})
 	if err != nil {
 		return nil, err

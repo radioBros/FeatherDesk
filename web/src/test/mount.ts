@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-import { mount, type ComponentMountingOptions } from '@vue/test-utils'
+import { flushPromises, mount, type ComponentMountingOptions, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia, type Pinia } from 'pinia'
 import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import type { Component } from 'vue'
@@ -74,6 +74,31 @@ export function setViewportWidth(w: number) {
 
 export function flush() {
   return new Promise((r) => setTimeout(r, 0))
+}
+
+/** Waits for the lazy-loaded Tiptap surface inside MarkdownEditor. */
+export async function waitMarkdownEditor(wrapper: VueWrapper) {
+  const tick = async () => {
+    await flushPromises()
+    if (typeof vi !== 'undefined' && vi.isFakeTimers?.()) await vi.advanceTimersByTimeAsync(10)
+    else await flush()
+  }
+  for (let i = 0; i < 120; i++) {
+    if (wrapper.find('[data-testid="md-markdown-toggle"]').exists()) return
+    await tick()
+  }
+  throw new Error('MarkdownEditor did not load')
+}
+
+export async function fillMarkdownEditor(wrapper: VueWrapper, value: string, testId = 'md-input') {
+  await waitMarkdownEditor(wrapper)
+  const md = wrapper.find(`[data-testid="${testId}"]`)
+  if (!md.find('[data-testid="md-source"]').isVisible()) {
+    await md.find('[data-testid="md-markdown-toggle"]').trigger('click')
+    await flush()
+  }
+  await md.find('[data-testid="md-source"]').setValue(value)
+  await flush()
 }
 
 /** A fetch mock recording calls; responses default to 200 {}. */

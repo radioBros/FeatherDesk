@@ -1633,7 +1633,7 @@ The ticket page has a **Conversation** tab and a **Timeline** tab. The timeline 
 - **Internal note** (lock icon, dashed style) is visible to staff only: "Only staff can see internal notes."
   - Type `@` to mention a colleague, who is then notified.
   - If you switch a draft from note to reply, the composer warns you that the text will go to the customer.
-- **Editor:** Markdown with *Write* and *Preview* tabs. **Ctrl+Enter** (or Cmd+Enter) sends.
+- **Editor:** Rich-text (WYSIWYG) with Markdown storage; use the toolbar or the *Markdown* toggle for source. **Ctrl+Enter** (or Cmd+Enter) sends.
 - **Canned response:** search for one and insert it. Variables are filled in.
 - **Insert article link:** links a knowledge-base article. A public reply can only link articles the customer can read.
 - **Attachments:** drag and drop, paste, or click to choose. Up to 10 files per message, within the instance's upload limits.
@@ -1831,6 +1831,7 @@ The web app uses exactly the same API that integrations use, so anything the UI 
   - The **API reference** is at `GET /api/docs`: every operation with its parameters, request body fields, responses, scopes, a copy-ready `curl` command and request/response examples (each checked against the spec), the error format with an example per status, and every webhook event with its payload. It has a *Download openapi.yaml* button; the page itself is static and script-free.
   - The **PWA manifest** is at `GET /manifest.webmanifest` (site root, not under `/api/v1`).
 - **Base path:** `/api/v1`. Bodies are JSON (`application/json`), except uploads (`multipart/form-data`) and downloads.
+- **Ticket message bodies** are stored as Markdown (`body_md`). To post HTML instead, send `body_html` on create-ticket and add-message requests (exactly one of `body_md` or `body_html`; both is rejected). HTML is converted to Markdown with an allowlist—headings, paragraphs, lists, links (`http`/`https`/`mailto`), emphasis, code, quotes and tables; images and styles are dropped (attach files instead). Every message in responses includes read-only `body_html`: the Markdown rendered to safe HTML with the same renderer as the knowledge base.
 - **Timestamps:** RFC 3339 in UTC, e.g. `2026-10-20T10:00:00Z`.
 - **Ids:** UUIDv7 strings. A ticket can also be fetched by its reference, `GET /api/v1/agent/tickets/by-ref/WEB-12` (customers: `/portal/tickets/by-ref/…`), or by its global number, `GET /api/v1/agent/tickets/by-number/1042`.
 - **Projects:** tickets carry `project_id`, `ref` and `project`; lists, counts, reports and lookups take a `project` filter (id or key). See [features/projects.md](features/projects.md).

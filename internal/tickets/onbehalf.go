@@ -64,6 +64,7 @@ func auditOnBehalf(ctx context.Context, tx *store.Tx, o *onBehalf, customerID, t
 type OnBehalfInput struct {
 	OnBehalfOf    string   `json:"on_behalf_of"`
 	BodyMD        string   `json:"body_md"`
+	BodyHTML      string   `json:"body_html"`
 	AttachmentIDs []string `json:"attachment_ids"`
 	SetStatus     string   `json:"set_status"`
 	Kind          *string  `json:"kind"` // not part of the schema: anything but public is a 422
@@ -157,9 +158,11 @@ func (s *Service) ReplyOnBehalf(ctx context.Context, owner *domain.Principal, ti
 	if len(fields) > 0 {
 		return nil, problems.Validation(fields...)
 	}
-	if _, err := validBody("body_md", in.BodyMD); err != nil {
+	body, err := resolveBody(in.BodyMD, in.BodyHTML)
+	if err != nil {
 		return nil, err
 	}
+	in.BodyMD = body
 	t, err := s.readTicket(ctx, ticketID)
 	if err != nil {
 		return nil, err

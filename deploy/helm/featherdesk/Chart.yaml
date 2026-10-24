@@ -3,8 +3,8 @@ apiVersion: v2
 name: featherdesk
 description: Lightweight help desk in one container (SQLite or Postgres, embedded SPA). Single replica by design.
 type: application
-version: 1.2.0
-appVersion: "1.2.0"
+version: 1.3.0
+appVersion: "1.3.0"
 home: https://radiobros.com/
 maintainers:
   - name: RadioBros

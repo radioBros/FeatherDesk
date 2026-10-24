@@ -195,14 +195,15 @@ func (m *Module) agentEditMessage(w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 	var in struct {
-		BodyMD string `json:"body_md"`
+		BodyMD   string `json:"body_md"`
+		BodyHTML string `json:"body_html"`
 	}
 	if err := decodeJSON(r, &in); err != nil {
 		return err
 	}
 	p := principal(r)
 	id, mid := urlParam(r, "id"), urlParam(r, "mid")
-	if err := m.svc.EditNote(r.Context(), p, id, mid, in.BodyMD); err != nil {
+	if err := m.svc.EditNote(r.Context(), p, id, mid, in.BodyMD, in.BodyHTML); err != nil {
 		return err
 	}
 	msg, err := m.svc.StaffMessage(r.Context(), p, id, mid)

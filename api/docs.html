@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FeatherDesk API reference</title>
-<meta name="description" content="REST API reference of FeatherDesk 1.2.0: every operation with parameters, request and response examples.">
+<meta name="description" content="REST API reference of FeatherDesk 1.3.0: every operation with parameters, request and response examples.">
 <style>
 :root{color-scheme:light dark;--fg:#1b1d21;--muted:#5d6470;--bg:#fff;--bg2:#f6f7f9;--line:#e3e6ea;--accent:#3b5bdb;--code:#eef0f3;
 --get:#1971c2;--post:#2f9e44;--put:#e8590c;--patch:#e8590c;--delete:#c92a2a;--panel:#0f1218;--panel2:#171b23;--panelfg:#e6e9ef;--panelmuted:#9aa3b2}
@@ -57,7 +57,7 @@ pre.light{background:var(--bg2);color:var(--fg);border:1px solid var(--line);bor
 @media (max-width:600px){.tw table{min-width:540px}}
 @media (max-width:900px){.layout{grid-template-columns:1fr}nav.side{display:none}.mobile-toc{display:block}main{padding:16px 16px 80px}header.top{padding:10px 16px}header.top .ver,header.top .manual{display:none}}
 </style></head><body>
-<header class="top"><span class="brand">FeatherDesk API</span><span class="ver">v1.2.0 · OpenAPI 3.1</span><span class="sp"></span>
+<header class="top"><span class="brand">FeatherDesk API</span><span class="ver">v1.3.0 · OpenAPI 3.1</span><span class="sp"></span>
 <a class="btn manual" href="/agent">Open the app</a>
 <a class="btn primary" href="/api/v1/openapi.yaml" download="featherdesk-openapi.yaml">⬇ Download openapi.yaml</a></header>
 <div class="layout">
@@ -70,7 +70,7 @@ pre.light{background:var(--bg2);color:var(--fg);border:1px solid var(--line);bor
 <main>
 <section id="overview">
 <h1>FeatherDesk API reference</h1>
-<p class="lead">Self-hosted, lightweight help desk. Version 1.2.0. Every operation below with its parameters, request body, responses and copy-ready examples.</p>
+<p class="lead">Self-hosted, lightweight help desk. Version 1.3.0. Every operation below with its parameters, request body, responses and copy-ready examples.</p>
 <div class="callout"><strong>Machine-readable spec.</strong> The full OpenAPI 3.1 document is at <a href="/api/v1/openapi.yaml" download="featherdesk-openapi.yaml"><code>/api/v1/openapi.yaml</code></a> — import it into Postman, Insomnia or Bruno, or generate a client with openapi-generator / oapi-codegen / openapi-typescript.</div>
 <div class="desc"><p>FeatherDesk REST API (v1). One API serves the SPA and integrations.</p><p><strong>Path convention.</strong> Paths below are relative to the server URL <code>/api/v1</code> (e.g. <code>/auth/config</code> is <code>GET /api/v1/auth/config</code>). A few routes live at the site root and carry a path-level <code>servers: [{url: /}]</code> override: <code>/healthz</code>, <code>/readyz</code>, <code>/metrics</code>, <code>/branding/{file}</code>, <code>/kb/sitemap.xml</code>, <code>/api/docs</code>, <code>/manifest.webmanifest</code>, <code>/mcp</code>.</p><p><strong>Authentication.</strong> Either the session cookie <code>fd_session</code> (browser; cookie-authenticated <code>POST/PUT/PATCH/DELETE</code> must send <code>X-CSRF-Token</code> with the value from <code>GET /me</code>) or <code>Authorization: Bearer fd_pat_…</code> (personal access token). Required PAT scopes are listed per operation in <code>x-scopes</code>; effective permission is the owner&#39;s role ∩ token scopes.</p><p><strong>Errors</strong> are RFC 9457 <code>application/problem+json</code> (<code>Problem</code>). Reads of objects outside the caller&#39;s visibility return <strong>404</strong>; actions on visible objects the caller may not perform return <strong>403</strong>.</p><p><strong>Pagination</strong> is cursor-based: <code>?limit=50&amp;cursor=…</code> → <code>{items, next_cursor}</code>.</p><p><strong>Realtime.</strong> <code>GET /ws</code> upgrades to a WebSocket (subprotocol <code>featherdesk.v1</code>); see <code>x-websocket</code> on that operation and the <code>WsClientFrame</code>/<code>WsServerFrame</code> schemas. Mutations always go through REST.</p><p><strong>Webhooks</strong> are described in the top-level <code>webhooks</code> section. Delivery is at-least-once: deduplicate on the envelope <code>id</code>.</p></div>
 <div class="mobile-toc callout"><strong>Sections</strong>: <a href="#authentication">Authentication</a> · <a href="#errors">Errors</a> · <a href="#webhooks">Webhooks</a> · <a href="#tag-system">System</a> · <a href="#tag-auth">Auth</a> · <a href="#tag-setup">Setup</a> · <a href="#tag-me">Me</a> · <a href="#tag-realtime">Realtime</a> · <a href="#tag-portal">Portal</a> · <a href="#tag-tickets">Tickets</a> · <a href="#tag-projects">Projects</a> · <a href="#tag-directory">Directory</a> · <a href="#tag-reports">Reports</a> · <a href="#tag-knowledge-base">Knowledge base</a> · <a href="#tag-inbound-email">Inbound email</a> · <a href="#tag-branding">Branding</a> · <a href="#tag-administration">Administration</a> · <a href="#tag-privacy">Privacy</a> · <a href="#tag-mcp">MCP</a> · <a href="#tag-integrations">Integrations</a></div>
@@ -2384,7 +2384,8 @@ Retry-After: 5
 <p class="lbl">Request body · <code>application/json</code> · required</p>
 <div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr class="d0"><td class="n"><code>subject</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 200</div></td></tr>
-<tr class="d0"><td class="n"><code>body_md</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_md</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_html</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 262144</div></td></tr>
 <tr class="d0"><td class="n"><code>category_id</code></td><td class="t">string | null</td><td></td></tr>
 <tr class="d0"><td class="n"><code>priority</code></td><td class="t">Priority</td><td><div class="c">one of: low, normal, high, urgent</div></td></tr>
 <tr class="d0"><td class="n"><code>attachment_ids</code></td><td class="t">string[]</td><td><div class="c">max items 10</div></td></tr>
@@ -2455,6 +2456,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -2553,6 +2555,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -2651,6 +2654,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -2749,6 +2753,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -2795,7 +2800,8 @@ Retry-After: 5
 </tbody></table></div>
 <p class="lbl">Request body · <code>application/json</code> · required</p>
 <div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
-<tr class="d0"><td class="n"><code>body_md</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_md</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_html</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 262144</div></td></tr>
 <tr class="d0"><td class="n"><code>attachment_ids</code></td><td class="t">string[]</td><td><div class="c">max items 10</div></td></tr>
 </tbody></table></div>
 <p class="lbl">Responses</p>
@@ -2810,9 +2816,10 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/portal/tickets/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f/messages&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;attachment_ids&#34;:[&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;]}&#39;</pre>
+  -d &#39;{&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;body_html&#34;:&#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,&#34;attachment_ids&#34;:[&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;]}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
   &#34;attachment_ids&#34;: [
     &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;
   ]
@@ -2828,6 +2835,7 @@ Retry-After: 5
     &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
   },
   &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
   &#34;attachments&#34;: [
     {
       &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -2909,6 +2917,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -3008,6 +3017,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -3117,6 +3127,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -3228,6 +3239,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;attachments&#34;: [
         {
           &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -3690,7 +3702,8 @@ Retry-After: 5
 <p class="lbl">Request body · <code>application/json</code> · required</p>
 <div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr class="d0"><td class="n"><code>subject</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 200</div></td></tr>
-<tr class="d0"><td class="n"><code>body_md</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_md</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_html</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 262144</div></td></tr>
 <tr class="d0"><td class="n"><code>requester_id</code></td><td class="t">string | null</td><td></td></tr>
 <tr class="d0"><td class="n"><code>requester_email</code></td><td class="t">string (email)</td><td></td></tr>
 <tr class="d0"><td class="n"><code>requester_name</code></td><td class="t">string</td><td></td></tr>
@@ -3716,10 +3729,11 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/agent/tickets&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;subject&#34;:&#34;VPN drops every 10 minutes&#34;,&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;requester_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;requester_email&#34;:&#34;ada@example.com&#34;,&#34;requester_name&#34;:&#34;Acme Support&#34;,&#34;category_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;team_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;priority&#34;:&#34;low&#34;,&#34;assignee_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;attachment_ids&#34;:[&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;],&#34;custom_fields&#34;:{&#34;order_id&#34;:&#34;A-10293&#34;},&#34;tags&#34;:[&#34;vpn&#34;],&#34;project_id&#34;:&#34;0192f0c4-7a1e-7c3e-9a10-4b5f0e2d8a11&#34;}&#39;</pre>
+  -d &#39;{&#34;subject&#34;:&#34;VPN drops every 10 minutes&#34;,&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;body_html&#34;:&#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,&#34;requester_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;requester_email&#34;:&#34;ada@example.com&#34;,&#34;requester_name&#34;:&#34;Acme Support&#34;,&#34;category_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;team_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;priority&#34;:&#34;low&#34;,&#34;assignee_id&#34;:&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,&#34;attachment_ids&#34;:[&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;],&#34;custom_fields&#34;:{&#34;order_id&#34;:&#34;A-10293&#34;},&#34;tags&#34;:[&#34;vpn&#34;],&#34;project_id&#34;:&#34;0192f0c4-7a1e-7c3e-9a10-4b5f0e2d8a11&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;subject&#34;: &#34;VPN drops every 10 minutes&#34;,
   &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
   &#34;requester_id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
   &#34;requester_email&#34;: &#34;ada@example.com&#34;,
   &#34;requester_name&#34;: &#34;Acme Support&#34;,
@@ -3931,6 +3945,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {
@@ -4075,6 +4090,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {
@@ -4219,6 +4235,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {
@@ -4396,6 +4413,7 @@ Retry-After: 5
           &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
         },
         &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+        &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
         &#34;channel&#34;: &#34;portal&#34;,
         &#34;attachments&#34;: [
           {
@@ -4471,7 +4489,8 @@ Retry-After: 5
 <p class="lbl">Request body · <code>application/json</code> · required</p>
 <div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr class="d0"><td class="n"><code>kind</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">one of: public, internal</div></td></tr>
-<tr class="d0"><td class="n"><code>body_md</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_md</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_html</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 262144</div></td></tr>
 <tr class="d0"><td class="n"><code>attachment_ids</code></td><td class="t">string[]</td><td><div class="c">max items 10</div></td></tr>
 <tr class="d0"><td class="n"><code>set_status</code></td><td class="t">TicketStatus</td><td><div class="c">one of: new, open, pending, on_hold, resolved, closed</div></td></tr>
 </tbody></table></div>
@@ -4487,10 +4506,11 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X POST &#39;https://help.example.com/api/v1/agent/tickets/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f/messages&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;kind&#34;:&#34;public&#34;,&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;attachment_ids&#34;:[&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;],&#34;set_status&#34;:&#34;new&#34;}&#39;</pre>
+  -d &#39;{&#34;kind&#34;:&#34;public&#34;,&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;body_html&#34;:&#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,&#34;attachment_ids&#34;:[&#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;],&#34;set_status&#34;:&#34;new&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
   &#34;kind&#34;: &#34;public&#34;,
   &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
   &#34;attachment_ids&#34;: [
     &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;
   ],
@@ -4507,6 +4527,7 @@ Retry-After: 5
     &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
   },
   &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
   &#34;channel&#34;: &#34;portal&#34;,
   &#34;attachments&#34;: [
     {
@@ -4539,7 +4560,8 @@ Retry-After: 5
 </tbody></table></div>
 <p class="lbl">Request body · <code>application/json</code> · required</p>
 <div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
-<tr class="d0"><td class="n"><code>body_md</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_md</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_html</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 262144</div></td></tr>
 </tbody></table></div>
 <p class="lbl">Responses</p>
 <div class="resp"><span class="code ok">200</span><div><p>OK</p><div class="c">application/json · <span class="t">Message</span></div></div></div>
@@ -4552,9 +4574,10 @@ Retry-After: 5
 <p class="lbl">Request</p><pre>curl -X PATCH &#39;https://help.example.com/api/v1/agent/tickets/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f/messages/0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#39; \
   -H &#39;Authorization: Bearer fd_pat_…&#39; \
   -H &#39;Content-Type: application/json&#39; \
-  -d &#39;{&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;}&#39;</pre>
+  -d &#39;{&#34;body_md&#34;:&#34;Since this morning the VPN disconnects every ten minutes.&#34;,&#34;body_html&#34;:&#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;}&#39;</pre>
 <p class="lbl">Request body</p><pre>{
-  &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;
+  &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;
 }</pre>
 <p class="lbl">Response · 200 · application/json</p><pre>{
   &#34;id&#34;: &#34;0192f3c4-5b6a-7c8d-9e0f-1a2b3c4d5e6f&#34;,
@@ -4567,6 +4590,7 @@ Retry-After: 5
     &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
   },
   &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+  &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
   &#34;channel&#34;: &#34;portal&#34;,
   &#34;attachments&#34;: [
     {
@@ -4600,7 +4624,8 @@ Retry-After: 5
 <p class="lbl">Request body · <code>application/json</code> · required</p>
 <div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr class="d0"><td class="n"><code>on_behalf_of</code><span class="req">required</span></td><td class="t">string</td><td><p>UUIDv7</p></td></tr>
-<tr class="d0"><td class="n"><code>body_md</code><span class="req">required</span></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_md</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 65536</div></td></tr>
+<tr class="d0"><td class="n"><code>body_html</code></td><td class="t">string</td><td><div class="c">min length 1 · max length 262144</div></td></tr>
 <tr class="d0"><td class="n"><code>attachment_ids</code></td><td class="t">string[]</td><td><div class="c">max items 10</div></td></tr>
 <tr class="d0"><td class="n"><code>set_status</code></td><td class="t">string</td><td><div class="c">one of: resolved</div></td></tr>
 </tbody></table></div>
@@ -4631,6 +4656,7 @@ Retry-After: 5
       &#34;kind&#34;: &#34;customer&#34;,
       &#34;name&#34;: &#34;Ada Customer&#34;
     },
+    &#34;body_html&#34;: &#34;&lt;p&gt;Thanks, the printer works again.&lt;/p&gt;&#34;,
     &#34;body_md&#34;: &#34;Thanks, the printer works again.&#34;,
     &#34;channel&#34;: &#34;api&#34;,
     &#34;created_at&#34;: &#34;2026-10-21T09:30:00Z&#34;,
@@ -4764,6 +4790,7 @@ Retry-After: 5
           &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
         },
         &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+        &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
         &#34;channel&#34;: &#34;portal&#34;,
         &#34;attachments&#34;: [
           {
@@ -4922,6 +4949,7 @@ Retry-After: 5
           &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
         },
         &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+        &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
         &#34;channel&#34;: &#34;portal&#34;,
         &#34;attachments&#34;: [
           {
@@ -5117,6 +5145,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {
@@ -5400,6 +5429,7 @@ Retry-After: 5
           &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
         },
         &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+        &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
         &#34;channel&#34;: &#34;portal&#34;,
         &#34;attachments&#34;: [
           {
@@ -5560,6 +5590,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {
@@ -6357,6 +6388,7 @@ Retry-After: 5
           &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
         },
         &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+        &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
         &#34;channel&#34;: &#34;portal&#34;,
         &#34;attachments&#34;: [
           {
@@ -14817,6 +14849,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {
@@ -14915,6 +14948,7 @@ Retry-After: 5
         &#34;avatar_url&#34;: &#34;https://help.example.com/branding/logo.png&#34;
       },
       &#34;body_md&#34;: &#34;Since this morning the VPN disconnects every ten minutes.&#34;,
+      &#34;body_html&#34;: &#34;&lt;p&gt;Thanks for contacting &lt;strong&gt;Acme&lt;/strong&gt; support.&lt;/p&gt;&#34;,
       &#34;channel&#34;: &#34;portal&#34;,
       &#34;attachments&#34;: [
         {

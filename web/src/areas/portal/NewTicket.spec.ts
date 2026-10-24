@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import NewTicketPage from './pages/NewTicketPage.vue'
-import { mockFetch, json } from '@/test/mount'
+import { mockFetch, json, fillMarkdownEditor } from '@/test/mount'
 import { DEFAULT_BRANDING } from '@/stores/config'
 import { mountPage, requests, settle, ORG_MANAGER } from './testing'
 
@@ -29,7 +29,7 @@ function api(over: Record<string, () => Response> = {}) {
 
 async function fill(wrapper: Awaited<ReturnType<typeof mountPage>>['wrapper']) {
   await wrapper.find('[data-testid="nt-subject"] input').setValue('Printer')
-  await wrapper.find('[data-testid="md-input"] textarea').setValue('It is broken')
+  await fillMarkdownEditor(wrapper, 'It is broken')
 }
 
 describe('portal new ticket (FE-016)', () => {

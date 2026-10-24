@@ -8,7 +8,7 @@
  * lists them, for a plain agent and for a supervisor. The public /kb follows
  * each status change.
  */
-import { test, expect, clientIp, type Credentials } from '../fixtures'
+import { test, expect, clientIp, fillEditor, type Credentials } from '../fixtures'
 import type { Page } from '@playwright/test'
 import { apiFor, seedTeam, signIn, tableRow, uid } from './helpers'
 
@@ -101,11 +101,11 @@ test.describe('KB editor and categories', () => {
     await agent.page.goto('/agent/kb/articles/new')
     await pickOption(agent.page, 'kb-category', new RegExp(`Printers and copiers ${id}`))
     await agent.page.getByTestId('kb-title-en').locator('input').fill(`Clear a paper jam ${id}`)
-    await agent.page.getByTestId('md-input').first().locator('textarea').fill('Open **tray 2** and pull the sheet out.')
+    await fillEditor(agent.page.getByTestId('md-input').first(), 'Open **tray 2** and pull the sheet out.')
     await agent.page.getByTestId('kb-tab-de').click()
     await expect(agent.page.getByTestId('kb-tab-de').getByTestId('kb-missing')).toHaveCount(1)
     await agent.page.getByTestId('kb-title-de').locator('input').fill(`Papierstau beheben ${id}`)
-    await agent.page.locator('.v-window-item--active').getByTestId('md-input').locator('textarea').fill('Öffnen Sie **Fach 2** und ziehen Sie das Blatt heraus.')
+    await fillEditor(agent.page.locator('.v-window-item--active').getByTestId('md-input'), 'Öffnen Sie **Fach 2** und ziehen Sie das Blatt heraus.')
     await expect(agent.page.getByTestId('kb-tab-de').getByTestId('kb-missing')).toHaveCount(0)
     await agent.page.getByTestId('kb-save').click()
     await expect(agent.page).toHaveURL(/\/agent\/kb\/articles\/[0-9a-f-]{36}$/)

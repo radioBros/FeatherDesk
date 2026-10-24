@@ -13,6 +13,12 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-24
+
+### Added
+- **Rich-text editor everywhere you write.** Replies, internal notes and new tickets (agents and customers), canned responses, macros, signatures, knowledge-base articles and the branding texts use a WYSIWYG editor (Tiptap) with a toolbar: bold, italic, strikethrough, code, links, lists, quotes, code blocks, headings, undo and redo. Text is still stored as Markdown, so e-mails, search, Slack, webhooks and every existing message work as before; a *Markdown* button shows the source, and Markdown shortcuts (`**bold**`, `- list`) work while typing. Pasting from an e-mail or a document keeps its headings, lists, links and emphasis. Ctrl/Cmd+Enter sends, pasted or dropped files are attached, @mentions, canned responses and KB links insert at the cursor.
+- **HTML message bodies in the API.** Create-ticket, add-message, edit-note and on-behalf requests accept `body_html` instead of `body_md` (exactly one). The HTML is converted to Markdown with the same allowlist as inbound e-mail (headings, paragraphs, lists, `http`/`https`/`mailto` links, emphasis, code, quotes, tables; scripts, styles and images are dropped). Every message in responses, websocket events and webhook payloads also carries a read-only `body_html` rendered with the knowledge-base renderer. Additive: `body_md` is unchanged.
+
 ## [1.2.0] - 2026-10-24
 
 ### Added
@@ -247,7 +253,8 @@ pre-release builds.
   `api_tokens`, `ON DELETE SET NULL`) and a partial index on it. Additive and fast; no
   operator action.
 
-[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/radioBros/FeatherDesk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/radioBros/FeatherDesk/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/radioBros/FeatherDesk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/radioBros/FeatherDesk/compare/v1.0.0...v1.1.0

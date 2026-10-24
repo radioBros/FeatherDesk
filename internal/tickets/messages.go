@@ -18,6 +18,7 @@ import (
 type MessageInput struct {
 	Kind          string   `json:"kind"`
 	BodyMD        string   `json:"body_md"`
+	BodyHTML      string   `json:"body_html"`
 	AttachmentIDs []string `json:"attachment_ids"`
 	SetStatus     string   `json:"set_status"`
 
@@ -44,10 +45,11 @@ func (s *Service) AddStaffMessage(ctx context.Context, p *domain.Principal, id s
 	if kind != domain.MessagePublic && kind != domain.MessageInternal {
 		return MessageResult{}, problems.Validation(problems.Field("kind", "enum", "public or internal"))
 	}
-	body, err := validBody("body_md", in.BodyMD)
+	body, err := resolveBody(in.BodyMD, in.BodyHTML)
 	if err != nil {
 		return MessageResult{}, err
 	}
+	in.BodyMD = body
 	if in.channel == "" {
 		in.channel = channelFor(p)
 		if in.channel == domain.ChannelPortal {
@@ -125,10 +127,11 @@ func (s *Service) AddStaffMessage(ctx context.Context, p *domain.Principal, id s
 // a closed ticket (or a resolved one past the window) creates a follow-up
 // ticket instead; FollowupID is then set and the original stays untouched (M-7).
 func (s *Service) AddCustomerReply(ctx context.Context, p *domain.Principal, id string, in MessageInput) (MessageResult, error) {
-	body, err := validBody("body_md", in.BodyMD)
+	body, err := resolveBody(in.BodyMD, in.BodyHTML)
 	if err != nil {
 		return MessageResult{}, err
 	}
+	in.BodyMD = body
 	if in.channel == "" {
 		in.channel = channelFor(p)
 	}
@@ -239,8 +242,8 @@ func (s *Service) followup(ctx context.Context, tx *store.Tx, p *domain.Principa
 
 // EditNote edits the caller's internal note within 15 minutes (supervisors
 // and admins any internal note). Public replies are immutable (TKT-006).
-func (s *Service) EditNote(ctx context.Context, p *domain.Principal, ticketID, msgID, body string) error {
-	body, err := validBody("body_md", body)
+func (s *Service) EditNote(ctx context.Context, p *domain.Principal, ticketID, msgID, bodyMD, bodyHTML string) error {
+	body, err := resolveBody(bodyMD, bodyHTML)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,7 @@ import { defineComponent, h, ref } from 'vue'
 import NewTicketForm from './forms/NewTicketForm.vue'
 import CustomFieldInput from '@/components/CustomFieldInput.vue'
 import TicketDetailPage from './pages/TicketDetailPage.vue'
-import { mockFetch, json, mountApp, flush } from '@/test/mount'
+import { mockFetch, json, mountApp, flush, fillMarkdownEditor } from '@/test/mount'
 import { requests, settle, mountPage } from './testing'
 import type { CustomFieldDef, CustomFieldValue } from './types'
 
@@ -61,7 +61,7 @@ describe('custom fields in the portal (FE-054)', () => {
     const { wrapper } = mountApp(NewTicketForm, { props: { fields: FIELDS, categories: CATEGORIES } })
     await flush()
     await wrapper.find('[data-testid="nt-subject"] input').setValue('S')
-    await wrapper.find('[data-testid="md-input"] textarea').setValue('B')
+    await fillMarkdownEditor(wrapper, 'B')
     await wrapper.find('form').trigger('submit')
     await settle()
     expect(fn).not.toHaveBeenCalled()
@@ -83,7 +83,7 @@ describe('custom fields in the portal (FE-054)', () => {
       const { wrapper } = mountApp(NewTicketForm, { props: { fields: ORDER, categories: CATEGORIES } })
       await flush()
       await wrapper.find('[data-testid="nt-subject"] input').setValue('S')
-      await wrapper.find('[data-testid="md-input"] textarea').setValue('B')
+      await fillMarkdownEditor(wrapper, 'B')
       return { fn, wrapper }
     }
 

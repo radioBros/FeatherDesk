@@ -20,6 +20,7 @@ import (
 
 	"github.com/radioBros/FeatherDesk/internal/domain"
 	"github.com/radioBros/FeatherDesk/internal/events"
+	"github.com/radioBros/FeatherDesk/internal/mdrender"
 	"github.com/radioBros/FeatherDesk/internal/store"
 )
 
@@ -527,7 +528,7 @@ func (m *Renderer) message(ctx context.Context, e events.Event, internal bool) (
 	if err != nil {
 		return nil, err
 	}
-	msg := map[string]any{"id": id, "ticket_id": ticketID, "kind": kind, "channel": channel, "body_md": body,
+	msg := map[string]any{"id": id, "ticket_id": ticketID, "kind": kind, "channel": channel, "body_md": body, "body_html": mdrender.Render(body),
 		"created_at": created.UTC(), "edited_at": ts(edited), "attachments": []any{},
 		"via_integration": via.Valid} // I-12: posted on the customer's behalf by an integration
 	if au != nil {

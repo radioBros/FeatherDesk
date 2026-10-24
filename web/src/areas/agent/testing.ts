@@ -204,6 +204,27 @@ export function allByTestId(id: string): HTMLElement[] {
 
 /** Sets an input's value and fires `input` (works inside teleported dialogs). */
 export async function typeInto(el: Element | null, value: string) {
+  const root = (el?.matches('[data-testid]') ? el : el?.closest('[data-testid]') ?? el) as HTMLElement | null
+  const editorRoot = (root?.classList.contains('fd-md-editor') ? root : root?.querySelector('.fd-md-editor') ?? root?.closest('.fd-md-editor')) as HTMLElement | null
+  if (editorRoot) {
+    for (let i = 0; i < 80; i++) {
+      if (editorRoot.querySelector('[data-testid="md-markdown-toggle"]')) break
+      await flush()
+    }
+    let ta = editorRoot.querySelector('[data-testid="md-source"]') as HTMLTextAreaElement | null
+    const toggle = editorRoot.querySelector('[data-testid="md-markdown-toggle"]') as HTMLElement | null
+    if (toggle && (!ta || ta.offsetParent === null)) {
+      toggle.click()
+      await flush()
+      ta = editorRoot.querySelector('[data-testid="md-source"]') as HTMLTextAreaElement | null
+    }
+    if (ta) {
+      ta.value = value
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+      return
+    }
+  }
   const input = (el?.matches('input,textarea') ? el : el?.querySelector('input,textarea')) as HTMLInputElement | null
   if (!input) throw new Error('typeInto: no input')
   input.value = value
@@ -259,7 +280,7 @@ export const fx = {
       created_at: ISO,
       updated_at: ISO,
       messages: [
-        { id: 'm-1', ticket_id: 't-1', kind: 'public', body_md: 'It is on fire.', author: { id: 'c-1', name: 'Ada Customer', kind: 'customer' }, created_at: ISO, attachments: [] },
+        { id: 'm-1', ticket_id: 't-1', kind: 'public', body_md: 'It is on fire.', body_html: '<p>It is on fire.</p>', author: { id: 'c-1', name: 'Ada Customer', kind: 'customer' }, created_at: ISO, attachments: [] },
       ],
       attachments: [],
       watchers: [],

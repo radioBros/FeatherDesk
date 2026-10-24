@@ -24,7 +24,9 @@
     "Commit",
     "Bucket",
     "Slug",
-    "Token"
+    "Token",
+    "URL",
+    "Markdown"
   ],
   "de": [
     "System",
@@ -50,7 +52,8 @@
     "Person",
     "Job",
     "Logo (optional)",
-    "Browser"
+    "Browser",
+    "Link"
   ],
   "fr": [
     "Tickets",

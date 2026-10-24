@@ -31,6 +31,7 @@ type messageDTO struct {
 	Kind        string          `json:"kind"`
 	Author      *userRef        `json:"author"`
 	BodyMD      string          `json:"body_md"`
+	BodyHTML    string          `json:"body_html"`
 	Channel     string          `json:"channel"`
 	Attachments []attachmentDTO `json:"attachments"`
 	CreatedAt   time.Time       `json:"created_at"`
@@ -47,6 +48,7 @@ type customerMessageDTO struct {
 	Kind        string          `json:"kind"` // always "public"
 	Author      *userRef        `json:"author"`
 	BodyMD      string          `json:"body_md"`
+	BodyHTML    string          `json:"body_html"`
 	Attachments []attachmentDTO `json:"attachments"`
 	CreatedAt   time.Time       `json:"created_at"`
 }
