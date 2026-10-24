@@ -53,9 +53,12 @@ body {
   min-height: 40px;
   align-items: center;
 }
-/* A one-row textarea is as tall as a text field and grows with its content. */
+/*
+ * A one-row textarea is as tall as a text field and grows with its content. Taller ones keep the height of
+ * their `rows` (Vuetify's auto-grow minimum): a plain 40px here beat it and left every editor two lines high.
+ */
 .v-textarea.v-input--density-compact .v-field__input {
-  min-height: 40px;
+  min-height: var(--v-textarea-min-height, 40px);
 }
 .v-textarea.v-input--density-compact textarea {
   line-height: 1.5;

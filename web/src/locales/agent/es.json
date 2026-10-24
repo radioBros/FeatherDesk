@@ -597,7 +597,8 @@
         "tag": "Etiqueta",
         "breached": "Solo con SLA incumplido",
         "sort": "Ordenar",
-        "more": "Campos personalizados"
+        "more": "Campos personalizados",
+        "toggle": "Filtros"
       },
       "sort": {
         "attention": "Requieren atención",
@@ -826,7 +827,19 @@
       "previewLink": "Lee nuestros artículos de ayuda",
       "emailPreview": "Vista previa del correo",
       "emailPreviewHint": "Muestra los ajustes guardados. Se actualiza tras cada guardado.",
-      "savedWithWarnings": "Guardado. Revisa:"
+      "savedWithWarnings": "Guardado. Revisa:",
+      "pwa": {
+        "title": "Iconos de la aplicación",
+        "statusDefault": "Iconos predeterminados",
+        "statusGenerated": "Generados a partir de tu logotipo el {date}",
+        "statusStale": "Tu logotipo ha cambiado desde que se generaron los iconos: vuelve a generarlos",
+        "generate": "Generar los iconos a partir del logotipo actual",
+        "reset": "Restablecer los iconos predeterminados",
+        "resetTitle": "¿Restablecer los iconos de la aplicación?",
+        "resetBody": "La aplicación instalable volverá a usar los iconos de FeatherDesk incluidos.",
+        "hint": "FeatherDesk se puede instalar como aplicación desde el navegador (requiere HTTPS). Tras cambiar el logotipo, vuelve a generar los iconos.",
+        "maskable": "Adaptable"
+      }
     },
     "email": {
       "subtitle": "Servidor de correo saliente, direcciones de remitente y plantillas de notificación.",

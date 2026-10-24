@@ -22,7 +22,7 @@ const unread = computed(() => !props.n.read_at)
 
 <template>
   <v-list-item
-    :class="{ 'fd-unread': unread }"
+    :class="['fd-notif', { 'fd-unread': unread }]"
     lines="two"
     data-testid="notification-item"
     :data-unread="unread ? 'true' : 'false'"
@@ -46,4 +46,9 @@ const unread = computed(() => !props.n.read_at)
 .fd-unread { background: rgba(var(--v-theme-nav-notifications), 0.08); }
 /* Full-strength secondary line: the faded default fails WCAG contrast on the tinted unread rows (axe). */
 .fd-sub { opacity: 1; }
+/* Phone: the dot and the row's actions stack, so the title keeps the width instead of wrapping word by word. */
+@media (max-width: 599.98px) {
+  .fd-notif :deep(.v-list-item__append) { flex-direction: column; justify-content: center; gap: 2px; }
+  .fd-notif :deep(.v-list-item__append) .fd-dot { margin-block: 4px; }
+}
 </style>

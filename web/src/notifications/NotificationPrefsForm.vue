@@ -58,19 +58,18 @@ const label = (k: string) => t(`notifications.types.${typeKey(k)}.label`)
 <template>
   <v-form ref="formRef" data-testid="notification-prefs-form" @submit.prevent="onSave">
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3">{{ formError }}</v-alert>
-    <v-table density="compact" class="mb-2 fd-matrix">
-      <thead>
-        <tr>
-          <th scope="col">{{ $t('notifications.prefs.type') }}</th>
-          <th scope="col" class="text-center">{{ $t('notifications.prefs.inApp') }}</th>
-          <th scope="col" class="text-center">{{ $t('notifications.prefs.email') }}</th>
-          <th scope="col" class="text-center">{{ $t('notifications.prefs.browser') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="k in types" :key="k" :data-testid="`prefs-row-${k}`">
-          <th scope="row" class="font-weight-regular">{{ label(k) }}</th>
-          <td>
+    <div class="fd-matrix mb-2" role="table">
+      <div class="fd-matrix-head d-none d-sm-grid" role="row">
+        <div role="columnheader">{{ $t('notifications.prefs.type') }}</div>
+        <div role="columnheader" class="text-center">{{ $t('notifications.prefs.inApp') }}</div>
+        <div role="columnheader" class="text-center">{{ $t('notifications.prefs.email') }}</div>
+        <div role="columnheader" class="text-center">{{ $t('notifications.prefs.browser') }}</div>
+      </div>
+      <div v-for="k in types" :key="k" class="fd-prefs-row" role="row" :data-testid="`prefs-row-${k}`">
+        <div class="fd-prefs-label font-weight-regular" role="rowheader">{{ label(k) }}</div>
+        <div class="fd-prefs-channel-group" role="presentation">
+          <div class="fd-prefs-channel" role="cell">
+            <span class="fd-prefs-channel-label d-sm-none">{{ $t('notifications.prefs.inAppShort') }}</span>
             <v-checkbox
               v-model="model[k]!.in_app"
               :aria-label="`${label(k)}: ${$t('notifications.prefs.inApp')}`"
@@ -79,8 +78,9 @@ const label = (k: string) => t(`notifications.types.${typeKey(k)}.label`)
               class="fd-cell"
               :data-testid="`prefs-${k}-in_app`"
             />
-          </td>
-          <td>
+          </div>
+          <div class="fd-prefs-channel" role="cell">
+            <span class="fd-prefs-channel-label d-sm-none">{{ $t('notifications.prefs.emailShort') }}</span>
             <v-checkbox
               v-model="model[k]!.email"
               :aria-label="`${label(k)}: ${$t('notifications.prefs.email')}`"
@@ -91,8 +91,9 @@ const label = (k: string) => t(`notifications.types.${typeKey(k)}.label`)
               class="fd-cell"
               :data-testid="`prefs-${k}-email`"
             />
-          </td>
-          <td>
+          </div>
+          <div class="fd-prefs-channel" role="cell">
+            <span class="fd-prefs-channel-label d-sm-none">{{ $t('notifications.prefs.browserShort') }}</span>
             <v-checkbox
               v-model="model[k]!.browser"
               :aria-label="`${label(k)}: ${$t('notifications.prefs.browser')}`"
@@ -103,10 +104,10 @@ const label = (k: string) => t(`notifications.types.${typeKey(k)}.label`)
               class="fd-cell"
               :data-testid="`prefs-${k}-browser`"
             />
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
+          </div>
+        </div>
+      </div>
+    </div>
     <p v-if="forcedHint" class="text-caption text-medium-emphasis mb-3">{{ $t('notifications.prefs.emailForced') }}</p>
 
     <div class="text-subtitle-2 mb-1">{{ $t('notifications.prefs.browserTitle') }}</div>
@@ -139,6 +140,36 @@ const label = (k: string) => t(`notifications.types.${typeKey(k)}.label`)
 </template>
 
 <style scoped>
-.fd-matrix th[scope='row'] { white-space: normal; }
+.fd-matrix-head,
+.fd-prefs-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(3, 4.5rem);
+  column-gap: 8px;
+  align-items: center;
+}
+.fd-matrix-head {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  padding-bottom: 4px;
+  border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.fd-prefs-row {
+  padding: 6px 0;
+  border-bottom: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.fd-prefs-label { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+.fd-prefs-channel-group { display: contents; }
+.fd-prefs-channel { display: flex; justify-content: center; }
+.fd-prefs-channel-label { font-size: 0.6875rem; line-height: 1.2; text-align: center; margin-bottom: 2px; color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity)); }
 .fd-cell { display: flex; justify-content: center; }
+@media (max-width: 599.98px) {
+  .fd-prefs-row { grid-template-columns: 1fr; row-gap: 6px; }
+  .fd-prefs-channel-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .fd-prefs-channel { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; }
+}
 </style>

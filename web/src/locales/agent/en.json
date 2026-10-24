@@ -597,7 +597,8 @@
         "tag": "Tag",
         "breached": "SLA breached only",
         "sort": "Sort",
-        "more": "Custom fields"
+        "more": "Custom fields",
+        "toggle": "Filters"
       },
       "sort": {
         "attention": "Needs attention",
@@ -826,7 +827,19 @@
       "previewLink": "Read our help articles",
       "emailPreview": "Email preview",
       "emailPreviewHint": "Shows the saved settings. It refreshes after each save.",
-      "savedWithWarnings": "Saved. Please check:"
+      "savedWithWarnings": "Saved. Please check:",
+      "pwa": {
+        "title": "App icons",
+        "statusDefault": "Default icons",
+        "statusGenerated": "Generated from your logo on {date}",
+        "statusStale": "Your logo changed since the app icons were generated — generate them again",
+        "generate": "Generate app icons from the current logo",
+        "reset": "Reset to default icons",
+        "resetTitle": "Reset app icons?",
+        "resetBody": "The installable app will use the bundled FeatherDesk icons again.",
+        "hint": "People can install FeatherDesk as an app from the browser (HTTPS required). After you change the logo, generate the icons again.",
+        "maskable": "Maskable"
+      }
     },
     "email": {
       "subtitle": "Outgoing mail server, sender addresses and notification templates.",

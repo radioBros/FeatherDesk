@@ -2,7 +2,7 @@
 
 import TicketListPage from '../TicketListPage.vue'
 import { mountAgent, fx, json } from '../../testing'
-import { scrollTableToEnd } from '@/test/mount'
+import { scrollTableToEnd, setViewportWidth } from '@/test/mount'
 import type { AgentHarness, MountAgentOptions } from '../../testing'
 
 afterEach(() => {
@@ -13,6 +13,7 @@ afterEach(() => {
   } catch {
     /* ignore */
   }
+  setViewportWidth(1024)
 })
 
 const PLAN = {
@@ -42,8 +43,10 @@ function base(items = [fx.summary(), fx.summary({ id: 't-2', number: 1043, subje
     ...extra,
   }
 }
-const mountList = (route: string, api: Record<string, unknown> = base()) =>
-  mountAgent(TicketListPage, { path: '/agent/tickets', route, me: fx.me('agent', 2), api: api as MountAgentOptions<typeof TicketListPage>['api'] })
+const mountList = (route: string, api: Record<string, unknown> = base(), width = 1280) => {
+  setViewportWidth(width)
+  return mountAgent(TicketListPage, { path: '/agent/tickets', route, me: fx.me('agent', 2), api: api as MountAgentOptions<typeof TicketListPage>['api'] })
+}
 const ticketCalls = (h: AgentHarness) => h.calls('GET /agent/tickets')
 const rows = (h: AgentHarness) => h.wrapper.findAll('[data-testid="ticket-row"]')
 
@@ -150,6 +153,16 @@ describe('TicketListPage (FE-021)', () => {
 
   it('row click opens the ticket by number', async () => {
     const h = await mountList('/agent/tickets')
+    await rows(h)[1]!.trigger('click')
+    await h.flush()
+    expect(h.router.currentRoute.value.path).toBe('/agent/tickets/WEB-1043')
+  })
+
+  it('on a phone, renders ticket cards and opens on tap', async () => {
+    const h = await mountList('/agent/tickets', base(), 390)
+    expect(rows(h)).toHaveLength(2)
+    expect(rows(h)[0]!.text()).toContain('WEB-1042')
+    expect(rows(h)[0]!.text()).toContain('Printer on fire')
     await rows(h)[1]!.trigger('click')
     await h.flush()
     expect(h.router.currentRoute.value.path).toBe('/agent/tickets/WEB-1043')

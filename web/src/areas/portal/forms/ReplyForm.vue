@@ -65,9 +65,15 @@ const onSubmit = submit(async () => {
     />
     <div class="d-flex flex-wrap align-center ga-2">
       <AttachmentUploader ref="uploader" v-model="attachments" area="portal" class="flex-grow-1" />
-      <v-btn type="submit" color="primary" :loading="submitting" data-testid="reply-submit">
+      <v-btn type="submit" color="primary" :loading="submitting" class="fd-reply-submit" data-testid="reply-submit">
         {{ closed ? $t('portal.detail.sendFollowUp') : $t('portal.detail.send') }}
       </v-btn>
     </div>
   </v-form>
 </template>
+
+<style scoped>
+@media (max-width: 599.98px) {
+  .fd-reply-submit { flex: 1 1 100%; max-width: 100%; }
+}
+</style>

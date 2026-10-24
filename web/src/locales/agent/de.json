@@ -597,7 +597,8 @@
         "tag": "Tag",
         "breached": "Nur SLA-Verletzungen",
         "sort": "Sortierung",
-        "more": "Benutzerdefinierte Felder"
+        "more": "Benutzerdefinierte Felder",
+        "toggle": "Filter"
       },
       "sort": {
         "attention": "Handlungsbedarf",
@@ -826,7 +827,19 @@
       "previewLink": "Unsere Hilfeartikel lesen",
       "emailPreview": "E-Mail-Vorschau",
       "emailPreviewHint": "Zeigt die gespeicherten Einstellungen. Wird nach jedem Speichern aktualisiert.",
-      "savedWithWarnings": "Gespeichert. Bitte prüfen:"
+      "savedWithWarnings": "Gespeichert. Bitte prüfen:",
+      "pwa": {
+        "title": "App-Symbole",
+        "statusDefault": "Standardsymbole",
+        "statusGenerated": "Am {date} aus Ihrem Logo erzeugt",
+        "statusStale": "Ihr Logo hat sich seit dem Erzeugen der App-Symbole geändert – erzeugen Sie sie erneut",
+        "generate": "App-Symbole aus dem aktuellen Logo erzeugen",
+        "reset": "Auf Standardsymbole zurücksetzen",
+        "resetTitle": "App-Symbole zurücksetzen?",
+        "resetBody": "Die installierbare App verwendet wieder die mitgelieferten FeatherDesk-Symbole.",
+        "hint": "FeatherDesk lässt sich im Browser als App installieren (HTTPS erforderlich). Erzeugen Sie die Symbole nach einer Logo-Änderung erneut.",
+        "maskable": "Maskierbar"
+      }
     },
     "email": {
       "subtitle": "Postausgangsserver, Absenderadressen und Benachrichtigungsvorlagen.",

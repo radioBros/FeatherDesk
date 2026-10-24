@@ -30,7 +30,9 @@ const sub = computed(() => props.subtitle ?? (props.branded ? b.value.login_subt
     <v-container class="py-10" style="max-width: 460px">
       <v-card border flat class="pa-2 fd-login-card">
         <div class="text-center pt-4"><BrandLogo :height="40" /></div>
-        <v-card-title v-if="heading" class="text-h5 text-wrap text-center" data-testid="auth-title"><h1 class="text-h5">{{ heading }}</h1></v-card-title>
+        <v-card-title v-if="heading" class="fd-auth-title text-h5 text-wrap text-center" data-testid="auth-title">
+          <h1 class="fd-auth-heading">{{ heading }}</h1>
+        </v-card-title>
         <v-card-subtitle v-if="sub" class="text-wrap text-center" data-testid="auth-subtitle">{{ sub }}</v-card-subtitle>
         <v-card-text>
           <slot />
@@ -43,4 +45,9 @@ const sub = computed(() => props.subtitle ?? (props.branded ? b.value.login_subt
 
 <style scoped>
 .fd-auth-bg { min-height: 100%; }
+/* v-card-title sets the size; nested h1 must not apply the user-agent heading scale. */
+.fd-auth-heading { font: inherit; font-weight: inherit; letter-spacing: inherit; line-height: inherit; margin: 0; width: 100%; }
+@media (max-width: 599.98px) {
+  .fd-auth-title { font-size: 1.25rem; line-height: 1.35; padding-top: 8px; padding-bottom: 8px; }
+}
 </style>

@@ -597,7 +597,8 @@
         "tag": "Tag",
         "breached": "Solo SLA violati",
         "sort": "Ordina",
-        "more": "Campi personalizzati"
+        "more": "Campi personalizzati",
+        "toggle": "Filtri"
       },
       "sort": {
         "attention": "Da gestire",
@@ -826,7 +827,19 @@
       "previewLink": "Leggi i nostri articoli di aiuto",
       "emailPreview": "Anteprima email",
       "emailPreviewHint": "Mostra le impostazioni salvate. Si aggiorna dopo ogni salvataggio.",
-      "savedWithWarnings": "Salvato. Controlla:"
+      "savedWithWarnings": "Salvato. Controlla:",
+      "pwa": {
+        "title": "Icone dell'app",
+        "statusDefault": "Icone predefinite",
+        "statusGenerated": "Generate dal tuo logo il {date}",
+        "statusStale": "Il logo è cambiato dopo la generazione delle icone: generale di nuovo",
+        "generate": "Genera le icone dell'app dal logo attuale",
+        "reset": "Ripristina le icone predefinite",
+        "resetTitle": "Ripristinare le icone dell'app?",
+        "resetBody": "L'app installabile userà di nuovo le icone predefinite di FeatherDesk.",
+        "hint": "Si può installare FeatherDesk come app dal browser (serve HTTPS). Dopo aver cambiato il logo, genera di nuovo le icone.",
+        "maskable": "Adattiva"
+      }
     },
     "email": {
       "subtitle": "Server di posta in uscita, indirizzi mittente e modelli di notifica.",

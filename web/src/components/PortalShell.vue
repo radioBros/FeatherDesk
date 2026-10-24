@@ -61,7 +61,9 @@ const legal = computed(() =>
         </template>
         <NotificationBell v-if="portalOn && session.isCustomer" area="portal" />
         <UserMenu v-if="session.me" :area="portalOn || !session.isStaff ? 'portal' : 'agent'" />
-        <v-btn v-else-if="portalOn" to="/login" variant="tonal">{{ $t('auth.signIn') }}</v-btn>
+        <!-- On a phone the language and theme buttons already share the bar: sign-in is an icon there too. -->
+        <v-btn v-else-if="portalOn && xs" to="/login" :icon="mdiLogin" variant="tonal" :aria-label="$t('auth.signIn')" data-testid="sign-in" />
+        <v-btn v-else-if="portalOn" to="/login" variant="tonal" data-testid="sign-in">{{ $t('auth.signIn') }}</v-btn>
         <!-- A long label ("Mitarbeiter-Anmeldung") would push the bar off a phone: icon only there. -->
         <v-btn v-else-if="xs" to="/agent/login" :icon="mdiLogin" variant="tonal" :aria-label="$t('nav.staffSignIn')" data-testid="staff-sign-in" />
         <v-btn v-else to="/agent/login" variant="tonal" data-testid="staff-sign-in">{{ $t('nav.staffSignIn') }}</v-btn>

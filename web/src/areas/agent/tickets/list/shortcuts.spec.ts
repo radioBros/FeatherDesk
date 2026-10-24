@@ -2,8 +2,13 @@
 
 import TicketListPage from '../TicketListPage.vue'
 import { mountAgent, fx, json } from '../../testing'
+import { setViewportWidth } from '@/test/mount'
+
+// The keyboard shortcuts drive the desktop table; phones get the card list.
+beforeEach(() => setViewportWidth(1280))
 
 afterEach(() => {
+  setViewportWidth(1024)
   vi.unstubAllGlobals()
   document.body.innerHTML = ''
 })

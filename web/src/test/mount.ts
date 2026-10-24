@@ -48,6 +48,30 @@ export function scrollTableToEnd(root: Element) {
   delete (body as { scrollHeight?: number }).scrollHeight
 }
 
+/**
+ * Vuetify's display breakpoints follow `innerWidth` and `matchMedia`; jsdom has no layout, so pages that render a
+ * different DOM on phones (`useDisplay().xs`) set the width they want before mounting.
+ */
+export function setViewportWidth(w: number) {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: w })
+  window.matchMedia = ((query: string) => {
+    const min = query.match(/min-width:\s*(\d+(?:\.\d+)?)px/)
+    const max = query.match(/max-width:\s*(\d+(?:\.\d+)?)px/)
+    const matches = min ? w >= parseFloat(min[1]!) : max ? w <= parseFloat(max[1]!) : false
+    return {
+      matches,
+      media: query,
+      onchange: null,
+      addListener() {},
+      removeListener() {},
+      addEventListener() {},
+      removeEventListener() {},
+      dispatchEvent: () => false,
+    }
+  }) as typeof window.matchMedia
+  window.dispatchEvent(new Event('resize'))
+}
+
 export function flush() {
   return new Promise((r) => setTimeout(r, 0))
 }

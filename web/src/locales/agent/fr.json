@@ -597,7 +597,8 @@
         "tag": "Étiquette",
         "breached": "SLA dépassés uniquement",
         "sort": "Trier",
-        "more": "Champs personnalisés"
+        "more": "Champs personnalisés",
+        "toggle": "Filtres"
       },
       "sort": {
         "attention": "À traiter en priorité",
@@ -826,7 +827,19 @@
       "previewLink": "Lire nos articles d'aide",
       "emailPreview": "Aperçu de l'e-mail",
       "emailPreviewHint": "Affiche les paramètres enregistrés. Actualisé après chaque enregistrement.",
-      "savedWithWarnings": "Enregistré. Veuillez vérifier :"
+      "savedWithWarnings": "Enregistré. Veuillez vérifier :",
+      "pwa": {
+        "title": "Icônes de l'application",
+        "statusDefault": "Icônes par défaut",
+        "statusGenerated": "Générées à partir de votre logo le {date}",
+        "statusStale": "Votre logo a changé depuis la génération des icônes — générez-les à nouveau",
+        "generate": "Générer les icônes à partir du logo actuel",
+        "reset": "Rétablir les icônes par défaut",
+        "resetTitle": "Rétablir les icônes de l'application ?",
+        "resetBody": "L'application installable utilisera de nouveau les icônes FeatherDesk fournies.",
+        "hint": "FeatherDesk peut être installé comme application depuis le navigateur (HTTPS requis). Après un changement de logo, générez de nouveau les icônes.",
+        "maskable": "Masquable"
+      }
     },
     "email": {
       "subtitle": "Serveur d'envoi, adresses d'expéditeur et modèles de notification.",

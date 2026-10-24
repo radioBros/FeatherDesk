@@ -160,13 +160,14 @@ function onRated(tk: CustomerTicket | null) {
     </EmptyState>
 
     <template v-else>
-      <header class="d-flex flex-wrap align-center ga-3 mb-2">
-        <h1 class="text-h5 flex-grow-1" data-testid="detail-subject">
-          <TicketNumber :number="ticket.number" :reftext="ticket.ref" /> {{ ticket.subject }}
-        </h1>
-        <ProjectChip :project="ticket.project" size="small" />
-        <StatusChip :status="ticket.status" area="portal" size="default" />
-        <PriorityChip :priority="ticket.priority" />
+      <header class="fd-portal-detail-header d-flex flex-wrap align-center ga-2 mb-2">
+        <div class="fd-pdh-meta d-flex flex-wrap align-center ga-2">
+          <TicketNumber :number="ticket.number" :reftext="ticket.ref" />
+          <ProjectChip :project="ticket.project" size="small" />
+          <StatusChip :status="ticket.status" area="portal" size="default" />
+          <PriorityChip :priority="ticket.priority" />
+        </div>
+        <h1 class="fd-pdh-subject text-h5" data-testid="detail-subject">{{ ticket.subject }}</h1>
       </header>
       <div class="text-body-2 text-medium-emphasis mb-4">
         {{ $t('portal.detail.openedBy', { name: ticket.requester?.name ?? '' }) }} · <RelativeTime :value="ticket.created_at" />
@@ -175,7 +176,7 @@ function onRated(tk: CustomerTicket | null) {
         </template>
       </div>
 
-      <div class="d-flex flex-wrap ga-2 mb-4">
+      <div class="fd-portal-detail-actions d-flex flex-wrap ga-2 mb-4">
         <v-btn
           v-if="can('resolve')"
           color="success"
@@ -222,3 +223,13 @@ function onRated(tk: CustomerTicket | null) {
     </template>
   </v-container>
 </template>
+
+<style scoped>
+.fd-pdh-subject { flex: 1 1 200px; min-width: 0; margin: 0; line-height: 1.25; }
+/* Phone: ref, project and chips on one row; full subject below; resolve/reopen full width. */
+@media (max-width: 599.98px) {
+  .fd-pdh-meta { flex: 1 1 100%; }
+  .fd-pdh-subject { flex-basis: 100%; font-size: 1.25rem; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+  .fd-portal-detail-actions > .v-btn { flex: 1 1 100%; }
+}
+</style>

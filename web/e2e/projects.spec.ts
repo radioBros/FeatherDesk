@@ -145,7 +145,7 @@ test('the /p/WEB portal entry shows the WEB branding and opens a WEB-n ticket', 
   await page.getByTestId('md-input').locator('textarea').fill('Opened through the WEB entry.')
   await page.getByTestId('nt-submit').click()
   await expect(page).toHaveURL(/\/tickets\/WEB-\d+$|\/tickets\/[0-9a-f-]{36}$/)
-  await expect(page.getByTestId('detail-subject')).toContainText(/WEB-\d+/)
+  await expect(page.getByTestId('ticket-ref').first()).toContainText(/WEB-\d+/)
   await expect(page.getByTestId('detail-subject')).toContainText('E2E project entry ticket')
 
   // The list shows the ref; an unknown or staff-only key is a friendly 404.

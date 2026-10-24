@@ -10,8 +10,9 @@ import AutocompleteSearch from '@/components/AutocompleteSearch.vue'
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { useI18n } from 'vue-i18n'
-import { mdiBookmarkPlusOutline, mdiDeleteOutline, mdiFilterRemoveOutline, mdiLinkVariant, mdiPlus, mdiRefresh, mdiShareVariantOutline } from '@mdi/js'
+import { mdiBookmarkPlusOutline, mdiDeleteOutline, mdiFilterRemoveOutline, mdiLinkVariant, mdiPlus, mdiRefresh, mdiShareVariantOutline, mdiTuneVariant } from '@mdi/js'
 import PageHeader from '@/components/PageHeader.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import StatusChip from '@/components/StatusChip.vue'
@@ -50,6 +51,7 @@ type Row = S['TicketSummary'] & { links?: S['TicketLink'][] }
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
+const { xs } = useDisplay()
 const session = useSessionStore()
 const config = useConfigStore()
 const lookups = useLookupsStore()
@@ -66,7 +68,11 @@ const selected = ref<string[]>([])
 const focused = ref(-1)
 const saveDialog = ref(false)
 const showCustom = ref(false)
+const filtersExpanded = ref(false)
 const qInput = ref('')
+const loadSentinel = ref<HTMLElement | null>(null)
+const canInfiniteScroll = typeof IntersectionObserver !== 'undefined'
+let loadObserver: IntersectionObserver | null = null
 let seq = 0
 
 const filters = computed<ListFilters>(() => filtersFromQuery(route.query))
@@ -174,6 +180,19 @@ watch(() => route.fullPath, () => void onQuery())
 let projectsReady = false
 watch(() => projects.currentId, () => projectsReady && void reload())
 
+function bindLoadObserver() {
+  loadObserver?.disconnect()
+  loadObserver = null
+  if (!xs.value || !canInfiniteScroll || !loadSentinel.value) return
+  loadObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((e) => e.isIntersecting) && next.value && !loading.value) loadMore()
+    },
+    { rootMargin: '160px' },
+  )
+  loadObserver.observe(loadSentinel.value)
+}
+
 onMounted(() => {
   void lookups.ensure('teams', 'categories', 'staff', 'customFields')
   if (!viewsStore.loaded) void viewsStore.load()
@@ -182,7 +201,9 @@ onMounted(() => {
     projectsReady = true
     return onQuery()
   })
+  bindLoadObserver()
 })
+watch([loadSentinel, next, xs], () => bindLoadObserver())
 
 function setFilters(patch: Partial<ListFilters>) {
   const f = { ...filters.value, ...patch }
@@ -204,6 +225,20 @@ const hasFilters = computed(() => {
   const f = filters.value
   return !!(f.status.length || f.priority.length || f.team_id || f.assignee || f.category_id || f.project || f.tag || f.q || f.breached || Object.keys(f.cf).length)
 })
+/** Active list filters on phone (excludes search and sort). */
+const activeFilterCount = computed(() => {
+  const f = filters.value
+  let n = f.status.length + f.priority.length
+  if (f.tier) n++
+  if (f.team_id) n++
+  if (f.assignee) n++
+  if (f.category_id) n++
+  if (f.tag) n++
+  if (f.breached) n++
+  n += Object.keys(f.cf).length
+  return n
+})
+const showProjectColumn = computed(() => cols.show('project'))
 
 // ---- realtime --------------------------------------------------------------
 
@@ -217,6 +252,7 @@ function scheduleRefetch() {
 }
 onBeforeUnmount(() => {
   if (refetchTimer) clearTimeout(refetchTimer)
+  loadObserver?.disconnect()
 })
 function onEvent(ev: ServerEvent) {
   const tk = (ev.data?.ticket ?? null) as Row | null
@@ -336,136 +372,171 @@ const currentFilter = computed(() => {
     </PageHeader>
 
     <v-card border flat class="mb-3 pa-3" data-testid="list-filters">
-      <div class="d-flex flex-wrap ga-2 align-center fd-filters">
+      <div
+        v-if="xs"
+        class="d-flex ga-2 align-center"
+      >
         <v-text-field
           v-model="qInput"
           :label="$t('agent.list.filters.q')"
           density="compact"
           hide-details
           clearable
-          style="min-width: 200px"
+          class="fd-filters-xs-search"
           data-testid="filter-q"
           @keydown.enter="setFilters({ q: qInput || undefined })"
           @click:clear="setFilters({ q: undefined })"
         />
-        <AutocompleteSearch
-          :model-value="filters.status"
-          :items="statusItems"
-          :label="$t('agent.list.filters.status')"
-          multiple
-          compact-multiple
-          density="compact"
-          hide-details
-          data-testid="filter-status"
-          @update:model-value="(v: string[]) => setFilters({ status: v })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.priority"
-          :items="priorityItems"
-          :label="$t('agent.list.filters.priority')"
-          multiple
-          compact-multiple
-          hide-search
-          density="compact"
-          hide-details
-          data-testid="filter-priority"
-          @update:model-value="(v: string[]) => setFilters({ priority: v })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.tier ?? null"
-          :items="tierItems"
-          :label="$t('agent.list.filters.tier')"
-          clearable
-          hide-search
-          density="compact"
-          hide-details
-          data-testid="filter-tier"
-          @update:model-value="(v: string | null) => setFilters({ tier: v ?? undefined })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.team_id ?? null"
-          :items="teamItems"
-          :label="$t('agent.list.filters.team')"
-          clearable
-          density="compact"
-          hide-details
-          data-testid="filter-team"
-          @update:model-value="(v: string | null) => setFilters({ team_id: v ?? undefined })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.assignee ?? null"
-          :items="assigneeItems"
-          :label="$t('agent.list.filters.assignee')"
-          clearable
-          density="compact"
-          hide-details
-          data-testid="filter-assignee"
-          @update:model-value="(v: string | null) => setFilters({ assignee: v ?? undefined })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.category_id ?? null"
-          :items="categoryItems"
-          :label="$t('agent.list.filters.category')"
-          clearable
-          density="compact"
-          hide-details
-          data-testid="filter-category"
-          @update:model-value="(v: string | null) => setFilters({ category_id: v ?? undefined })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.tag ?? null"
-          :items="lookups.tags.map((tg) => tg.name)"
-          :label="$t('agent.list.filters.tag')"
-          clearable
-          density="compact"
-          hide-details
-          data-testid="filter-tag"
-          @focus="lookups.ensure('tags')"
-          @update:model-value="(v: string | null) => setFilters({ tag: v ?? undefined })"
-        />
-        <v-checkbox
-          :model-value="!!filters.breached"
-          :label="$t('agent.list.filters.breached')"
-          density="compact"
-          hide-details
-          data-testid="filter-breached"
-          @update:model-value="(v: boolean | null) => setFilters({ breached: v ? true : undefined })"
-        />
-        <AutocompleteSearch
-          :model-value="filters.sort"
-          :items="sortItems"
-          :label="$t('agent.list.filters.sort')"
-          density="compact"
-          hide-details
-          data-testid="filter-sort"
-          @update:model-value="(v: string) => setFilters({ sort: v })"
-        />
-      </div>
-      <div class="d-flex flex-wrap ga-2 align-center mt-2">
-        <v-btn v-if="activeDefs.length" variant="text" size="small" data-testid="filter-custom-toggle" @click="showCustom = !showCustom">
-          {{ $t('agent.list.filters.more') }}
-          <v-badge v-if="Object.keys(filters.cf).length" :content="Object.keys(filters.cf).length" inline color="primary" />
-        </v-btn>
-        <ColumnsMenu :cols="cols" :bar="false" />
-        <v-spacer />
-        <v-btn v-if="hasFilters" variant="text" size="small" :prepend-icon="mdiFilterRemoveOutline" data-testid="filter-clear" @click="clearFilters">
-          {{ $t('agent.common.clearFilters') }}
+        <v-btn
+          variant="outlined"
+          :prepend-icon="mdiTuneVariant"
+          data-testid="filter-toggle"
+          @click="filtersExpanded = !filtersExpanded"
+        >
+          {{ $t('agent.list.filters.toggle') }}
+          <v-badge
+            v-if="activeFilterCount"
+            :content="activeFilterCount"
+            inline
+            color="primary"
+          />
         </v-btn>
       </div>
-      <div v-if="showCustom || Object.keys(filters.cf).length" class="fd-cf-grid mt-2" data-testid="cf-filters">
-        <CustomFieldInput
-          v-for="d in activeDefs"
-          :key="d.id"
-          :def="{ ...d, required: false }"
-          :model-value="cfFromString(d.type, filters.cf[d.key])"
-          density="compact"
-          no-rules
-          @update:model-value="(v: unknown) => setCf(d.key, v)"
-        />
-      </div>
+      <v-expand-transition>
+        <div v-show="!xs || filtersExpanded">
+          <div class="d-flex flex-wrap ga-2 align-center fd-filters" :class="{ 'mt-2': xs }">
+            <v-text-field
+              v-if="!xs"
+              v-model="qInput"
+              :label="$t('agent.list.filters.q')"
+              density="compact"
+              hide-details
+              clearable
+              style="min-width: 200px"
+              data-testid="filter-q"
+              @keydown.enter="setFilters({ q: qInput || undefined })"
+              @click:clear="setFilters({ q: undefined })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.status"
+              :items="statusItems"
+              :label="$t('agent.list.filters.status')"
+              multiple
+              compact-multiple
+              density="compact"
+              hide-details
+              data-testid="filter-status"
+              @update:model-value="(v: string[]) => setFilters({ status: v })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.priority"
+              :items="priorityItems"
+              :label="$t('agent.list.filters.priority')"
+              multiple
+              compact-multiple
+              hide-search
+              density="compact"
+              hide-details
+              data-testid="filter-priority"
+              @update:model-value="(v: string[]) => setFilters({ priority: v })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.tier ?? null"
+              :items="tierItems"
+              :label="$t('agent.list.filters.tier')"
+              clearable
+              hide-search
+              density="compact"
+              hide-details
+              data-testid="filter-tier"
+              @update:model-value="(v: string | null) => setFilters({ tier: v ?? undefined })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.team_id ?? null"
+              :items="teamItems"
+              :label="$t('agent.list.filters.team')"
+              clearable
+              density="compact"
+              hide-details
+              data-testid="filter-team"
+              @update:model-value="(v: string | null) => setFilters({ team_id: v ?? undefined })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.assignee ?? null"
+              :items="assigneeItems"
+              :label="$t('agent.list.filters.assignee')"
+              clearable
+              density="compact"
+              hide-details
+              data-testid="filter-assignee"
+              @update:model-value="(v: string | null) => setFilters({ assignee: v ?? undefined })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.category_id ?? null"
+              :items="categoryItems"
+              :label="$t('agent.list.filters.category')"
+              clearable
+              density="compact"
+              hide-details
+              data-testid="filter-category"
+              @update:model-value="(v: string | null) => setFilters({ category_id: v ?? undefined })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.tag ?? null"
+              :items="lookups.tags.map((tg) => tg.name)"
+              :label="$t('agent.list.filters.tag')"
+              clearable
+              density="compact"
+              hide-details
+              data-testid="filter-tag"
+              @focus="lookups.ensure('tags')"
+              @update:model-value="(v: string | null) => setFilters({ tag: v ?? undefined })"
+            />
+            <v-checkbox
+              :model-value="!!filters.breached"
+              :label="$t('agent.list.filters.breached')"
+              density="compact"
+              hide-details
+              data-testid="filter-breached"
+              @update:model-value="(v: boolean | null) => setFilters({ breached: v ? true : undefined })"
+            />
+            <AutocompleteSearch
+              :model-value="filters.sort"
+              :items="sortItems"
+              :label="$t('agent.list.filters.sort')"
+              density="compact"
+              hide-details
+              data-testid="filter-sort"
+              @update:model-value="(v: string) => setFilters({ sort: v })"
+            />
+          </div>
+          <div class="d-flex flex-wrap ga-2 align-center mt-2">
+            <v-btn v-if="activeDefs.length" variant="text" size="small" data-testid="filter-custom-toggle" @click="showCustom = !showCustom">
+              {{ $t('agent.list.filters.more') }}
+              <v-badge v-if="Object.keys(filters.cf).length" :content="Object.keys(filters.cf).length" inline color="primary" />
+            </v-btn>
+            <ColumnsMenu :cols="cols" :bar="false" />
+            <v-spacer />
+            <v-btn v-if="hasFilters" variant="text" size="small" :prepend-icon="mdiFilterRemoveOutline" data-testid="filter-clear" @click="clearFilters">
+              {{ $t('agent.common.clearFilters') }}
+            </v-btn>
+          </div>
+          <div v-if="showCustom || Object.keys(filters.cf).length" class="fd-cf-grid mt-2" data-testid="cf-filters">
+            <CustomFieldInput
+              v-for="d in activeDefs"
+              :key="d.id"
+              :def="{ ...d, required: false }"
+              :model-value="cfFromString(d.type, filters.cf[d.key])"
+              density="compact"
+              no-rules
+              @update:model-value="(v: unknown) => setCf(d.key, v)"
+            />
+          </div>
+        </div>
+      </v-expand-transition>
     </v-card>
 
-    <v-card v-if="selected.length" border flat class="mb-3 pa-3" data-testid="bulk-bar">
+    <v-card v-if="selected.length && !xs" border flat class="mb-3 pa-3" data-testid="bulk-bar">
       <BulkActionForm :tickets="selectedTickets" :staff="lookups.staff" :teams="lookups.teams" :me-id="session.me?.id ?? null" @done="onBulkDone" />
     </v-card>
 
@@ -473,6 +544,7 @@ const currentFilter = computed(() => {
 
     <v-card border flat>
       <DataTable
+        v-if="!xs"
         ref="table"
         v-model="selected"
         :cols="cols"
@@ -524,6 +596,96 @@ const currentFilter = computed(() => {
           <EmptyState :title="$t('agent.list.empty')" body="" />
         </template>
       </DataTable>
+      <div
+        v-else
+        class="fd-ticket-cards pa-3"
+        data-testid="ticket-table"
+      >
+        <v-progress-linear
+          v-if="loading && !items.length"
+          indeterminate
+          color="primary"
+          class="mb-2"
+        />
+        <EmptyState
+          v-else-if="!loading && !items.length"
+          :title="$t('agent.list.empty')"
+          body=""
+        />
+        <template v-else>
+          <v-card
+            v-for="item in items"
+            :key="item.id"
+            border
+            flat
+            class="fd-ticket-card"
+            data-testid="ticket-row"
+            @click="open(item)"
+          >
+            <div class="fd-ticket-card__inner">
+              <div class="d-flex align-center ga-2 fd-ticket-card__meta">
+                <TicketNumber :number="item.number" :reftext="item.ref" />
+                <ProjectChip
+                  v-if="showProjectColumn"
+                  :project="item.project"
+                />
+                <v-spacer />
+                <RelativeTime
+                  :value="item.updated_at"
+                  class="text-caption text-medium-emphasis"
+                />
+              </div>
+              <div class="fd-ticket-card__subject">
+                {{ item.subject }}
+                <v-chip v-if="hasParent(item)" size="x-small" class="ml-1" label :prepend-icon="mdiLinkVariant">{{ $t('agent.list.child') }}</v-chip>
+                <v-chip v-if="hasChildren(item)" size="x-small" class="ml-1" label :prepend-icon="mdiLinkVariant">{{ $t('agent.list.parent') }}</v-chip>
+                <v-chip v-for="tg in item.tags ?? []" :key="tg" size="x-small" class="ml-1" variant="outlined">{{ tg }}</v-chip>
+              </div>
+              <div class="d-flex flex-wrap align-center ga-2 fd-ticket-card__foot">
+                <StatusChip :status="item.status" />
+                <PriorityChip :priority="item.priority" />
+                <span class="text-body-2">{{ item.requester?.name }}</span>
+                <div
+                  v-if="item.assignee"
+                  class="d-flex align-center ga-1"
+                >
+                  <UserAvatar :name="item.assignee.name" :size="24" />
+                  <span class="text-body-2">{{ item.assignee.name }}</span>
+                </div>
+                <span
+                  v-else
+                  class="text-body-2 text-medium-emphasis"
+                >{{ $t('agent.list.filters.assigneeNone') }}</span>
+              </div>
+            </div>
+          </v-card>
+          <div
+            v-if="next"
+            ref="loadSentinel"
+            class="fd-load-sentinel"
+            aria-hidden="true"
+          />
+          <div
+            v-if="next && !canInfiniteScroll"
+            class="text-center pt-2"
+          >
+            <v-btn
+              variant="outlined"
+              :loading="loading"
+              data-testid="load-more"
+              @click="loadMore"
+            >
+              {{ $t('agent.common.loadMore') }}
+            </v-btn>
+          </div>
+          <v-progress-linear
+            v-else-if="loading && items.length"
+            indeterminate
+            color="primary"
+            class="mt-2"
+          />
+        </template>
+      </div>
     </v-card>
 
     <v-dialog v-model="saveDialog" max-width="460">
@@ -538,6 +700,23 @@ const currentFilter = computed(() => {
 
 <style scoped>
 .fd-filters > * { flex: 1 1 160px; max-width: 240px; }
+.fd-filters-xs-search { flex: 1 1 auto; min-width: 0; }
 .fd-cf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; align-items: start; }
+.fd-ticket-cards { display: flex; flex-direction: column; gap: 8px; }
+.fd-ticket-card { cursor: pointer; }
+.fd-ticket-card__inner { padding: 12px 16px; min-height: 40px; }
+.fd-ticket-card__subject {
+  font-weight: 600;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fd-ticket-card__foot { margin-top: 8px; }
+.fd-load-sentinel { height: 1px; }
 :deep(.fd-row--focused) { outline: 2px solid rgb(var(--v-theme-primary)); outline-offset: -2px; }
+@media (max-width: 599.98px) {
+  .fd-filters > * { flex: 1 1 100%; max-width: none; }
+}
 </style>

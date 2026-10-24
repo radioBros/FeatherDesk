@@ -49,6 +49,29 @@
     padding-bottom: 6px;
 }
 
+// Vuetify 4 names its type scale after Material 3 (text-headline-small, text-body-medium, …) and dropped the
+// Material 2 classes this app uses everywhere (text-h5, text-body-2, text-caption, …), which left headings at the
+// browser's 2em and captions at body size. Same sizes as Vuetify 3, in Vuetify's own typography layer, so they
+// behave like its classes: they beat component defaults, and a component's scoped style still beats them. The
+// font family is not set: it stays the branded one (--fd-font, inherited from body).
+@mixin fd-type($size, $weight, $line, $spacing) {
+    font-size: $size;
+    font-weight: $weight;
+    line-height: $line;
+    letter-spacing: $spacing;
+}
+@layer vuetify-utilities.typography {
+    .text-h4 { @include fd-type(2.125rem, 400, 1.175, 0.0073529412em); }
+    .text-h5 { @include fd-type(1.5rem, 400, 1.3333, normal); }
+    .text-h6 { @include fd-type(1.25rem, 500, 1.6, 0.0125em); }
+    .text-subtitle-1 { @include fd-type(1rem, 400, 1.75, 0.009375em); }
+    .text-subtitle-2 { @include fd-type(0.875rem, 500, 1.6, 0.0071428571em); }
+    .text-body-1 { @include fd-type(1rem, 400, 1.5, 0.03125em); }
+    .text-body-2 { @include fd-type(0.875rem, 400, 1.425, 0.0178571429em); }
+    .text-caption { @include fd-type(0.75rem, 400, 1.667, 0.0333333333em); }
+    .text-overline { @include fd-type(0.75rem, 500, 2.667, 0.1666666667em); text-transform: uppercase; }
+}
+
 // Field hints and errors: readable line spacing (long hints wrap over several lines on a phone).
 .v-messages__message {
     line-height: 1.4;
