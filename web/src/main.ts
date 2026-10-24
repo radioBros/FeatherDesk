@@ -120,4 +120,18 @@ async function bootstrap() {
   }
 }
 
+// After an upgrade, a tab opened on the previous build asks for chunk files that no longer exist. Reload once to
+// fetch the new build instead of leaving a page (or the editor) blank; the timestamp stops a reload loop.
+window.addEventListener('vite:preloadError', (event) => {
+  try {
+    const last = Number(sessionStorage.getItem('fd.chunkReload') ?? 0)
+    if (Date.now() - last < 60_000) return
+    sessionStorage.setItem('fd.chunkReload', String(Date.now()))
+  } catch {
+    return
+  }
+  event.preventDefault()
+  window.location.reload()
+})
+
 void bootstrap()

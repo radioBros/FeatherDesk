@@ -3,7 +3,17 @@
 import { computed, defineAsyncComponent, nextTick, ref } from 'vue'
 import { validations, type Rule } from '@/constants/validations'
 import { useConfigStore } from '@/stores/config'
-const TiptapSurface = defineAsyncComponent(() => import('./editor/TiptapSurface.vue'))
+// The rich editor is its own chunk. If it cannot load (an old tab after an upgrade, a blocking proxy), a plain
+// Markdown text box takes its place, so there is always somewhere to write.
+const loadFailed = ref(false)
+const TiptapSurface = defineAsyncComponent({
+  loader: () => import('./editor/TiptapSurface.vue'),
+  onError: (_err, retry, fail, attempts) => {
+    if (attempts <= 1) return retry()
+    loadFailed.value = true
+    fail()
+  },
+})
 
 const props = withDefaults(
   defineProps<{
@@ -42,7 +52,7 @@ const surface = ref<{
 } | null>(null)
 
 async function insert(text: string, replaceBefore = 0) {
-  if (surface.value) return surface.value.insert(text, replaceBefore)
+  if (surface.value && !loadFailed.value) return surface.value.insert(text, replaceBefore)
   // The rich editor loads lazily: a pick (canned response, KB link) that comes first is appended, not lost.
   const v = props.modelValue
   emit('update:modelValue', (replaceBefore ? v.slice(0, Math.max(0, v.length - replaceBefore)) : v) + text)
@@ -79,7 +89,21 @@ defineExpose({ insert, focus, textBeforeCaret })
         <div
           :class="['fd-md-outline', radiusClass, { 'fd-md-outline--disabled': disabled, 'fd-md-outline--error': isValid.value === false || !!errorMessages?.length }]"
         >
+          <textarea
+            v-if="loadFailed"
+            class="fd-md-fallback"
+            :value="modelValue"
+            :disabled="disabled"
+            :aria-label="label || $t('editor.placeholder')"
+            :placeholder="$t('editor.placeholder')"
+            :style="{ minHeight: `${minHeightPx}px` }"
+            data-testid="md-source"
+            @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+            @keydown.enter.ctrl.prevent="emit('submit')"
+            @keydown.enter.meta.prevent="emit('submit')"
+          />
           <TiptapSurface
+            v-else
             ref="surface"
             :model-value="modelValue"
             :rows="rows"
@@ -123,6 +147,20 @@ defineExpose({ insert, focus, textBeforeCaret })
 .fd-md-outline--disabled {
   opacity: var(--v-disabled-opacity);
   pointer-events: none;
+}
+.fd-md-fallback {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  resize: vertical;
+  font: inherit;
+  line-height: 1.5;
+  background: transparent;
+  color: inherit;
+}
+.fd-md-fallback:focus {
+  outline: none;
 }
 .fd-md-hint {
   padding-inline: 12px 4px;

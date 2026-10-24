@@ -8,7 +8,7 @@ FeatherDesk is an open-source help desk with a customer portal, an agent panel, 
 
 FeatherDesk is developed by [RadioBros](https://radiobros.com/).
 
-**Version 1.3.0** (2026-10-24): see the [changelog](CHANGELOG.md).
+**Version 1.3.1** (2026-10-24): see the [changelog](CHANGELOG.md).
 
 SPDX-License-Identifier: AGPL-3.0-only
 

@@ -13,6 +13,12 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-24
+
+### Fixed
+- **The reply box can no longer disappear.** The rich-text editor loads as its own file; if that file could not be fetched (a tab opened before an upgrade, or a proxy blocking it), the editor area stayed empty. It now retries once and otherwise shows a plain Markdown text box, so there is always somewhere to write.
+- **Tabs left open across an upgrade reload themselves** when they ask for a file of the previous version, instead of showing blank parts of a page.
+
 ## [1.3.0] - 2026-10-24
 
 ### Added
@@ -253,7 +259,8 @@ pre-release builds.
   `api_tokens`, `ON DELETE SET NULL`) and a partial index on it. Additive and fast; no
   operator action.
 
-[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/radioBros/FeatherDesk/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/radioBros/FeatherDesk/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/radioBros/FeatherDesk/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/radioBros/FeatherDesk/compare/v1.1.0...v1.1.1
