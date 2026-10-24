@@ -70,7 +70,6 @@ const onSave = submit(async () => {
       :label="$t('agent.organizations.notes')"
       :rules="[validations.maxLength(5000)]"
       :error-messages="fieldErrors.notes"
-      rows="3"
       auto-grow
       class="mt-2"
     />

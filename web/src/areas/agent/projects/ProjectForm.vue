@@ -119,7 +119,6 @@ const onSave = submit(async () => {
       :label="$t('agent.common.description')"
       :rules="[validations.maxLength(1000)]"
       :error-messages="fieldErrors.description"
-      rows="2"
       auto-grow
       density="compact"
       data-testid="project-description"
@@ -185,7 +184,6 @@ const onSave = submit(async () => {
       :label="$t('projects.admin.portalIntro')"
       :rules="[validations.maxLength(5000)]"
       :error-messages="fieldErrors.portal_intro_md"
-      rows="3"
       auto-grow
       density="compact"
       data-testid="project-portal-intro"

@@ -1043,7 +1043,9 @@
         "watch": "Osserva",
         "unwatch": "Smetti di osservare",
         "add": "Aggiungi osservatore"
-      }
+      },
+      "resolve": "Risolvi",
+      "reopen": "Riapri"
     },
     "newTicket": {
       "subtitle": "Apri un ticket per conto di un cliente.",

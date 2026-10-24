@@ -84,7 +84,7 @@ const testid = computed(() => `cf-${props.def.key}`)
     :hide-details="noRules ? true : undefined"
     :error-messages="errorMessages"
     auto-grow
-    rows="1"
+    :rows="noRules ? 1 : undefined"
     :data-testid="testid"
     @update:model-value="(v: string) => emit('update:modelValue', v)"
   />

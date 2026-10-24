@@ -29,7 +29,6 @@ const onSubmit = submit(async () => {
       :label="$t('privacy.reject.reason')"
       :rules="reasonRules"
       :error-messages="fieldErrors.reason"
-      rows="3"
       auto-grow
       counter="1000"
       data-testid="reject-reason"

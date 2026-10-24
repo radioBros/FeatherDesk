@@ -11,7 +11,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { mdiArrowLeft, mdiCallMerge, mdiCallSplit, mdiDotsVertical, mdiFolderSwapOutline, mdiPencil, mdiSourceBranch } from '@mdi/js'
+import { mdiArrowLeft, mdiCallMerge, mdiCallSplit, mdiCheckCircleOutline, mdiDotsVertical, mdiFolderSwapOutline, mdiPencil, mdiRestore, mdiSourceBranch } from '@mdi/js'
 import { useSessionStore } from '@/stores/session'
 import { useUiStore } from '@/stores/ui'
 import { useRealtimeStore } from '@/stores/realtime'
@@ -166,6 +166,20 @@ const openChildren = computed(() =>
     (l) => l.type === 'parent_of' && l.from_ticket_id === ticket.value?.id && l.to_ticket && !['resolved', 'closed'].includes(l.to_ticket.status),
   ),
 )
+// One-click resolve / reopen (owner request): the same PATCH as the status field,
+// so open-children warnings, 409 transitions and stale ETags behave the same.
+const resolving = ref(false)
+const canResolve = computed(() => !!ticket.value && can('set_status') && !['resolved', 'closed'].includes(ticket.value.status))
+const canReopen = computed(() => !!ticket.value && can('set_status') && ticket.value.status === 'resolved')
+async function setStatus(status: S['TicketStatus']) {
+  resolving.value = true
+  try {
+    await onPatch({ status })
+  } finally {
+    resolving.value = false
+  }
+}
+
 async function onPatch(body: S['TicketPatch']) {
   // Resolving a parent with open children is allowed; warn without blocking (lifecycle §2b).
   if (body.status === 'resolved' && openChildren.value.length)
@@ -293,17 +307,40 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
     </EmptyState>
 
     <template v-else-if="ticket">
-      <div class="d-flex flex-wrap align-center ga-2 mb-3" data-testid="ticket-header">
-        <v-btn :icon="mdiArrowLeft" variant="text" to="/agent/tickets" :aria-label="$t('app.back')" />
-        <TicketNumber :number="ticket.number" :reftext="ticket.ref" />
-        <ProjectChip :project="ticket.project" />
-        <h1 class="text-h6 flex-grow-1 text-truncate" data-testid="ticket-subject">{{ ticket.subject }}</h1>
-        <v-chip v-if="isParent" size="small" label :prepend-icon="mdiSourceBranch" data-testid="badge-parent">{{ $t('agent.ticket.links.parentBadge') }}</v-chip>
-        <v-chip v-if="isChild" size="small" label :prepend-icon="mdiSourceBranch" data-testid="badge-child">{{ $t('agent.ticket.links.childBadge') }}</v-chip>
-        <StatusChip :status="ticket.status" />
-        <PriorityChip :priority="ticket.priority" />
-        <TierChip :tier="ticket.tier" />
-        <MacroPicker v-if="can('reply') || can('note') || can('set_status')" :ticket="ticket" :etag="detail.etag.value" @applied="onMacroApplied" @failed="detail.handleError" />
+      <!-- Phone: back, ref and project on the first row (with ⋮ at the end), the full subject below, then the chips. -->
+      <div class="fd-ticket-header d-flex flex-wrap align-center ga-2 mb-3" data-testid="ticket-header">
+        <div class="fd-th-nav d-flex align-center ga-2">
+          <v-btn :icon="mdiArrowLeft" variant="text" to="/agent/tickets" :aria-label="$t('app.back')" />
+          <TicketNumber :number="ticket.number" :reftext="ticket.ref" />
+          <ProjectChip :project="ticket.project" />
+        </div>
+        <h1 class="fd-th-title text-h6" data-testid="ticket-subject">{{ ticket.subject }}</h1>
+        <div class="fd-th-chips d-flex flex-wrap align-center ga-2">
+          <v-chip v-if="isParent" size="small" label :prepend-icon="mdiSourceBranch" data-testid="badge-parent">{{ $t('agent.ticket.links.parentBadge') }}</v-chip>
+          <v-chip v-if="isChild" size="small" label :prepend-icon="mdiSourceBranch" data-testid="badge-child">{{ $t('agent.ticket.links.childBadge') }}</v-chip>
+          <StatusChip :status="ticket.status" />
+          <PriorityChip :priority="ticket.priority" />
+          <TierChip :tier="ticket.tier" />
+          <MacroPicker v-if="can('reply') || can('note') || can('set_status')" :ticket="ticket" :etag="detail.etag.value" @applied="onMacroApplied" @failed="detail.handleError" />
+          <v-btn
+            v-if="canResolve"
+            color="success"
+            variant="flat"
+            :prepend-icon="mdiCheckCircleOutline"
+            :loading="resolving"
+            data-testid="ticket-resolve"
+            @click="setStatus('resolved')"
+          >{{ $t('agent.ticket.resolve') }}</v-btn>
+          <v-btn
+            v-else-if="canReopen"
+            variant="tonal"
+            :prepend-icon="mdiRestore"
+            :loading="resolving"
+            data-testid="ticket-reopen"
+            @click="setStatus('open')"
+          >{{ $t('agent.ticket.reopen') }}</v-btn>
+        </div>
+        <div class="fd-th-more d-flex align-center ga-2">
         <div v-if="others.length" class="d-flex ga-1" data-testid="presence" :aria-label="$t('agent.ticket.presence.viewing')">
           <v-tooltip v-for="u in others" :key="u.id" :text="`${u.name} · ${$t(`agent.ticket.presence.${u.state === 'typing' ? 'typing' : 'viewingOne'}`)}`">
             <template #activator="{ props: p }"><span v-bind="p"><UserAvatar :name="u.name" :size="28" /></span></template>
@@ -319,6 +356,7 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
             <v-list-item v-if="can('split')" :prepend-icon="mdiCallSplit" :title="$t('agent.ticket.split.title')" data-testid="split-open" @click="splitMode = true; tab = 'thread'" />
           </v-list>
         </v-menu>
+        </div>
       </div>
 
       <TwoColumnLayout>
@@ -399,3 +437,15 @@ const messages = computed(() => (ticket.value?.messages ?? []) as unknown as Mes
     </template>
   </v-container>
 </template>
+
+<style scoped>
+.fd-th-title { flex: 1 1 200px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
+.fd-th-more { margin-inline-start: auto; }
+/* Phone: row 1 = back, ref, project, ⋮ · row 2 = the full subject · row 3 = chips and actions. */
+@media (max-width: 599.98px) {
+  .fd-th-nav { order: 1; }
+  .fd-th-more { order: 2; }
+  .fd-th-title { order: 3; flex-basis: 100%; white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+  .fd-th-chips { order: 4; flex-basis: 100%; }
+}
+</style>

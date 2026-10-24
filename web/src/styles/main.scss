@@ -49,6 +49,12 @@
     padding-bottom: 6px;
 }
 
+// Field hints and errors: readable line spacing (long hints wrap over several lines on a phone).
+.v-messages__message {
+    line-height: 1.4;
+    padding-top: 2px;
+}
+
 .v-dialog>.v-overlay__content>.v-card, 
 .v-dialog>.v-overlay__content>.v-sheet, 
 .v-dialog>.v-overlay__content>form>.v-card, 

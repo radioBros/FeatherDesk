@@ -59,7 +59,6 @@ const onSubmit = submit(async () => {
       v-model="body"
       :label="$t('portal.detail.yourReply')"
       required
-      :rows="4"
       :error-messages="fieldErrors.body_md"
       @files="(f: File[]) => uploader?.add(f)"
       @submit="onSubmit()"

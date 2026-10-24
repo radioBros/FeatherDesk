@@ -14,6 +14,7 @@
  *   the page (`transition` event); `resend(status)` sends again.
  */
 import { computed, reactive, ref, watch } from 'vue'
+import { useDisplay } from 'vuetify'
 import { mdiChevronUp, mdiLockOutline, mdiSend } from '@mdi/js'
 import { useForm } from '@/composables/useForm'
 import { validations, type Rule } from '@/constants/validations'
@@ -44,6 +45,8 @@ const emit = defineEmits<{
 }>()
 
 const session = useSessionStore()
+// Phone: icon-only tools on the mode row, full-width Send.
+const { xs } = useDisplay()
 const lookups = useLookupsStore()
 const canReply = computed(() => session.can('reply', props.ticket))
 const canNote = computed(() => session.can('note', props.ticket))
@@ -162,13 +165,10 @@ defineExpose({ setMode, focus, resend, send })
 </script>
 
 <template>
-  <v-form
-    ref="formRef"
-    :class="['fd-composer', 'pa-3', 'rounded', mode === 'internal' ? 'fd-composer--note bg-internal-note' : 'border']"
-    data-testid="composer"
-    @submit.prevent="onSubmit"
-  >
-    <div class="d-flex flex-wrap align-center ga-2 mb-2">
+  <!-- A card like every other panel: same corners (16 px, or square with "sharp" branding). -->
+  <v-card flat :border="mode !== 'internal'" :class="['fd-composer', mode === 'internal' ? 'fd-composer--note bg-internal-note' : '']">
+  <v-form ref="formRef" class="pa-3" data-testid="composer" @submit.prevent="onSubmit">
+    <div class="d-flex align-center ga-2 mb-2" :class="{ 'flex-wrap': !xs }">
       <v-btn-toggle :model-value="mode" density="compact" mandatory variant="outlined" divided @update:model-value="setMode">
         <v-btn v-if="canReply" value="public" data-testid="mode-public">{{ $t('agent.ticket.composer.reply') }}</v-btn>
         <v-btn v-if="canNote" value="internal" :prepend-icon="mdiLockOutline" data-testid="mode-internal">
@@ -176,8 +176,8 @@ defineExpose({ setMode, focus, resend, send })
         </v-btn>
       </v-btn-toggle>
       <v-spacer />
-      <CannedPicker :vars="vars" @insert="(t: string) => editor?.insert(t)" />
-      <KbLinkPicker :mode="mode" @insert="insertKb" />
+      <CannedPicker :vars="vars" :compact="xs" @insert="(t: string) => editor?.insert(t)" />
+      <KbLinkPicker :mode="mode" :compact="xs" @insert="insertKb" />
     </div>
 
     <v-alert v-if="typing?.length" type="warning" variant="tonal" density="compact" class="mb-2" data-testid="typing-warning">
@@ -195,7 +195,6 @@ defineExpose({ setMode, focus, resend, send })
       ref="editor"
       v-model="model.body"
       required
-      :rows="4"
       :extra-rules="linkRules"
       :error-messages="fieldErrors.body_md"
       :label="mode === 'internal' ? $t('agent.ticket.composer.noteLabel') : $t('agent.ticket.composer.replyLabel')"
@@ -210,8 +209,8 @@ defineExpose({ setMode, focus, resend, send })
     <div class="d-flex flex-wrap align-center ga-2">
       <AttachmentUploader ref="uploader" v-model="model.attachments" area="agent" />
       <v-spacer />
-      <v-btn-group color="primary" density="comfortable" divided>
-        <v-btn type="submit" :loading="submitting" :prepend-icon="mdiSend" data-testid="composer-send" @click="nextStatus = null">
+      <v-btn-group color="primary" density="comfortable" divided :class="{ 'fd-send-block': xs }">
+        <v-btn type="submit" :loading="submitting" :prepend-icon="mdiSend" class="fd-send" data-testid="composer-send" @click="nextStatus = null">
           {{ mode === 'internal' ? $t('agent.ticket.composer.addNote') : $t('agent.ticket.composer.send') }}
         </v-btn>
         <v-menu v-if="session.can('set_status', ticket)" location="top end">
@@ -232,8 +231,12 @@ defineExpose({ setMode, focus, resend, send })
       </v-btn-group>
     </div>
   </v-form>
+  </v-card>
 </template>
 
 <style scoped>
 .fd-composer--note { border: 1px dashed rgb(var(--v-theme-on-internal-note)); }
+/* Phone: Send spans the row (the status menu keeps its own button). */
+.fd-send-block { width: 100%; }
+.fd-send-block .fd-send { flex: 1 1 auto; }
 </style>

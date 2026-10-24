@@ -85,7 +85,8 @@ export function radiusDefaults(r: Branding['radius'] = 'default') {
     // (contrast-safe), compact keeps selects, text fields, textareas and dates at the same 40px height.
     // Chips inside a field are small so a multiselect never grows taller than a text field.
     VTextField: { rounded, variant: 'outlined', density: 'compact' },
-    VTextarea: { rounded, variant: 'outlined', density: 'compact', rows: 1, autoGrow: true },
+    // Textareas start at 6 rows and grow with the text up to 24 rows (then scroll): room to write a reply.
+    VTextarea: { rounded, variant: 'outlined', density: 'compact', rows: 6, autoGrow: true, maxRows: 24 },
     VSelect: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' }, color: 'primary' },
     VAutocomplete: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },
     VCombobox: { rounded, variant: 'outlined', density: 'compact', VChip: { size: 'small' } },

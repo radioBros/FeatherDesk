@@ -1043,7 +1043,9 @@
         "watch": "Seguir",
         "unwatch": "Dejar de seguir",
         "add": "Añadir seguidor"
-      }
+      },
+      "resolve": "Resolver",
+      "reopen": "Reabrir"
     },
     "newTicket": {
       "subtitle": "Abre un ticket en nombre de un cliente.",

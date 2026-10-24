@@ -69,6 +69,7 @@ async function pick(id: string | null) {
 /* On a phone only the icons show, keeping the bar inside the viewport (topbar spacing rules). */
 @media (max-width: 599.98px) {
   .fd-switcher-text { display: none; }
+  .fd-project-switcher :deep(.v-btn__append) { display: none; }
   .fd-project-switcher { min-width: 40px; padding-inline: 8px; }
 }
 </style>

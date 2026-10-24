@@ -32,7 +32,6 @@ const onSubmit = submit(async () => {
       :label="$t('privacy.my.reason')"
       :rules="reasonRules"
       :error-messages="fieldErrors.reason"
-      rows="2"
       auto-grow
       counter="1000"
       data-testid="erasure-reason"

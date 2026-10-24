@@ -111,14 +111,14 @@ const onSave = submit(async () => {
 
     <section class="mb-6">
       <h2 class="text-subtitle-1 mb-3">{{ $t('agent.branding.portalTexts') }}</h2>
-      <MarkdownEditor v-model="model.welcome_md" :label="$t('agent.branding.welcome')" :rows="3" />
-      <MarkdownEditor v-model="model.new_ticket_intro_md" :label="$t('agent.branding.newTicketIntro')" :rows="3" />
+      <MarkdownEditor v-model="model.welcome_md" :label="$t('agent.branding.welcome')" />
+      <MarkdownEditor v-model="model.new_ticket_intro_md" :label="$t('agent.branding.newTicketIntro')" />
     </section>
 
     <section class="mb-6">
       <h2 class="text-subtitle-1 mb-3">{{ $t('agent.branding.emailLook') }}</h2>
       <ColorField v-model="model.email_header_color" :label="$t('agent.branding.emailHeader')" testid="brand-email-header" />
-      <MarkdownEditor v-model="model.email_footer_md" :label="$t('agent.branding.emailFooter')" :rows="3" />
+      <MarkdownEditor v-model="model.email_footer_md" :label="$t('agent.branding.emailFooter')" />
     </section>
 
     <section class="mb-6">
@@ -146,7 +146,7 @@ const onSave = submit(async () => {
     <section class="mb-6">
       <h2 class="text-subtitle-1 mb-1">{{ $t('agent.branding.customCss') }}</h2>
       <p class="text-body-2 text-medium-emphasis mb-3">{{ $t('agent.branding.customCssHint') }}</p>
-      <v-textarea v-model="model.custom_css" :label="$t('agent.branding.customCss')" :rules="cssRules" rows="3" auto-grow class="fd-mono" />
+      <v-textarea v-model="model.custom_css" :label="$t('agent.branding.customCss')" :rules="cssRules" class="fd-mono" />
     </section>
 
     <div class="d-flex justify-end">

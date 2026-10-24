@@ -14,6 +14,7 @@ import {
   mdiAccountMultipleOutline,
   mdiBookOpenPageVariantOutline,
   mdiBookmarkOutline,
+  mdiArrowLeft,
   mdiChartBar,
   mdiCog,
   mdiDomain,
@@ -68,6 +69,18 @@ const projects = useProjectsStore()
 const views = useViewsStore()
 const router = useRouter()
 const { mdAndUp } = useDisplay()
+// Phone: the search is an icon that opens a full-width field over the bar.
+const searchOpen = ref(false)
+const searchBtn = ref<{ $el: HTMLElement } | null>(null)
+const searchField = ref<{ focus: () => void } | null>(null)
+function openSearch() {
+  searchOpen.value = true
+  requestAnimationFrame(() => searchField.value?.focus())
+}
+function closeSearch() {
+  searchOpen.value = false
+  requestAnimationFrame(() => searchBtn.value?.$el?.focus())
+}
 const barCollapsed = useBarCollapsed()
 const drawer = ref(mdAndUp.value)
 const search = ref('')
@@ -112,6 +125,7 @@ const adminGroups = computed(() =>
 )
 
 function onSearch() {
+  searchOpen.value = false
   const q = search.value.trim()
   if (!q) return
   const m = /^#?(\d+)$/.exec(q)
@@ -134,21 +148,37 @@ useShortcuts({ '?': () => (help.value = true) })
       <v-app-bar-title class="flex-grow-0">
         <router-link to="/agent/tickets" class="text-decoration-none text-high-emphasis"><BrandLogo /></router-link>
       </v-app-bar-title>
-      <v-text-field
-        v-model="search"
-        :placeholder="$t('agent.nav.search')"
-        :aria-label="$t('agent.nav.searchLabel')"
-        :prepend-inner-icon="mdiMagnify"
-        density="compact"
-        variant="solo-filled"
-        flat
-        hide-details
-        single-line
-        class="fd-search"
-        data-testid="global-search"
-        @keydown.enter="onSearch"
-      />
+      <!-- One search field: inline from 600 px up; on a phone it hides behind an icon and opens over the whole bar. -->
+      <div :class="['fd-search-wrap', { 'fd-search-wrap--open': searchOpen }]" data-testid="search-overlay">
+        <v-btn :icon="mdiArrowLeft" variant="text" class="fd-search-close" :aria-label="$t('app.close')" @click="closeSearch" />
+        <v-text-field
+          ref="searchField"
+          v-model="search"
+          :placeholder="$t('agent.nav.search')"
+          :aria-label="$t('agent.nav.searchLabel')"
+          :prepend-inner-icon="mdiMagnify"
+          density="compact"
+          variant="solo-filled"
+          flat
+          hide-details
+          single-line
+          class="fd-search"
+          data-testid="global-search"
+          @keydown.enter="onSearch"
+          @keydown.esc="closeSearch"
+        />
+      </div>
       <template #append>
+        <v-btn
+          ref="searchBtn"
+          class="fd-search-open"
+          :icon="mdiMagnify"
+          variant="text"
+          :aria-label="$t('agent.nav.searchLabel')"
+          :aria-expanded="searchOpen"
+          data-testid="search-open"
+          @click="openSearch"
+        />
         <ProjectSwitcher v-if="projects.showSwitcher" />
         <v-btn v-if="mdAndUp" :icon="mdiKeyboardOutline" variant="text" color="nav-system" :aria-label="$t('agent.nav.shortcuts')" data-testid="shortcuts-open" @click="help = true" />
         <template v-if="!barCollapsed">
@@ -239,4 +269,23 @@ useShortcuts({ '?': () => (help.value = true) })
 .fd-skip { position: absolute; left: -9999px; }
 .fd-skip:focus { left: 8px; top: 8px; z-index: 10000; background: rgb(var(--v-theme-surface)); padding: 8px; }
 .fd-search { flex: 1 1 0; min-width: 0; max-width: 420px; margin-inline: 8px; }
+.fd-search-wrap { display: contents; }
+.fd-search-close, .fd-search-open { display: none !important; }
+/* Phone: only the icon shows; when opened the field covers the whole bar (menu, logo and actions). */
+@media (max-width: 599.98px) {
+  .fd-search-open { display: inline-flex !important; }
+  .fd-search-wrap { display: none; }
+  .fd-search-wrap--open {
+    display: flex; position: absolute; inset: 0; z-index: 2; align-items: center; gap: 8px;
+    padding-inline: 8px 12px; background: rgb(var(--v-theme-surface));
+  }
+  .fd-search-wrap--open .fd-search-close { display: inline-flex !important; }
+  .fd-search-wrap--open .fd-search { max-width: none; margin-inline: 0; }
+}
+.fd-search { flex: 1 1 0; min-width: 0; max-width: 420px; margin-inline: 8px; }
+/* Covers the whole bar (menu, logo and actions) while searching on a phone. */
+.fd-search-overlay {
+  position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; gap: 8px;
+  padding-inline: 8px 12px; background: rgb(var(--v-theme-surface));
+}
 </style>

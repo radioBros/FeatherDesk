@@ -12,7 +12,8 @@ import { api, unwrap } from '@/api/client'
 import type { components } from '@/api/schema'
 
 type S = components['schemas']
-const props = defineProps<{ mode: 'public' | 'internal' }>()
+/** `compact`: icon-only activator (the composer toolbar on a phone); the label stays as aria-label. */
+const props = defineProps<{ mode: 'public' | 'internal'; compact?: boolean }>()
 const emit = defineEmits<{ insert: [{ markdown: string; href: string; internal: boolean }] }>()
 const open = ref(false)
 const q = ref('')
@@ -54,7 +55,8 @@ function pick(a: S['KbArticleSummary']) {
 <template>
   <v-dialog v-model="open" max-width="520">
     <template #activator="{ props: p }">
-      <v-btn v-bind="p" variant="text" size="small" :prepend-icon="mdiBookOpenPageVariantOutline" data-testid="kb-link-open">
+      <v-btn v-if="compact" v-bind="p" variant="text" :icon="mdiBookOpenPageVariantOutline" :aria-label="$t('agent.ticket.composer.kbLink')" data-testid="kb-link-open" />
+      <v-btn v-else v-bind="p" variant="text" size="small" :prepend-icon="mdiBookOpenPageVariantOutline" data-testid="kb-link-open">
         {{ $t('agent.ticket.composer.kbLink') }}
       </v-btn>
     </template>

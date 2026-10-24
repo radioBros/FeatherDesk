@@ -1043,7 +1043,9 @@
         "watch": "Beobachten",
         "unwatch": "Nicht mehr beobachten",
         "add": "Beobachter hinzufügen"
-      }
+      },
+      "resolve": "Lösen",
+      "reopen": "Wieder öffnen"
     },
     "newTicket": {
       "subtitle": "Ein Ticket im Namen eines Kunden eröffnen.",

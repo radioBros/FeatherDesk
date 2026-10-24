@@ -11,7 +11,8 @@ import { fillVars } from './composer'
 import type { components } from '@/api/schema'
 
 type S = components['schemas']
-const props = defineProps<{ vars: Record<string, string> }>()
+/** `compact`: icon-only activator (the composer toolbar on a phone); the label stays as aria-label. */
+const props = defineProps<{ vars: Record<string, string>; compact?: boolean }>()
 const emit = defineEmits<{ insert: [string] }>()
 const open = ref(false)
 const q = ref('')
@@ -44,7 +45,8 @@ function pick(c: S['CannedResponse']) {
 <template>
   <v-menu v-model="open" :close-on-content-click="false" location="top start">
     <template #activator="{ props: p }">
-      <v-btn v-bind="p" variant="text" size="small" :prepend-icon="mdiTextBoxOutline" data-testid="canned-open">
+      <v-btn v-if="compact" v-bind="p" variant="text" :icon="mdiTextBoxOutline" :aria-label="$t('agent.ticket.composer.canned')" data-testid="canned-open" />
+      <v-btn v-else v-bind="p" variant="text" size="small" :prepend-icon="mdiTextBoxOutline" data-testid="canned-open">
         {{ $t('agent.ticket.composer.canned') }}
       </v-btn>
     </template>

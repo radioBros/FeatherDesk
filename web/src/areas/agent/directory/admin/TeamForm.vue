@@ -74,7 +74,6 @@ const onSave = submit(async () => {
       :label="$t('agent.common.description')"
       :rules="[validations.maxLength(1000)]"
       :error-messages="fieldErrors.description"
-      rows="2"
       auto-grow
     />
     <AutocompleteSearch

@@ -51,7 +51,6 @@ const onSubmit = submit(async () => {
       :label="$t('agent.ticket.escalate.reason')"
       :rules="[validations.required.any, validations.maxLength(1000)]"
       :error-messages="fieldErrors.reason"
-      rows="3"
       auto-grow
       data-testid="escalate-reason"
     />

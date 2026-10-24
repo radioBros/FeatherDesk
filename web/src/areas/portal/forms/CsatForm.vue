@@ -47,7 +47,6 @@ const onSubmit = submit(async () => {
       :label="$t('portal.csat.comment')"
       :rules="[validations.maxLength(2000)]"
       :error-messages="fieldErrors.comment"
-      rows="2"
       auto-grow
       counter="2000"
       data-testid="csat-comment"

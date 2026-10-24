@@ -24,7 +24,7 @@ const onSave = submit(async () => {
     <v-alert v-if="formError" type="error" variant="tonal" density="compact" class="mb-3">{{ formError }}</v-alert>
     <v-input :model-value="model.body" :rules="signatureRules" :error-messages="fieldErrors.signature_md" data-testid="signature-input">
       <div class="w-100">
-        <MarkdownEditor v-model="model.body" :label="$t('agent.profile.signature')" :rows="4" />
+        <MarkdownEditor v-model="model.body" :label="$t('agent.profile.signature')" />
         <div class="text-caption text-medium-emphasis text-right">{{ model.body.length }} / 2000</div>
       </div>
     </v-input>

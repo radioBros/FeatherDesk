@@ -1043,7 +1043,9 @@
         "watch": "Watch",
         "unwatch": "Stop watching",
         "add": "Add watcher"
-      }
+      },
+      "resolve": "Resolve",
+      "reopen": "Reopen"
     },
     "newTicket": {
       "subtitle": "Open a ticket on behalf of a customer.",

@@ -387,7 +387,6 @@ const onSave = submit(async () => {
           :hint="$t('automation.rules.noteHint')"
           persistent-hint
           :rules="[validations.required.any, validations.maxLength(10000)]"
-          rows="2"
           auto-grow
           density="compact"
           data-testid="action-note"
