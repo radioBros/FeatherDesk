@@ -2,6 +2,8 @@
 
 This is the contract that lets the backend, frontend and tooling be built in parallel. If you change a contract described here, update this file in the same change.
 
+Release SemVer lives in the repo-root `VERSION` file; `scripts/version.sh` stamps README, `web/package.json`, `api/openapi.yaml` and the Helm chart, and `cmd/featherdesk/version_files_test.go` keeps them aligned. See **Versioning** in `CONTRIBUTING.md`.
+
 ## Ground rules
 
 - **Go 1.27.3+, `CGO_ENABLED=0`.** `go.mod` is pinned through `tools/deps.go`. **Do not run `go get`, and do not add modules.** Runtime dependencies are capped at 15; the current set is listed in `tools/deps.go`.

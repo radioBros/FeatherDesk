@@ -13,6 +13,24 @@ reversible, slow on large databases, or needs operator action. CI enforces this
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-24
+
+### Added
+- **Install FeatherDesk as an app.** The customer portal and the agent panel can be installed from the browser on phones and desktops (HTTPS needed): each has its own app manifest (`GET /manifest.webmanifest?area=portal|agent`) with the product name and the brand colour, an iOS home-screen icon, and a small offline page when there is no connection (nothing else is cached, so data is never stale).
+- **App icons from your logo.** *Administration → Branding → App icons* makes the four install icons (192, 512, 512 maskable, iOS 180) from the current icon or light logo in one click, shows them, warns when the logo changed after they were made and can go back to the built-in icons. API: `POST`/`DELETE /admin/branding/pwa-icons`, and `pwa_icons` in the branding settings.
+- **One-click Resolve.** The agent ticket page has a *Resolve* button (and *Reopen* on a resolved ticket), so resolving no longer goes through the status field.
+- **One version file.** The release version lives in `VERSION` at the repository root; `scripts/version.sh bump patch|minor|major` stamps it into the README, `web/package.json`, the OpenAPI spec and the Helm chart, and a test fails when they disagree (`make version-check`).
+
+### Changed
+- **Phone layouts everywhere.** Page titles share one row with their badge; the agent top bar shows search, projects and language as icons, and search opens over the whole bar; the ticket header puts back, reference and project on the first row and the full subject below; the composer is a card with the same corners as the others, its tools are icons and *Send* spans the width; the agent ticket list shows cards with filters behind a *Filters* button (with a count of active ones) and loads more as you scroll; SLA targets, report filters and notification preferences stack on narrow screens; the portal ticket header, reply button, sign-in headings and language switcher are sized for phones.
+- **Text areas start at 6 rows and grow with the text** (up to 24 rows) everywhere.
+- Field hints and error messages under inputs have a readable line height.
+
+### Fixed
+- **Text sizes.** Headings, captions and secondary text have their intended sizes again. Vuetify 4 renamed its type classes, and the ones the app uses (`text-h6`, `text-body-2`, `text-caption`, …) had silently stopped working, so page titles showed at twice their size and captions as large as body text, which crowded phones most.
+- **Editors are 6 rows tall.** A compact-field rule capped every multi-line field at two lines; they now start at their row count and grow with the text.
+- On a phone the portal's top bar no longer cuts off the product name (sign-in is an icon there, like staff sign-in), and notification rows stack their actions so the title keeps the width.
+
 ## [1.1.1] - 2026-10-23
 
 ### Fixed
@@ -229,7 +247,8 @@ pre-release builds.
   `api_tokens`, `ON DELETE SET NULL`) and a partial index on it. Additive and fast; no
   operator action.
 
-[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/radioBros/FeatherDesk/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/radioBros/FeatherDesk/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/radioBros/FeatherDesk/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/radioBros/FeatherDesk/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/radioBros/FeatherDesk/releases/tag/v1.0.0

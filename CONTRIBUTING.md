@@ -70,6 +70,16 @@ The binding rules live in `docs/dev/internals.md`. The essentials:
 - **Third-party notices.** After changing Go modules or `web/package.json` dependencies, run `go run ./tools/notices` (with `web/node_modules` installed) and commit `THIRD_PARTY_NOTICES`. CI fails when it is stale or a licence is not AGPL-3.0-compatible.
 - **Configuration.** A new `FD_*` variable must be added to `.env.example`. `TestEnvExampleMatchesConfig` fails otherwise.
 
+## Versioning
+
+FeatherDesk uses [Semantic Versioning](https://semver.org/). Every merge to `main` bumps the version in the repo-root `VERSION` file (the single source of truth). Use `scripts/version.sh`:
+
+- **patch** — bug fixes, docs-only or CI-only changes
+- **minor** — new features (backward compatible)
+- **major** — breaking API or behaviour changes
+
+Run `scripts/version.sh bump patch|minor|major` (or `set X.Y.Z`), add a `CHANGELOG.md` section for the release, then `scripts/version.sh check`. Published releases are git tags `vX.Y.Z`: a build exactly on that tag reports `X.Y.Z`, any other build `X.Y.Z-dev+<commit>`.
+
 ## Changing the API contract
 
 1. Edit `api/openapi.yaml` first.

@@ -6,7 +6,12 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+# Binary -X main.version comes from VERSION (scripts/version.sh): exactly that on its release tag v<VERSION>,
+# otherwise <VERSION>-dev+<short-sha>, so a build is never labelled with an older tag's version.
+_FILE_VER     := $(shell cat VERSION 2>/dev/null || echo 0.0.0)
+_AT_TAG       := $(shell git describe --tags --exact-match --match 'v$(_FILE_VER)' 2>/dev/null)
+_SHORT_SHA    := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+VERSION       ?= $(if $(_AT_TAG),$(_FILE_VER),$(_FILE_VER)-dev+$(_SHORT_SHA))
 COMMIT    ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 # Reproducible image timestamps (DEP-002): the last commit time.
 SOURCE_DATE_EPOCH ?= $(shell git log -1 --format=%ct 2>/dev/null || echo 0)
@@ -155,6 +160,13 @@ k8s-validate: ## helm lint/template + kubeconform on deploy/k8s and the chart
 
 proxy-test: ## Caddy, nginx, Traefik examples: TLS, Secure cookie, client IP, WebSocket
 	scripts/proxy-test.sh --image $(IMAGE)
+
+.PHONY: version version-check
+version: ## Print the release SemVer from VERSION
+	@bash scripts/version.sh
+
+version-check: ## Fail if README, web, OpenAPI and Helm chart disagree with VERSION
+	@bash scripts/version.sh check
 
 .PHONY: clean
 clean: ## Remove build output and dev data
