@@ -3,7 +3,7 @@
 # Link check for the shipped docs (DEP-016, DEP-027, DEP-032), run by the CI
 # job `docs`:  lychee --config lychee.toml README.md CONTRIBUTING.md … 'docs/**/*.md'
 # Relative links and #anchors are always checked. The CI job adds --offline on
-# pull requests (no flaky outside hosts) and checks external URLs nightly.
+# pull requests (no flaky outside hosts) and checks external URLs on main and manual runs.
 
 include_fragments = "anchor-only"
 max_concurrency = 8

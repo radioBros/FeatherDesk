@@ -116,7 +116,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 | Notification centre | ![Portal notification centre, light theme](docs/screenshots/notifications-light.png) | ![Portal notification centre, dark theme](docs/screenshots/notifications-dark.png) |
 | Two-step verification | ![Portal security page, light theme](docs/screenshots/security-light.png) | ![Portal security page, dark theme](docs/screenshots/security-dark.png) |
 
-The screenshots are generated from demo data (`featherdesk seed --demo`) by `cd web && pnpm screenshots` (Playwright; the nightly CI job `screenshots` does the same).
+The screenshots are generated from demo data (`featherdesk seed --demo`) by `cd web && pnpm screenshots` (Playwright; the opt-in CI job `screenshots` does the same).
 
 ## Architecture
 
@@ -151,7 +151,7 @@ Failed deliveries are retried from the database, so nothing is lost on a restart
 
 ## Footprint
 
-Measured on 2026-10-21 with the production compose file (one container, read-only, `mem_limit: 256m`, `cpus: 1`) on Docker Desktop for Apple Silicon. The `image` CI job re-measures size, idle memory, idle CPU and cold start on every change with `scripts/footprint.sh` and fails above the hard limit; the nightly load test runs `scripts/loadtest.sh`.
+Measured on 2026-10-21 with the production compose file (one container, read-only, `mem_limit: 256m`, `cpus: 1`) on Docker Desktop for Apple Silicon. The `image` CI job re-measures size, idle memory, idle CPU and cold start on every change with `scripts/footprint.sh` and fails above the hard limit; the opt-in load test (manual run or `ci:full` label) runs `scripts/loadtest.sh`.
 
 | | Measured | Target | Hard limit |
 |---|---|---|---|

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 #
 # The files this CI run is about, one per line, or the single line ALL when
-# everything must run: the nightly and manual runs, a pull request labelled
+# everything must run: manual runs, a pull request labelled
 # `ci:full`, a push whose base is unknown (new branch, force push), or a diff
 # that cannot be computed. Nothing at all for the push that merges a pull
 # request: CI already tested that pull request.

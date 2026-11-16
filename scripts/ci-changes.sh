@@ -3,7 +3,7 @@
 #
 # Which parts of CI a change needs, as `name=true|false` lines (for
 # $GITHUB_OUTPUT). Reads the changed files (scripts/ci-changed-files.sh) on
-# stdin; only the line ALL (a manual or nightly run, or the `ci:full` PR
+# stdin; only the line ALL (a manual run, or the `ci:full` PR
 # label) turns everything on. Editing CI itself does not: owner rule, CI tests
 # only the affected parts (a CI change shows its effect on the jobs it gates).
 #

@@ -2627,7 +2627,7 @@ Things to know:
   - Receivers can therefore spot the duplicates.
 - **Lost:** sign-in emails (verification, password reset, magic link, invitation) that were queued when the backup was taken are lost. Users simply request them again.
 
-**Restore drill.** Test a restore on a fresh host now and then. Compare ticket and message counts, and open a few attachments. `scripts/restore-drill.sh --engine sqlite|postgres` automates it with Docker: it seeds data, takes the backup above (plus `pg_dump` on PostgreSQL), restores into new volumes on new containers, and compares every table's row count, every stored file's SHA-256 and the attachments served by the restored instance. CI runs it nightly on both engines.
+**Restore drill.** Test a restore on a fresh host now and then. Compare ticket and message counts, and open a few attachments. `scripts/restore-drill.sh --engine sqlite|postgres` automates it with Docker: it seeds data, takes the backup above (plus `pg_dump` on PostgreSQL), restores into new volumes on new containers, and compares every table's row count, every stored file's SHA-256 and the attachments served by the restored instance. CI runs it on both engines on a manual run or with the `ci:full` label.
 
 **Continuous replication with Litestream (optional, SQLite only).** Backups are taken at a point in time. To lose at most a second or two of data when a host or its volume dies, add the [Litestream](https://litestream.io) overlay. It streams the SQLite WAL to S3-compatible storage (AWS S3, Cloudflare R2, Backblaze B2, MinIO, Garage). It is opt-in and not part of `deploy/compose.yml`, so the default install stays one container. With PostgreSQL, use your Postgres point-in-time recovery instead.
 
